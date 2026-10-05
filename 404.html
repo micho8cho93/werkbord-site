@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Not found — Werkbord</title>
+<link rel="icon" href="/werkbord-site/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap">
+<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('wb-theme')}catch(e){}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.dataset.theme=t})()</script>
+<style>
+:root{--bg:#F5F5F2;--tx:#0A0A0A;--t2:#55554F;--ac:#2447FF;--bd:#DAD9D3;--sans:'Geist',system-ui,sans-serif;--mono:'Geist Mono',ui-monospace,monospace}
+:root[data-theme=dark]{--bg:#0B0B0C;--tx:#F0F0EC;--t2:#A3A39D;--ac:#7C93FF;--bd:#2A2A2D}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--tx);font-family:var(--sans);padding:24px}
+main{max-width:520px}
+h1{font-size:clamp(40px,9vw,72px);letter-spacing:-.04em;line-height:1;margin:0 0 16px;font-weight:600}
+p{color:var(--t2);margin:0 0 24px;font-size:18px}
+code{font-family:var(--mono);font-size:.9em;color:var(--tx)}
+a{color:var(--ac);font-weight:500}
+</style>
+</head>
+<body>
+<main>
+<h1>No board at this address.</h1>
+<p>Nothing is running at <code id="p"></code>. The pages are one level up.</p>
+<a href="/werkbord-site/">Back to Werkbord</a> &nbsp;·&nbsp; <a href="/werkbord-site/team.html">Werkbord Team</a>
+</main>
+<script>document.getElementById('p').textContent=location.pathname</script>
+</body>
+</html>

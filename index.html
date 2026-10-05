@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Werkbord — Werk local, ship global.</title>
+<meta name="description" content="Werkbord is a local-first remote control for coding agents. A board, a calendar and Git, running on your computer, driven from your phone. No hosted backend, no account.">
+<meta name="theme-color" content="#F5F5F2">
+<meta property="og:title" content="Werkbord — Werk local, ship global.">
+<meta property="og:description" content="A local-first remote control for coding agents. Your board, calendar and runs live on your computer.">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap">
+<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('wb-theme')}catch(e){}if(!t)t=d.dataset.defaultTheme==='dark'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');d.dataset.theme=t;d.classList.add('js')})()</script>
+<link rel="stylesheet" href="assets/css/site.css">
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/pages.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="./" aria-label="werkbord home">
+      <img class="mark-l" src="assets/img/mark-light.svg" alt="" width="30" height="22"><img class="mark-d" src="assets/img/mark-dark.svg" alt="" width="30" height="22">
+      <span class="wm">werkbord</span>
+    </a>
+    <nav class="nav-links" aria-label="Site">
+      <a href="./" aria-current="page">Individual</a>
+      <a href="team.html">Team</a>
+      <a class="hide-s" href="#demo">Try it</a>
+      <a class="hide-s" href="#install">Install</a>
+    </nav>
+    <div class="nav-end">
+      <a class="btn" href="https://github.com/micho8cho93/werkbord" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .2a8 8 0 0 0-2.5 15.6c.4.1.5-.2.5-.4v-1.4c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.9.9 2.3.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.200.8a7.600 7.600 0 0 1 4 0c1.500-1 2.200-.8 2.200-.8.4 1.100.2 1.900.1 2.100.5.600.8 1.300.8 2.100 0 3.100-1.900 3.800-3.600 4 .3.300.6.800.6 1.500v2.200c0 .2.1.5.6.4A8 8 0 0 0 8 .2z"/></svg>
+        <span class="hide-s">GitHub</span>
+      </a>
+      <button class="btn theme-btn" type="button" data-theme-toggle aria-label="Switch theme">
+        <svg class="sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.500M8 13v1.500M1.500 8H3M13 8h1.500M3.400 3.400l1 1M11.600 11.600l1 1M3.400 12.600l1-1M11.600 4.400l1-1"/></svg>
+        <svg class="moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.500 9.500A5.500 5.500 0 0 1 6.500 2.500a5.500 5.500 0 1 0 7 7z"/></svg>
+      </button>
+      <a class="btn pri" href="#install">Install</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <h1>Werk local,<br><span class="amp">ship global.</span></h1>
+        <p class="lede">A remote control for your coding agents. The board, the calendar and every run live on your computer. Your phone, tablet or browser just connects to it.</p>
+        <div style="width:100%">
+          <div class="curl">
+            <code><span class="ps">$</span><span id="curl-solo">curl -fsSL https://raw.githubusercontent.com/micho8cho93/werkbord/main/scripts/install.sh | sh</span></code>
+            <button class="btn pri" type="button" data-copy="#curl-solo"><span class="idle">Copy</span><span class="done">Copied</span></button>
+          </div>
+          <div class="curl-note"><span>macOS · Linux</span><span>Windows (experimental)</span><span>No account. No Docker. No root.</span></div>
+        </div>
+        <div class="hero-links">
+          <a class="btn" href="#demo">Try the app below</a>
+          <a class="btn" href="team.html">Working with a team?</a>
+        </div>
+      </div>
+      <div class="field" aria-hidden="true">
+        <canvas id="pixelfield"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="demo" style="padding-top:clamp(24px,4vw,48px)">
+    <div class="wrap">
+      <div class="demo-head rv">
+        <div class="sec-head">
+          <h2>The app, running in this page.</h2>
+          <p class="lede">Start an agent, answer a question, plan the week. The Board, Calendar and Overview share one state, exactly like the real thing.</p>
+        </div>
+        <div class="try" role="group" aria-label="Try this">
+          <button class="btn" type="button" data-try="board"><span class="n">1</span>Start an agent</button>
+          <button class="btn" type="button" data-try="calendar"><span class="n">2</span>Plan the week</button>
+          <button class="btn" type="button" data-try="overview"><span class="n">3</span>Turn a Git finding into a task</button>
+        </div>
+      </div>
+      <div id="app-demo" class="rv"></div>
+      <p class="demo-note">Drag Backlog cards into Doing. Drag a card from Review into Done to merge it: an agent finishing never merges. Drop unscheduled tasks onto the Calendar and watch them appear on the Board.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="product">
+    <div class="wrap split">
+      <div class="sticky rv">
+        <h2>One control plane. Your side of the wire.</h2>
+        <p class="lede">Each repository is a project with its own board, calendar, Git view and runs. Inside one you see that project and nothing else.</p>
+      </div>
+      <div class="rows rv">
+        <div class="row"><h3><span class="dot" style="background:var(--ac)"></span>Board</h3><p>Backlog, Doing, Review, Done. Each run is an interactive session in its own Git worktree: watch it, answer it, send follow-ups. A closed browser never interrupts anything.</p></div>
+        <div class="row"><h3><span class="dot" style="background:var(--tx)"></span>Calendar</h3><p>Schedule the same tasks by day and week, queue by priority, add dependencies. The controller runs the schedule from SQLite while your browser is closed, with explicit missed-time policies.</p></div>
+        <div class="row"><h3><span class="dot" style="background:var(--amber)"></span>Needs you</h3><p>The Control Center is for exceptions: questions, blocked and failed runs, work ready for review, repository risk. Everything else stays quiet.</p></div>
+        <div class="row"><h3><span class="dot" style="background:var(--ok)"></span>Git, without force</h3><p>Fetch, push, merge and open pull requests after checks that refuse rather than guess. Findings say what, why, the evidence and the next step. <b style="color:var(--tx);font-weight:500">An agent finishing a run never merges.</b></p></div>
+        <div class="row"><h3><span class="dot" style="background:var(--bl)"></span>Many machines</h3><p>Pair your own computers with <code>devboard join</code>. Tasks go where the repository and the agent are, by deterministic routing you can read. Usage you cannot measure stays unknown.</p></div>
+        <div class="row"><h3><span class="dot" style="background:var(--t2)"></span>Yours</h3><p>Claude Code or Codex, signed in as you. No hosted backend, no Dev Board account, nothing exposed to the Internet.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="phone" style="padding-top:0">
+    <div class="wrap phone-wrap">
+      <div class="rv">
+        <h2>Your phone is the remote.</h2>
+        <p class="lede" style="margin-top:14px">Approve a command from the sofa. Merge a branch from the train. The agents keep working on your computer while you are away from it.</p>
+        <ul class="points">
+          <li><span><b>Private by construction.</b> Werkbord embeds a Tailscale node, so your phone reaches the controller over your own network. No tunnel, no certificates, no relay of ours.</span></li>
+          <li><span><b>Scan, then Add to Home Screen.</b> <span class="mono-i">devboard open --qr</span> opens the app already signed in.</span></li>
+          <li><span><b>Same state as above.</b> This phone mirrors the demo. Approve something here and the Board follows.</span></li>
+        </ul>
+      </div>
+      <div class="phone rv" aria-label="Werkbord on a phone, live"><div class="phone-in" id="phone-demo"></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="install" style="padding-top:0">
+    <div class="wrap">
+      <div class="install rv">
+        <div class="pxrow" aria-hidden="true"><i></i><i></i><i class="c"></i><i></i><i class="a"></i><i></i><i></i><i class="c"></i></div>
+        <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;min-width:0">
+          <h2>One command.</h2>
+          <p class="lede">The installer checks the download against its published checksum before it installs anything, then sets Werkbord up and opens it in your browser.</p>
+          <div style="width:100%">
+            <div class="curl">
+              <code><span class="ps">$</span><span id="curl-solo-2">curl -fsSL https://raw.githubusercontent.com/micho8cho93/werkbord/main/scripts/install.sh | sh</span></code>
+              <button class="btn" type="button" data-copy="#curl-solo-2"><span class="idle">Copy</span><span class="done">Copied</span></button>
+            </div>
+            <div class="curl-note"><span>Needs <span class="mono">git</span></span><span>Agents need the <span class="mono">claude</span> and/or <span class="mono">codex</span> CLI, signed in</span></div>
+          </div>
+          <div class="cmds" aria-label="Commands afterwards"><code>devboard status</code><code>devboard open</code><code>devboard doctor</code><code>devboard update</code></div>
+        </div>
+        <ol class="steps">
+          <li><span><b>Downloads the release for your computer</b> and verifies its checksum.</span></li>
+          <li><span><b>Creates your data directory and database,</b> and installs a login service so the controller is always there.</span></li>
+          <li><span><b>Registers this computer as your first runner.</b></span></li>
+          <li><span><b>Joins your private network</b> so a phone can reach it.</span></li>
+          <li><span><b>Opens Werkbord.</b> Connect GitHub (optional), see which agents it found, pick repositories.</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" style="padding-top:0">
+    <div class="wrap">
+      <div class="band rv">
+        <div>
+          <h3>Working with a team?</h3>
+          <p>Werkbord Team is a separate, shared workspace: members, projects, one board, reviews. It coordinates. Every person's own computer still does the work.</p>
+        </div>
+        <a class="btn pri" href="team.html">See Werkbord Team</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div style="display:flex;align-items:center;gap:14px">
+      <img class="mark-l" src="assets/img/mark-light.svg" alt="" height="18" width="25"><img class="mark-d" src="assets/img/mark-dark.svg" alt="" height="18" width="25">
+      <span>Werk local, ship global.</span>
+    </div>
+    <nav aria-label="Footer">
+      <a href="team.html">Werkbord Team</a>
+      <a href="https://github.com/micho8cho93/werkbord" rel="noopener">GitHub</a>
+      <a href="https://github.com/micho8cho93/werkbord/blob/main/docs/INSTALL.md" rel="noopener">Install docs</a>
+      <a href="https://github.com/micho8cho93/werkbord/blob/main/docs/PHONE.md" rel="noopener">Phone access</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="assets/js/common.js"></script>
+<script src="assets/js/app-demo.js"></script>
+<script>
+document.querySelectorAll('[data-try]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    if (window.WBApp) window.WBApp.goto(b.getAttribute('data-try'));
+    document.getElementById('app-demo').scrollIntoView({ block: 'center', behavior: WB.reduced ? 'auto' : 'smooth' });
+  });
+});
+</script>
+</body>
+</html>
