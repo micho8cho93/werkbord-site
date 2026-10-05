@@ -1,5 +1,5 @@
 /* Werkbord Team: console replica and page sections */
-.tc { height: 760px; }
+.tc { height: 600px; }
 .tc main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .tc .ahead { padding: 12px 20px; }
 .asrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -57,58 +57,3 @@
   .tc { height: auto; min-height: 640px; }
   .tc .view { overflow: visible; }
 }
-
-/* ---------- topology (hero art) ---------- */
-.topo { display: grid; grid-template-columns: 1fr 76px 1.05fr 76px 1fr; align-items: center; width: 100%; font-size: 12.5px; }
-.node { background: var(--sf); border: 1px solid var(--bd); border-radius: 9px; box-shadow: var(--card-sh); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-.node h3 { margin: 0 0 2px; font-size: 13px; font-weight: 600; letter-spacing: 0; }
-.node .it { display: flex; align-items: center; gap: 8px; background: var(--s2); box-shadow: var(--tray-sh); border-radius: 5px; padding: 6px 8px; font-size: 12px; color: var(--t2); }
-.node.hub { background: var(--tx); color: var(--bg); border-color: var(--tx); }
-.node.hub h3 { color: var(--bg); }
-.node.hub .it { background: color-mix(in srgb, var(--bg) 14%, transparent); box-shadow: none; color: color-mix(in srgb, var(--bg) 82%, transparent); }
-.link { position: relative; height: 2px; background: repeating-linear-gradient(90deg, var(--bd) 0 6px, transparent 6px 10px); margin: 0 4px; }
-.link i { position: absolute; top: -4px; width: 10px; height: 10px; background: var(--ac); left: 0; animation: travel 3.2s linear infinite; }
-.link.r i { animation-direction: reverse; background: var(--amber); animation-delay: -1.6s; }
-.link span { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); font-size: 11px; color: var(--t2); }
-@keyframes travel { from { left: 0; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } to { left: calc(100% - 10px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .link i { animation: none; left: 45%; } }
-.nothing { margin-top: 34px; text-align: center; font-family: var(--mono); font-size: 11.5px; color: var(--t2); display: flex; gap: 10px; align-items: center; justify-content: center; }
-.nothing::before, .nothing::after { content: ""; height: 1px; flex: 1; background: var(--bd); max-width: 120px; }
-@media (max-width: 900px) {
-  .topo { grid-template-columns: 1fr; gap: 0; }
-  .link { width: 2px; height: 52px; margin: 6px auto 20px; background: repeating-linear-gradient(0deg, var(--bd) 0 6px, transparent 6px 10px); }
-  .link i { left: -4px; top: 0; animation-name: travelv; }
-  .link span { top: 50%; left: 14px; transform: translateY(-50%); }
-  @keyframes travelv { from { top: 0; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } to { top: calc(100% - 10px); opacity: 0; } }
-}
-
-/* ---------- team page sections ---------- */
-.h1-m { font-size: clamp(36px, 5vw, 66px); }
-.flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 8px 0 0; padding: 0; list-style: none; }
-.flow li { position: relative; padding: 18px 14px 0 0; display: flex; flex-direction: column; gap: 6px; }
-.flow li::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 10px; background: var(--c, var(--bd)); }
-.flow li b { margin-top: 10px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
-.flow li span { font-size: 13px; color: var(--t2); }
-.flow li em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--tx); background: var(--s2); padding: 2px 7px; border-radius: 4px; align-self: flex-start; }
-@media (max-width: 800px) { .flow { grid-template-columns: 1fr; gap: 10px; } .flow li { padding-right: 0; } }
-.gitflow { margin-top: 32px; background: var(--s2); box-shadow: var(--tray-sh); border-radius: 8px; padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.9; color: var(--t2); }
-.gitflow b { color: var(--tx); font-weight: 500; }
-.gitflow .a { color: var(--ac); }
-.mx { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.mx th, .mx td { padding: 9px 10px; border-top: 1px solid var(--bd); text-align: center; }
-.mx th { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 500; color: var(--t2); border-top: 0; }
-.mx td:first-child, .mx th:first-child { text-align: left; }
-.mx td:first-child { font-family: var(--mono); font-size: 12px; }
-.mx .y { display: inline-block; width: 10px; height: 10px; background: var(--ac); box-shadow: inset 0 1px 0 rgba(255,255,255,.35); }
-.mx .n { display: inline-block; width: 10px; height: 10px; background: var(--s2); box-shadow: var(--tray-sh); }
-.mx-wrap { background: var(--sf); border: 1px solid var(--bd); border-radius: 9px; box-shadow: var(--card-sh); padding: 8px 16px 12px; overflow-x: auto; }
-.kinds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
-.invite { background: var(--sf); border: 1px solid var(--bd); border-radius: 9px; box-shadow: var(--card-sh); padding: 18px; display: flex; flex-direction: column; gap: 14px; }
-.invite .r { display: flex; gap: 10px; flex-wrap: wrap; }
-.invite label { display: flex; flex-direction: column; gap: 5px; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--t2); flex: 1; min-width: 120px; }
-.invite .sel { height: 36px; font-family: var(--sans); font-size: 13px; letter-spacing: 0; text-transform: none; }
-.invite .out { min-height: 46px; background: var(--s2); box-shadow: var(--tray-sh); border-radius: 6px; padding: 12px; font-family: var(--mono); font-size: 12px; word-break: break-all; color: var(--t2); }
-.invite .out b { color: var(--tx); font-weight: 500; }
-.install.t .snip { background: #1D1D1F; border-radius: 8px; padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.8; color: #A3A39D; box-shadow: inset 0 1px 3px rgba(0,0,0,.6); overflow-wrap: anywhere; white-space: pre-wrap; }
-.install.t .snip b { color: #F0F0EC; font-weight: 500; } .install.t .snip i { font-style: normal; color: #7C93FF; user-select: none; }
-:root[data-theme="dark"] .install { border: 1px solid #2A2A2D; }

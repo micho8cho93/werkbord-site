@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scheduling | Werkbord Docs</title><meta name="description" content="Plan work around time, dependencies, and available capacity."><meta name="theme-color" content="#F5F5F2">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap">
+<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('wb-theme')}catch(e){}if(!t)t=d.dataset.defaultTheme==='dark'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');d.dataset.theme=t;d.classList.add('js')})()</script><link rel="stylesheet" href="../assets/css/site.css"><link rel="stylesheet" href="../assets/css/docs.css"></head>
+<body><a class="skip" href="#main">Skip to content</a><header class="nav">
+  <div class="wrap">
+    <a class="logo" href="../" aria-label="werkbord home">
+      <img class="mark-l" src="../assets/img/mark-light.svg" alt="" width="30" height="22"><img class="mark-d" src="../assets/img/mark-dark.svg" alt="" width="30" height="22">
+      <span class="wm">werkbord</span>
+    </a>
+    <nav class="nav-links" aria-label="Site">
+      <a href="../">Individual</a>
+      <a href="../team.html">Team</a>
+      <a href="../#install">Install</a>
+      <a href="getting-started.html" aria-current="page">Docs</a>
+    </nav>
+    <div class="nav-end">
+      <a class="btn" href="https://github.com/micho8cho93/werkbord" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .2a8 8 0 0 0-2.5 15.6c.4.1.5-.2.5-.4v-1.4c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.9.9 2.3.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.200.8a7.600 7.600 0 0 1 4 0c1.500-1 2.200-.8 2.200-.8.4 1.100.2 1.900.1 2.100.5.600.8 1.300.8 2.100 0 3.100-1.900 3.800-3.600 4 .3.300.6.800.6 1.500v2.200c0 .2.1.5.6.4A8 8 0 0 0 8 .2z"/></svg>
+        <span class="hide-s">GitHub</span>
+      </a>
+      <button class="btn theme-btn" type="button" data-theme-toggle aria-label="Switch theme">
+        <svg class="sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.500M8 13v1.500M1.500 8H3M13 8h1.500M3.400 3.400l1 1M11.600 11.600l1 1M3.400 12.600l1-1M11.600 4.400l1-1"/></svg>
+        <svg class="moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.500 9.500A5.500 5.500 0 0 1 6.500 2.500a5.500 5.500 0 1 0 7 7z"/></svg>
+      </button>
+      <a class="btn pri" href="../#install">Install</a>
+    </div>
+  </div>
+</header>
+<div class="docs-layout wrap">
+<aside class="docs-sidebar"><details class="docs-menu" open><summary>Documentation <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></summary><div class="docs-menu-body">
+<label class="doc-search"><span class="sr">Search documentation</span><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input id="docs-search" type="search" placeholder="Search docs" autocomplete="off" aria-controls="search-results"><kbd>/</kbd></label>
+<div id="search-results" hidden><p class="search-status" role="status" aria-live="polite"></p><ul></ul></div><nav id="docs-nav" aria-label="Documentation"><div class="doc-nav-group"><h2>Start here</h2><ul><li><a href="getting-started.html">Getting started</a></li><li><a href="installation.html">Installation</a></li></ul></div><div class="doc-nav-group"><h2>Individual</h2><ul><li><a href="agents.html">Agents and settings</a></li><li><a href="tasks-and-review.html">Tasks and review</a></li><li><a href="scheduling.html" aria-current="page">Scheduling</a></li><li><a href="phone-access.html">Phone access</a></li><li><a href="runners.html">Additional runners</a></li></ul></div><div class="doc-nav-group"><h2>Team</h2><ul><li><a href="team-setup.html">Team setup</a></li><li><a href="team-workflow.html">Team workflow</a></li><li><a href="team-security.html">Access and security</a></li></ul></div><div class="doc-nav-group"><h2>Reference</h2><ul><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="commands.html">Command reference</a></li></ul></div></nav></div></details></aside>
+<main id="main" class="doc-article"><header class="doc-title"><h1>Scheduling</h1><p>Plan work around time, dependencies, and available capacity.</p></header><section id="schedule"><h2>Schedule a task</h2><p>The calendar and board show the same tasks. Set a time in the scheduling form, including from your phone. Explicitly arm auto-run when you want the task to start automatically.</p><p>The controller handles scheduled work even with the browser closed. The computer and service must remain running.</p></section>
+<section id="dependencies"><h2>Set dependencies</h2><p>A task can wait for other tasks in the same project. Cycles are rejected. Completing a dependency makes the next task eligible; it does not transfer the dependency’s code.</p><p>Merge or otherwise integrate prerequisite changes in Git before expecting a dependent task to use them.</p></section>
+<section id="capacity"><h2>Control concurrency</h2><p>Capacity defaults to <strong>1</strong> and can be set from <strong>1 to 16</strong>. Starting, running, waiting, and blocked runs consume capacity. Unknown or overlapping paths are serialized to avoid unsafe parallel work.</p><p>If the queue stalls, check waiting or blocked runs before raising the limit.</p></section>
+<section id="missed"><h2>Missed or interrupted runs</h2><p>Choose whether a missed schedule runs late or skips after its grace period. An interrupted attempt does not automatically rerun. Inspect the task and rearm it when you are ready.</p></section>
+<nav class="doc-pagination" aria-label="More documentation"><a href="tasks-and-review.html" class="previous"><span>Previous</span><strong>Tasks and review</strong></a><a href="phone-access.html" class="next"><span>Next</span><strong>Phone access</strong></a></nav></main>
+<aside class="doc-outline"><nav aria-label="On this page"><h2>On this page</h2><ul><li><a href="#schedule">Schedule a task</a></li><li><a href="#dependencies">Set dependencies</a></li><li><a href="#capacity">Control concurrency</a></li><li><a href="#missed">Missed or interrupted runs</a></li></ul></nav></aside>
+</div><footer class="foot"><div class="wrap"><span class="footer-brand">werkbord</span><nav aria-label="Footer"><a href="../team.html">Team</a><a href="../#install">Install</a><a href="getting-started.html">Docs</a></nav></div></footer><script src="../assets/js/common.js"></script><script src="../assets/js/docs.js"></script></body></html>

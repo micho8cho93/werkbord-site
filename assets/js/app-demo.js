@@ -6,6 +6,10 @@
   var mount = document.getElementById('app-demo');
   if (!mount) return;
 
+  var host = null;
+  try { if (window.parent !== window) host = window.parent.WBApp || null; } catch (e) {}
+  var phone = document.getElementById('phone-demo');
+
   var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var LIMIT = 3, DAY0 = 8 * 60, DAY1 = 18 * 60;
@@ -40,6 +44,9 @@
       { t: '09:12', x: 'You merged #30 into main' }
     ]
   };
+  if (host) ['tasks', 'log', 'simNow', 'nextId', 'gitOpen', 'gitTask'].forEach(function (key) {
+    Object.defineProperty(S, key, { get: function () { return host.state[key]; }, set: function (value) { host.state[key] = value; } });
+  });
   function sc(d, s, dur) { return { w: 0, d: d, s: s, dur: dur }; }
   function T(id, title, col, state, agent, pri, o) {
     var t = { id: id, title: title, col: col, state: state, agent: agent, pri: pri, runner: 'this computer', elapsed: 0, work: 15, sched: null, px: [1, 1, 0, 1, 1, 1, 0, 1, 1, 1] };
@@ -109,7 +116,7 @@
     plus: '<path d="M8 3v10M3 8h10"/>',
     l: '<path d="M10 3L5 8l5 5"/>', r: '<path d="M6 3l5 5-5 5"/>', x: '<path d="M4 4l8 8M12 4l-8 8"/>'
   };
-  function ic(n, w) { return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="' + (w || 1.4) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[n] + '</svg>'; }
+  function ic(n, w) { return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="' + (w || 1.4) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[n] + '</svg>'; }
   function dot(c, o) { return '<span class="dot" style="background:var(--' + c + ')' + (o ? ';opacity:' + o : '') + '"></span>'; }
   var toastTimer;
   function toast(m) {
@@ -128,10 +135,10 @@
   mount.innerHTML =
     '<div class="win"><div class="win-bar"><div class="px3" aria-hidden="true"><i></i><i></i><i></i></div>' +
     '<span class="url" id="ad-url">127.0.0.1:7420/#/p/my-app/board</span>' +
-    '<span class="hint"><span class="dot" style="background:var(--ok)"></span>live demo · nothing leaves this page</span></div>' +
+    '</div>' +
     '<div class="app" id="ad-app">' +
     '<aside class="rail" aria-label="Projects and runners"></aside>' +
-    '<main><div class="ahead"><div><div class="mm">~/code/my-app · main</div><h3>my-app</h3></div><div class="acts">' +
+    '<main><div class="ahead"><button class="btn ic mobile-menu" data-act="menu" type="button" aria-label="Open project navigation" aria-expanded="false">' + ic('cc') + '</button><div><div class="mm">~/code/my-app · main</div><h3>my-app</h3></div><div class="acts">' +
     '<button class="btn" type="button" data-act="palette">' + ic('search') + 'Jump to<span class="key">⌘K</span></button>' +
     '<button class="btn pri" type="button" data-act="new">' + ic('plus', 1.6) + 'New task</button></div></div>' +
     '<nav class="tabs" role="tablist" aria-label="Project"></nav><div class="view" id="ad-view" role="tabpanel"></div></main>' +
@@ -142,10 +149,10 @@
     var needs = S.tasks.filter(function (t) { return t.state === 'needs' || t.state === 'blocked'; }).length;
     var runners = active();
     mount.querySelector('.rail').innerHTML =
-      '<div class="rail-logo"><img class="mark-l" src="assets/img/mark-light.svg" alt=""><img class="mark-d" src="assets/img/mark-dark.svg" alt=""><span class="wm">werkbord</span></div>' +
+      '<button class="btn rail-dismiss" data-act="menu" type="button">Close navigation</button><div class="rail-logo"><img class="mark-l" src="assets/img/mark-light.svg" alt=""><img class="mark-d" src="assets/img/mark-dark.svg" alt=""><span class="wm">werkbord</span></div>' +
       '<button class="nv" type="button" data-act="cc">' + ic('cc') + 'Control Center' + (needs ? '<span class="badge" style="margin-left:auto">' + needs + '</span>' : '') + '</button>' +
       '<div class="rsec">' + ic('folder') + 'Projects</div>' +
-      '<button class="nv on" type="button" aria-current="true"><span class="sq"></span>my-app<span class="n">' + S.tasks.filter(function (t) { return t.col === 'doing'; }).length + '</span></button>' +
+      '<button class="nv on" type="button" data-act="project" aria-current="true"><span class="sq"></span>my-app<span class="n">' + S.tasks.filter(function (t) { return t.col === 'doing'; }).length + '</span></button>' +
       '<button class="nv" type="button" data-act="other"><span class="sq" style="background:var(--t2)"></span>api-server<span class="n">1</span></button>' +
       '<button class="nv" type="button" data-act="other"><span class="sq" style="background:var(--t2)"></span>docs-site</button>' +
       '<div class="rsec">' + ic('run') + 'Runners</div>' +
@@ -283,7 +290,7 @@
       (needs.length ? needs.map(function (t) { return '<div class="need"><div class="h">' + dot(t.state === 'needs' ? 'wn' : 'bl') + '<span style="font-weight:500">' + esc(t.title) + '</span><span class="mm" style="margin-left:auto">#' + t.id + ' · ' + t.agent + ' · ' + Math.floor(t.waitMin) + 'm</span></div><div class="q">' + esc(t.q) + '</div>' + answerBtns(t) + '</div>'; }).join('') : '<div class="empty">All clear. Agents are working or waiting for review.</div>') + '</section>' +
       '<section class="pn" aria-label="Runs"><div class="ph">Runs<span class="chip">' + runs.length + '</span><span class="mm" style="margin-left:auto">last 24 hours</span></div><div class="hist" role="img" aria-label="Run history over 24 hours">' + cells + '</div>' +
       '<div class="tbl"><div class="tr th"><span>Run</span><span>Task</span><span>Agent</span><span>Runner</span><span>State</span><span>Time</span></div>' +
-      runs.map(function (t) { var s = stl[t.state]; return '<div class="tr"><span class="mm">run-' + (4000 + t.id * 7).toString(16) + '</span><span style="font-weight:500">' + esc(t.title) + '</span><span>' + t.agent + '</span><span class="mm">' + t.runner + '</span><span class="st">' + dot(s[0]) + s[1] + '</span><span class="mm">' + (t.state === 'running' ? '<span data-el2="' + t.id + '">' + Math.floor(t.elapsed) + 'm</span>' : (t.waitMin ? Math.floor(t.waitMin) + 'm' : '—')) + '</span></div>'; }).join('') + '</div></section></div>' +
+      runs.map(function (t) { var s = stl[t.state]; return '<div class="tr"><span class="mm">run-' + (4000 + t.id * 7).toString(16) + '</span><span style="font-weight:500">' + esc(t.title) + '</span><span>' + t.agent + '</span><span class="mm">' + t.runner + '</span><span class="st">' + dot(s[0]) + s[1] + '</span><span class="mm">' + (t.state === 'running' ? '<span data-el2="' + t.id + '">' + Math.floor(t.elapsed) + 'm</span>' : (t.waitMin ? Math.floor(t.waitMin) + 'm' : 'n/a')) + '</span></div>'; }).join('') + '</div></section></div>' +
       '<div class="col-s"><section class="pn" aria-label="Git"><div class="ph">Git<span class="chip">main</span></div>' +
       '<div class="bignote">' + dot(S.gitOpen ? 'wn' : 'ok') + (S.gitOpen ? '1 risk · 3 items need attention' : 'Healthy · 1 task opened') + '</div>' +
       (S.gitOpen ? '<div class="need"><div style="font-weight:500;font-size:13px">Branch is behind main</div><div style="font-size:12.5px;color:var(--t2)">werkbord/fix-flaky-auth is 14 commits behind main.</div><div class="q">git rev-list --count HEAD..main → 14</div><div class="row-b"><button class="btn sm" type="button" data-act="gittask">Open as task</button></div></div>' :
@@ -310,14 +317,19 @@
   }
 
   /* ---------- render all ---------- */
-  function render() {
+  var renderedTab = null;
+  function render(localOnly) {
     if (S.dragging) { S.dirty = true; return; }
     var fa = document.activeElement, fk = null;
     if (fa && view.contains(fa) && fa.dataset && fa.dataset.act) fk = '[data-act="' + fa.dataset.act + '"][data-id="' + (fa.dataset.id || '') + '"]' + (fa.dataset.v ? '[data-v="' + fa.dataset.v + '"]' : '');
     renderRail(); renderTabs();
     if (S.tab === 'board') renderBoard(); else if (S.tab === 'calendar') renderCalendar(); else renderOverview();
+    if (renderedTab !== S.tab) { view.scrollTop = 0; view.scrollLeft = 0; renderedTab = S.tab; }
     if (fk) { var n = view.querySelector(fk); if (n) n.focus({ preventScroll: true }); }
-    renderPhone();
+    if (!localOnly) {
+      if (host) host.refresh(true);
+      else if (phone && phone.contentWindow.WBApp) phone.contentWindow.WBApp.refresh(true);
+    }
   }
 
   /* ---------- events ---------- */
@@ -331,10 +343,13 @@
     var act = b.dataset.act, id = b.dataset.id;
     if (act === 'ovlx') { if (e.target !== b && !e.target.classList.contains('ovl') && b.tagName !== 'BUTTON') return; S.palette = null; S.newTask = false; renderOverlay(); return; }
     if (b.hasAttribute('aria-disabled') && act === 'start') { startTask(id); render(); return; }
+    if (act !== 'menu') { app.classList.remove('menu-open'); app.querySelector('.mobile-menu').setAttribute('aria-expanded', 'false'); }
     switch (act) {
+      case 'menu': var opened = app.classList.toggle('menu-open'); app.querySelector('.mobile-menu').setAttribute('aria-expanded', String(opened)); if (opened) app.querySelector('.rail-dismiss').focus(); else app.querySelector('.mobile-menu').focus(); break;
+      case 'project': S.tab = 'board'; render(); break;
       case 'tab': S.tab = id; if (b.dataset.focus) S.focusCard = b.dataset.focus; S.palette = null; render(); renderOverlay(); break;
       case 'cc': S.tab = 'overview'; render(); break;
-      case 'other': toast('This demo only has my-app. Add yours with: devboard project add ~/code/your-repo'); break;
+      case 'other': toast('This demo only has my-app. Add yours with: werkbord project add ~/code/your-repo'); break;
       case 'start': startTask(id); render(); break;
       case 'answer': answer(id, b.dataset.v); render(); break;
       case 'merge': merge(id); render(); break;
@@ -358,6 +373,12 @@
     toast('#' + t.id + ' is in Backlog. Start it, or drag it onto the Calendar.');
   });
   app.addEventListener('keydown', function (e) {
+    if (e.target.getAttribute('role') === 'tab' && ['ArrowLeft','ArrowRight','Home','End'].indexOf(e.key) > -1) {
+      e.preventDefault(); var tabs = Array.from(app.querySelectorAll('[role=tab]')), index = tabs.indexOf(e.target);
+      var next = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (index + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+      tabs[next].click(); app.querySelectorAll('[role=tab]')[next].focus();
+    }
+    if (e.key === 'Escape' && app.classList.contains('menu-open')) { app.classList.remove('menu-open'); app.querySelector('.mobile-menu').setAttribute('aria-expanded', 'false'); app.querySelector('.mobile-menu').focus(); }
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); S.palette = ''; S.newTask = false; renderOverlay(); }
     if (e.key === 'Escape' && (S.palette !== null || S.newTask)) { S.palette = null; S.newTask = false; renderOverlay(); }
   });
@@ -425,7 +446,11 @@
       } else if (t.state === 'needs' || t.state === 'blocked') { t.waitMin += 0.25; if (Math.floor(t.waitMin) !== Math.floor(t.waitMin - 0.25)) t.dirtyWait = true; }
     });
     if (changed) { render(); return; }
-    // cheap in-place updates, so focus and drags are never disturbed
+    updateLive();
+    if (phone && phone.contentWindow.WBApp) phone.contentWindow.WBApp.updateLive();
+  }
+  function updateLive() {
+    // In-place updates preserve focus and drags in both views.
     S.tasks.forEach(function (t) {
       if (t.state !== 'running') return;
       var a = mount.querySelector('[data-el="' + t.id + '"]'); if (a) a.textContent = 'Running · ' + Math.floor(t.elapsed) + 'm';
@@ -435,31 +460,26 @@
     });
     var nl = mount.querySelector('#ad-now'); if (nl) nl.style.top = (S.simNow - DAY0) + 'px';
   }
-  var timer = null;
-  function run() { if (!timer) timer = setInterval(tick, 1000); }
+  var timer = null, visible = new Set();
+  function run() { if (!host && !timer && !document.hidden) timer = setInterval(tick, 1000); }
   function stop() { clearInterval(timer); timer = null; }
-  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { es[0].isIntersecting ? run() : stop(); }, { threshold: 0.05 }).observe(mount); else run();
-  document.addEventListener('visibilitychange', function () { document.hidden ? stop() : run(); });
-
-  /* ---------- phone: the same store, seen from your pocket ---------- */
-  var phone = document.getElementById('phone-demo');
-  function renderPhone() {
-    if (!phone) return;
-    var needs = S.tasks.filter(function (t) { return t.state === 'needs' || t.state === 'blocked'; });
-    var ready = S.tasks.filter(function (t) { return t.state === 'ready'; });
-    var run = S.tasks.filter(function (t) { return t.state === 'running'; });
-    phone.innerHTML = '<div class="ph-top"><span class="mm">Control Center</span><h4>' + (needs.length ? needs.length + ' need' + (needs.length === 1 ? 's' : '') + ' you' : 'All clear') + '</h4><span class="mm">' + run.length + ' running · ' + ready.length + ' ready for review</span></div>' +
-      needs.map(function (t) { return '<div class="ph-card"><div class="st">' + dot(t.state === 'needs' ? 'wn' : 'bl') + '<b style="color:var(--tx);font-weight:500">' + esc(t.title) + '</b></div><div class="q">' + esc(t.q) + '</div>' + answerBtns(t) + '<span class="mm">#' + t.id + ' · ' + t.agent + '</span></div>'; }).join('') +
-      (ready.length ? '<div class="ph-h">Ready for review</div>' + ready.map(function (t) { return '<div class="ph-card"><div class="st">' + dot('ok') + '<b style="color:var(--tx);font-weight:500">' + esc(t.title) + '</b></div><div class="q">' + esc(t.diff) + '</div><div class="row-b"><button class="btn pri sm" type="button" data-act="merge" data-id="' + t.id + '">Merge</button></div></div>'; }).join('') : '') +
-      (!needs.length && !ready.length ? '<div class="empty" style="padding:40px 10px">Nothing needs you. Agents keep working while your phone sleeps.</div>' : '') +
-      '<div class="ph-foot mm">' + dot('ok') + ' reaching your computer over your private network</div>';
+  if (!host) {
+    if ('IntersectionObserver' in window) {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) { if (entry.isIntersecting) visible.add(entry.target); else visible.delete(entry.target); });
+        if (visible.size) run(); else stop();
+      }, { threshold: 0.05 });
+      observer.observe(mount); if (phone) observer.observe(phone);
+    } else { visible.add(mount); run(); }
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else if (visible.size) run(); });
   }
-  if (phone) phone.addEventListener('click', function (e) {
-    var b = e.target.closest('[data-act]'); if (!b) return;
-    if (b.dataset.act === 'answer') answer(b.dataset.id, b.dataset.v); else if (b.dataset.act === 'merge') merge(b.dataset.id); else return;
-    render();
-  });
 
-  render();
-  window.WBApp = { goto: function (tab) { S.tab = tab; render(); } };
+  window.WBApp = { state: S, refresh: render, updateLive: updateLive, goto: function (tab) { S.tab = tab; render(); } };
+  render(true);
+  if (phone) {
+    phone.src = phone.dataset.src;
+    window.addEventListener('themechange', function () {
+      if (phone.contentDocument) phone.contentDocument.documentElement.dataset.theme = WB.theme();
+    });
+  }
 })();

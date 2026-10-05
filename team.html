@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Werkbord Team — one board, your own machines</title>
-<meta name="description" content="Werkbord Team is a shared workspace for a team that uses Werkbord: members, projects, one board, reviews and repository awareness. It coordinates. It never runs anything on anyone's computer.">
+<title>Werkbord Team | Work together</title>
+<meta name="description" content="A shared board for teams using coding agents. Claim tickets, track branches and review work. Each developer keeps their own machine.">
 <meta name="theme-color" content="#0B0B0C">
-<meta property="og:title" content="Werkbord Team — one board, your own machines">
+<meta property="og:title" content="Werkbord Team | Work together">
 <meta property="og:description" content="A shared workspace that coordinates a team. Every member keeps their own computer, runner and credentials.">
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap">
 <script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('wb-theme')}catch(e){}if(!t)t=d.dataset.defaultTheme==='dark'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');d.dataset.theme=t;d.classList.add('js')})()</script>
+<script src="assets/js/intro.js"></script>
 <link rel="stylesheet" href="assets/css/site.css">
 <link rel="stylesheet" href="assets/css/app.css">
 <link rel="stylesheet" href="assets/css/pages.css">
@@ -21,6 +22,10 @@
 <link rel="stylesheet" href="assets/css/waitlist.css">
 </head>
 <body>
+<div class="intro" aria-hidden="true">
+  <canvas id="intro-grid"></canvas>
+  <div class="intro-lockup"><span class="intro-mark-space"></span><span class="intro-name">werkbord</span></div>
+</div>
 <a class="skip" href="#main">Skip to content</a>
 
 <header class="nav">
@@ -32,8 +37,8 @@
     <nav class="nav-links" aria-label="Site">
       <a href="./">Individual</a>
       <a href="team.html" aria-current="page">Team</a>
-      <a class="hide-s" href="#demo">Try the console</a>
-      <a class="hide-s" href="#waitlist">Waitlist</a>
+      <a href="./#install">Install</a>
+      <a href="docs/getting-started.html">Docs</a>
     </nav>
     <div class="nav-end">
       <a class="btn" href="https://github.com/micho8cho93/werkbord" rel="noopener">
@@ -50,170 +55,67 @@
 </header>
 
 <main id="main">
-  <section class="hero">
-    <div class="wrap">
-      <div class="hero-copy" style="max-width:920px">
-        <p class="lab"><span class="sq"></span>Werkbord Team &middot; waitlist open</p>
-        <h1 class="h1-m">One board for the team.<br><span class="amp">Your own machine for the work.</span></h1>
-        <p class="lede">Werkbord Team is a shared workspace: who is on the team, which projects exist, one board of tickets, and the branches and pull requests that come out of them. It coordinates. It never runs anything on anyone&rsquo;s computer.</p>
+  <section class="hero team-hero">
+    <div class="wrap hero-grid">
+      <h1>One board.<br><span class="accent-word">The whole team.</span></h1>
+      <div class="hero-copy">
+        <p class="lede">Pick up work. See what’s changed. Review together. Your agents and code stay on your machine.</p>
         <div class="hero-links">
           <a class="btn pri" href="#waitlist">Join the waitlist</a>
-          <a class="btn" href="#demo">Try the console</a>
+          <span class="hero-note">Be one of the first 50.</span>
         </div>
-      </div>
-      <div style="margin-top:clamp(40px,6vw,72px)" class="rv">
-        <div class="topo" role="img" aria-label="Two members' computers each talk to the Team server with metadata only. Nothing flows between the two computers through Team.">
-          <div class="node"><h3>Ada&rsquo;s computer</h3><div class="it">browser console</div><div class="it">her Werkbord</div><div class="it">her agents</div><div class="it">her Git, GitHub and API keys</div></div>
-          <div class="link"><i></i><span>metadata</span></div>
-          <div class="node hub"><h3>Team server</h3><div class="it">workspace · members</div><div class="it">projects · board · tickets</div><div class="it">reported Git facts</div><div class="it">activity · sync</div></div>
-          <div class="link r"><i></i><span>metadata</span></div>
-          <div class="node"><h3>Bo&rsquo;s computer</h3><div class="it">browser console</div><div class="it">his Werkbord</div><div class="it">his agents</div><div class="it">his Git, GitHub and API keys</div></div>
-        </div>
-        <div class="nothing">nothing flows between the two Werkbords through Team</div>
       </div>
     </div>
   </section>
 
-  <section class="sec" id="demo" style="padding-top:clamp(24px,4vw,48px)">
+  <section class="demo-section" id="demo" aria-labelledby="demo-title">
     <div class="wrap">
-      <div class="demo-head rv">
-        <div class="sec-head">
-          <h2>The console, running in this page.</h2>
-          <p class="lede">Act as Ada, Bo or Cy. Claim tickets, submit them, review them. The rules are the real ones, and they push back.</p>
-        </div>
-        <div class="try" role="group" aria-label="Try this">
-          <button class="btn" type="button" data-t="claim"><span class="n">1</span>Race for a ticket</button>
-          <button class="btn" type="button" data-t="review"><span class="n">2</span>Finish work with an open PR</button>
-          <button class="btn" type="button" data-t="handoff"><span class="n">3</span>Open in my runner</button>
-          <button class="btn" type="button" data-t="repo"><span class="n">4</span>See the Git conflicts</button>
+      <div class="demo-head">
+        <h2 id="demo-title">Try working together.</h2>
+        <div class="try" role="group" aria-label="Explore the Team demo">
+          <button class="btn" type="button" data-t="claim">Claim a ticket</button>
+          <button class="btn" type="button" data-t="review">Review work</button>
+          <button class="btn" type="button" data-t="repo">Check branches</button>
         </div>
       </div>
-      <div id="team-demo" class="rv"></div>
-      <p class="demo-note">Switch who you act as: Bo is not on the Docs project, so for Bo it does not exist. Cy cannot sign off their own work. Nobody can mark a ticket done while its pull request is open.</p>
+      <div id="team-demo"></div>
     </div>
   </section>
 
-  <section class="sec" id="rule" style="padding-top:0">
+  <section class="sec" id="together">
     <div class="wrap split">
-      <div class="sticky rv">
-        <h2>Coordinates. Never executes.</h2>
-        <p class="lede">Every developer keeps their own computer, runner, Git and agent credentials. Team holds none of them and has no way to reach yours.</p>
+      <div class="feature-intro">
+        <h2>Shared work.<br><span class="accent-word warm">Clear ownership.</span></h2>
+        <p class="lede">See what everyone is doing and what needs a decision.</p>
+        <dl class="metrics" aria-label="Team technical details">
+          <div><dt>Board sync in tests</dt><dd>&lt;1<span>s</span></dd></div>
+          <div><dt>Access tokens</dt><dd>256<span>bit</span></dd></div>
+        </dl>
+        <a class="text-link" href="docs/team-security.html#sync">Technical details <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a>
       </div>
-      <div class="rows rv">
-        <div class="row"><h3><span class="dot" style="background:var(--ac)"></span>No process</h3><p>The server has no code path that starts a process, and an architecture test keeps it that way. Team&rsquo;s build cannot even link the code that runs agents, commands or Git.</p></div>
-        <div class="row"><h3><span class="dot" style="background:var(--amber)"></span>No credentials</h3><p>A repository address may not contain a password or token. Each member signs in to Git with their own. Tokens are shown once, and only their SHA-256 is stored.</p></div>
-        <div class="row"><h3><span class="dot" style="background:var(--ok)"></span>Metadata only</h3><p>Branches, commits, pull request state, changed file names. No file contents, no diffs, no field that could carry a path on your machine. Reviewing and merging happen on your Git host.</p></div>
-        <div class="row"><h3><span class="dot" style="background:var(--bl)"></span>Reported, not discovered</h3><p>Team cannot look at a repository. Each member&rsquo;s own Werkbord reports what it sees, and every line says &ldquo;as last reported by&rdquo;.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec" id="flow" style="padding-top:0">
-    <div class="wrap">
-      <div class="sec-head rv"><h2>From ticket to done.</h2><p class="lede">Five stages, one table of legal moves. Anything else is refused with a message that says what the ticket is and what it can do.</p></div>
-      <ol class="flow rv">
-        <li style="--c:var(--t2)"><b>Backlog</b><span>Ideas and drafts. Anyone on the project can add one.</span><em>promote</em></li>
-        <li style="--c:var(--ac)"><b>Available</b><span>Ready to be taken. Claiming is atomic: exactly one person gets it.</span><em>claim</em></li>
-        <li style="--c:var(--amber)"><b>In Progress</b><span>One holder, one branch named <span class="mono">wb-142-fix-cart-total</span>.</span><em>submit</em></li>
-        <li style="--c:var(--bl)"><b>Review</b><span>A reviewer decides. Authors cannot sign off their own work.</span><em>complete</em></li>
-        <li style="--c:var(--ok)"><b>Done</b><span>Only once the pull request is merged on the Git host and recorded.</span><em>reopen</em></li>
-      </ol>
-      <div class="gitflow rv"><b>claim</b> <span class="a">→</span> branch <b>wb-142-authentication-error</b> <span class="a">→</span> work and commit locally <span class="a">→</span> push <span class="a">→</span> open a pull request <span class="a">→</span> <b>submit</b> <span class="a">→</span> reviewer reviews and merges on the Git host <span class="a">→</span> <b>done</b><br>Nothing forces you through it. Team never merges.</div>
-    </div>
-  </section>
-
-  <section class="sec" id="roles" style="padding-top:0">
-    <div class="wrap split">
-      <div class="sticky rv">
-        <h2>Roles are lists of permissions.</h2>
-        <p class="lede">Authorization asks &ldquo;may this member do X&rdquo;, never &ldquo;is this member an Owner&rdquo;. Whoever creates a project owns it, and the workspace owner owns every project.</p>
-        <div class="kinds" style="margin-top:6px"><span class="chip">workspace roles: owner · member</span><span class="chip">project roles: owner · reviewer · member</span></div>
-      </div>
-      <div class="mx-wrap rv"><table class="mx" id="mx"><caption class="sr">Permissions by project role</caption></table></div>
-    </div>
-  </section>
-
-  <section class="sec" id="safe" style="padding-top:0">
-    <div class="wrap split">
-      <div class="sticky rv">
-        <h2>Two people at once can&rsquo;t break it.</h2>
-        <p class="lede">Writes are serialised by SQLite, and every guard is also in the SQL. A claim reaches another member&rsquo;s open console in well under a second.</p>
-      </div>
-      <div class="rows rv">
-        <div class="row"><h3>Claiming</h3><p>One guarded <span class="mono-i">UPDATE &hellip; WHERE status = 'available' AND assignee_id IS NULL</span>. Of any number of simultaneous claims exactly one succeeds. The rest get a 409 naming the holder.</p></div>
-        <div class="row"><h3>Edits</h3><p>Every write bumps a version. Saving with a stale version is refused instead of overwriting someone else&rsquo;s change.</p></div>
-        <div class="row"><h3>Merged is merged</h3><p>A merged pull request cannot be reported back to open by a slow client, and two tickets cannot claim one branch.</p></div>
-        <div class="row"><h3>Invites</h3><p>The check and the use are one statement, so a single-use invite cannot be spent twice. A code that never existed, expired or ran out all answer the same 404.</p></div>
-        <div class="row"><h3>Staying in step</h3><p>A long-poll sync with a revision and an event cursor. A console that was offline reloads what it missed and says so while the connection is down.</p></div>
+      <div class="rows">
+        <div class="row"><h3>Claim and run</h3><p>Pick up a ticket and open it in your own Werkbord. Everyone sees who owns it.</p></div>
+        <div class="row"><h3>Review together</h3><p>Track pull requests and catch overlapping changes before they become conflicts.</p></div>
+        <div class="row"><h3>Keep control</h3><p>Share progress. Code and agent credentials stay on each developer’s machine.</p></div>
       </div>
     </div>
   </section>
 
-  <section class="sec" id="repo" style="padding-top:0">
-    <div class="wrap split">
-      <div class="sticky rv">
-        <h2>Conflict awareness, not conflict solving.</h2>
-        <p class="lede">The Repository tab assembles what members&rsquo; Werkbords reported and ranks what needs a human, worst first.</p>
-        <button class="btn" type="button" data-t="repo">Open it in the console above</button>
-      </div>
-      <div class="rows rv">
-        <div class="row"><h3><span class="chip k-conflict" style="color:var(--dg-tx)">conflict</span></h3><p>An open pull request the Git host says has merge conflicts.</p></div>
-        <div class="row"><h3><span class="chip" style="color:var(--wn-tx)">behind</span></h3><p>A developer&rsquo;s branch is behind its base branch.</p></div>
-        <div class="row"><h3><span class="chip" style="color:var(--wn-tx)">overlap</span></h3><p>Two active branches change the same files, so whoever merges second may get conflicts.</p></div>
-        <div class="row"><h3><span class="chip" style="color:var(--ok-tx)">merged</span></h3><p>The pull request is merged and the ticket can be marked Done.</p></div>
-        <div class="row"><h3><span class="chip">stale · closed · leftover · orphan</span></h3><p>No activity for 14 days, a pull request closed unmerged, a finished ticket&rsquo;s branch to delete, a branch no ticket is linked to.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec" id="people" style="padding-top:0">
-    <div class="wrap split">
-      <div class="sticky rv">
-        <h2>Bring people in with a link.</h2>
-        <p class="lede">A project owner makes an invite: a role (member or reviewer, never owner), a number of uses and a number of days. The link is shown once. Only its hash is stored.</p>
-      </div>
-      <div class="invite rv" id="invite">
-        <div class="r">
-          <label>Project<select class="sel" id="iv-p"><option>Shop</option><option>Docs</option></select></label>
-          <label>Role<select class="sel" id="iv-r"><option>member</option><option>reviewer</option></select></label>
-          <label>Uses<select class="sel" id="iv-u"><option>1</option><option>5</option><option>25</option><option>100</option></select></label>
-          <label>Expires<select class="sel" id="iv-d"><option value="7">7 days</option><option value="1">1 day</option><option value="30">30 days</option></select></label>
-        </div>
-        <div class="out" id="iv-out" aria-live="polite">Make an invite to see the link. This is an example, nothing is created.</div>
-        <div class="r"><button class="btn pri" type="button" id="iv-go">Create invite</button><button class="btn" type="button" id="iv-rv" disabled>Revoke</button></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec wl-sec" id="waitlist">
+  <section class="sec wl-sec" id="waitlist" aria-label="Werkbord Team waitlist">
     <div class="wrap">
       <div class="wl" data-waitlist></div>
-      <noscript><p class="demo-note">The waitlist form needs JavaScript.</p></noscript>
-    </div>
-  </section>
-
-  <section class="sec" style="padding-top:0">
-    <div class="wrap">
-      <div class="band rv">
-        <div><h3>Working on your own?</h3><p>Individual Werkbord is the local control plane for your own agents. Team and individual install, run and upgrade separately.</p></div>
-        <a class="btn pri" href="./">See individual Werkbord</a>
-      </div>
+      <noscript><p class="demo-note">Enable JavaScript to join the Werkbord Team waitlist.</p></noscript>
     </div>
   </section>
 </main>
 
 <footer class="foot">
   <div class="wrap">
-    <div style="display:flex;align-items:center;gap:14px">
-      <img class="mark-l" src="assets/img/mark-light.svg" alt="" height="18" width="25"><img class="mark-d" src="assets/img/mark-dark.svg" alt="" height="18" width="25">
-      <span>Werk local, ship global.</span>
-    </div>
+    <span class="footer-brand">werkbord</span>
     <nav aria-label="Footer">
-      <a href="./">Individual Werkbord</a>
-      <a href="#waitlist">Team waitlist</a>
-      <a href="https://github.com/micho8cho93/werkbord" rel="noopener">GitHub</a>
-      <a href="https://github.com/micho8cho93/werkbord/blob/main/docs/TEAM.md" rel="noopener">Team docs</a>
-      <a href="https://github.com/micho8cho93/werkbord/blob/main/docs/TEAM_SECURITY.md" rel="noopener">Team security</a>
+      <a href="team.html">Team</a>
+      <a href="./#install">Install</a>
+      <a href="docs/getting-started.html">Docs</a>
     </nav>
   </div>
 </footer>
@@ -236,26 +138,6 @@
       });
     });
   });
-  /* permission matrix, generated from the same table the console enforces */
-  var P = window.WB_TEAM_PERMS, rows = [
-    ['tickets.view, create, claim', 'tickets.claim'], ['git.report: your own branches and PRs', 'git.report'], ['handoff.own: open a ticket you hold', 'handoff.own'],
-    ['tickets.review: send back, mark done', 'tickets.review'], ['git.report_any: record a merge', 'git.report_any'], ['tickets.edit: any ticket', 'tickets.edit'],
-    ['tickets.assign: assign, reassign', 'tickets.assign'], ['tickets.reopen', 'tickets.reopen'], ['invites.manage', 'invites.manage'], ['members.manage', 'members.manage']];
-  var h = '<thead><tr><th scope="col">Permission</th><th scope="col">Owner</th><th scope="col">Reviewer</th><th scope="col">Member</th></tr></thead><tbody>';
-  rows.forEach(function (r) {
-    h += '<tr><td>' + r[0] + '</td>' + ['owner', 'reviewer', 'member'].map(function (role) { var y = P[role].indexOf(r[1]) > -1; return '<td>' + (y ? '<span class="y" role="img" aria-label="allowed"></span>' : '<span class="n" role="img" aria-label="not allowed"></span>') + '</td>'; }).join('') + '</tr>';
-  });
-  document.getElementById('mx').insertAdjacentHTML('beforeend', h + '</tbody>');
-  /* invite example */
-  var out = document.getElementById('iv-out'), rvb = document.getElementById('iv-rv');
-  document.getElementById('iv-go').addEventListener('click', function () {
-    var a = new Uint8Array(16); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function (_, i) { a[i] = Math.random() * 256; });
-    var code = 'wbi_' + Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
-    var p = document.getElementById('iv-p').value, r = document.getElementById('iv-r').value, u = document.getElementById('iv-u').value, d = document.getElementById('iv-d').value;
-    out.innerHTML = '<b>https://team.example.com/#invite=' + code + '</b><br>' + r + ' on ' + p + ' · ' + u + ' use' + (u === '1' ? '' : 's') + ' · expires in ' + d + ' day' + (d === '1' ? '' : 's') + '<br>Shown once. Only its hash is stored.';
-    rvb.disabled = false;
-  });
-  rvb.addEventListener('click', function () { out.textContent = 'Revoked. The code now answers 404, exactly like one that never existed.'; rvb.disabled = true; });
 })();
 </script>
 </body>

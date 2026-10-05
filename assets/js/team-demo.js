@@ -160,7 +160,7 @@
     mount.querySelector('#td-as').innerHTML = MEMBERS.map(function (m) { return '<button type="button" role="radio" aria-checked="' + (S.me === m.id) + '" class="' + (S.me === m.id ? 'on' : '') + '" data-act="as" data-id="' + m.id + '">' + av(m.id) + m.name + '</button>'; }).join('');
     var r = S.me === 'ada' ? 'owner' : roleOf(S.me, 'shop');
     mount.querySelector('#td-role').textContent = (S.me === 'ada' ? 'workspace owner' : 'member') + (S.me !== 'ada' ? ' · ' + r + ' on Shop' : '');
-    mount.querySelector('#td-rev').innerHTML = dot('ok') + 'synced · revision ' + S.rev;
+    mount.querySelector('#td-rev').textContent = 'synced · revision ' + S.rev;
     var avail = S.tickets.filter(function (t) { return t.status === 'available' && roleOf(S.me, t.p); }).length;
     var att = attention().filter(function (a) { return a.t.holder === S.me; }).length;
     var rv = reviewsFor().length;
@@ -202,7 +202,7 @@
         var c = ts.filter(function (t) { return t.status === s[0]; });
         return '<section class="col" aria-label="' + s[1] + '"><div class="ch">' + s[1] + '<span class="chip">' + c.length + '</span></div>' + (c.length ? c.map(function (t) {
           return '<div class="card tk' + (sel && sel.key === t.key ? ' sel' : '') + '"><button type="button" class="tkb" data-act="sel" data-id="' + t.key + '" aria-pressed="' + (sel && sel.key === t.key) + '"><span class="ct">' + esc(t.title) + '</span></button><div class="mt"><span class="mm">' + t.key + '</span><span style="display:flex;gap:6px;align-items:center">' + prChip(t) + av(t.holder) + '</span></div></div>';
-        }).join('') : '<div class="empty">—</div>') + '</section>';
+        }).join('') : '<div class="empty">No active work.</div>') + '</section>';
       }).join('') + '</div></div>' + detail(sel) + '</div>';
   }
   function actionsFor(t) {

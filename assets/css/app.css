@@ -5,9 +5,6 @@
 .win-bar .px3 i { width: 9px; height: 9px; background: var(--bd); display: block; box-shadow: inset 0 1px 2px rgba(0,0,0,.2); }
 .win-bar .url { font-family: var(--mono); font-size: 12px; color: var(--t2); background: var(--bg); border-radius: 5px; padding: 4px 12px; box-shadow: var(--tray-sh); flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .win-bar .hint { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--t2); display: flex; align-items: center; gap: 8px; }
-.win-bar .hint .dot { animation: pulse 2.4s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: .35; } }
-@media (prefers-reduced-motion: reduce) { .win-bar .hint .dot { animation: none; } }
 
 .app { display: flex; height: 740px; background: var(--bg); color: var(--tx); font-size: 14px; line-height: 1.4; position: relative; }
 .app .rail { width: 216px; flex: none; border-right: 1px solid var(--bd); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
@@ -160,3 +157,12 @@ button.nv:hover { color: var(--tx); }
 .r2 { display: flex; gap: 8px; }
 .r2 .sel { flex: none; width: 128px; height: 38px; }
 .r2 .btn:nth-child(2) { margin-left: auto; }
+
+.mobile-menu, .rail-dismiss { display: none; }
+@media (max-width: 1100px) {
+  .mobile-menu { display: inline-flex; }
+  .ahead > div:first-of-type { margin-right: auto; }
+  .app.menu-open .rail { display: flex; position: absolute; z-index: 40; inset: 0 auto 0 0; width: min(260px, 90%); background: var(--sf); box-shadow: 8px 0 24px rgba(0,0,0,.15); }
+  .rail-dismiss { display: inline-flex; flex: none; margin-bottom: 16px; }
+}
+@media (max-width: 480px) { .r2 { flex-wrap: wrap; } .tin { font-size: 16px; } }
