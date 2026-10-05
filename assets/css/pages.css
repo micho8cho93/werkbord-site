@@ -4,6 +4,16 @@
 .hero-copy { display: flex; flex-direction: column; gap: 26px; align-items: flex-start; }
 .hero-copy .lede { margin-top: -4px; }
 .hero-links { display: flex; gap: 10px; flex-wrap: wrap; }
+.hero-copy .lab { color: var(--t2); display: flex; align-items: center; gap: 10px; }
+.hero-copy .lab .sq { background: var(--amber); }
+
+/* the facts, stated once, in the product's own table style */
+.spec { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; margin: 6px 0 0; width: 100%; max-width: 640px; border-top: 1px solid var(--bd); }
+.spec > div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--bd); font-size: 14px; }
+.spec dt { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--t2); padding-top: 3px; }
+.spec dd { margin: 0; }
+@media (max-width: 560px) { .spec { grid-template-columns: 1fr; } }
+.nav .chip.wl-chip { height: 18px; margin-left: 6px; padding: 0 6px; font-size: 10px; background: transparent; color: var(--wn-tx); box-shadow: inset 0 0 0 1px var(--amber); }
 .field { position: relative; width: 100%; max-width: 560px; justify-self: end; aspect-ratio: 1 / .92; border-radius: 10px; background: var(--bg); touch-action: pan-y; }
 .field canvas { width: 100%; height: 100%; border-radius: 10px; }
 .field .cap { position: absolute; left: 0; right: 0; bottom: -26px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--t2); }
@@ -23,7 +33,10 @@
 .rows { border-top: 1px solid var(--bd); }
 .row { display: grid; grid-template-columns: minmax(180px, 280px) minmax(0, 1fr); gap: 12px 40px; padding: 26px 0; border-bottom: 1px solid var(--bd); align-items: baseline; }
 .row h3 { display: flex; align-items: center; gap: 12px; }
-.row h3 .dot { width: 10px; height: 10px; transform: translateY(1px); }
+.row h3 .dot { display: none; }
+#product .rows { counter-reset: r; }
+#product .row { counter-increment: r; }
+#product .row h3::before { content: counter(r, decimal-leading-zero); font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .08em; color: var(--t2); }
 .row p { color: var(--t2); max-width: 62ch; }
 .row p code, .mono-i { font-family: var(--mono); font-size: .88em; background: var(--s2); padding: 1px 6px; border-radius: 4px; color: var(--tx); }
 @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }

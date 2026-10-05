@@ -1,0 +1,68 @@
+/* Waitlist block: Founding 50 offer, signup form, referral state.
+   Built from the product's own language: ruled tables, inset trays, a row of pixels. */
+
+.wl-sec { padding-top: 0; }
+.wl {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: clamp(28px, 5vw, 80px); align-items: start;
+  border-top: 2px solid var(--tx); padding-top: clamp(24px, 3vw, 36px);
+}
+@media (max-width: 900px) { .wl { grid-template-columns: 1fr; } }
+
+.wl-copy { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.wl-copy h2 { font-size: clamp(28px, 3.4vw, 44px); max-width: 18ch; }
+.wl-copy .lede { max-width: 46ch; }
+
+.wl-terms { margin: 0; border-top: 1px solid var(--bd); }
+.wl-terms > div { display: grid; grid-template-columns: minmax(110px, 160px) minmax(0, 1fr); gap: 4px 20px; padding: 14px 0; border-bottom: 1px solid var(--bd); }
+.wl-terms dt { font-family: var(--mono); font-size: 12px; letter-spacing: .04em; color: var(--t2); padding-top: 2px; }
+.wl-terms dd { margin: 0; }
+.wl-terms dd b { font-weight: 500; }
+.wl-terms dd span { color: var(--t2); }
+@media (max-width: 520px) { .wl-terms > div { grid-template-columns: 1fr; } }
+
+.wl-seats { display: grid; grid-template-columns: repeat(25, 1fr); gap: 3px; max-width: 460px; }
+.wl-seats i { display: block; aspect-ratio: 1; background: var(--s2); box-shadow: var(--tray-sh); }
+.wl-seats i.on { background: var(--ac); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
+.wl-seats-cap { margin-top: 10px; font-family: var(--mono); font-size: 12px; color: var(--t2); }
+
+/* form */
+.wl-right { min-width: 0; }
+.wl-form { display: flex; flex-direction: column; gap: 18px; }
+.wl-f { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.wl-f > label { font-size: 13px; font-weight: 500; }
+.hint { font-size: 12.5px; color: var(--t2); }
+.wl-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 520px) { .wl-two { grid-template-columns: 1fr; } }
+
+.wl-in {
+  width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid transparent; border-radius: 5px;
+  background: var(--s2); box-shadow: var(--tray-sh); color: var(--tx);
+}
+.wl-in::placeholder { color: var(--t2); opacity: .8; }
+.wl-in:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
+.wl-in[aria-invalid="true"] { border-color: var(--dg); }
+textarea.wl-in { padding: 10px 12px; min-height: 96px; resize: vertical; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; }
+
+.wl-more { border-top: 1px solid var(--bd); border-bottom: 1px solid var(--bd); }
+.wl-more summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 0; font-size: 14px; font-weight: 500; cursor: pointer; list-style: none; }
+.wl-more summary::-webkit-details-marker { display: none; }
+.wl-more summary::after { content: "+"; font-family: var(--mono); color: var(--t2); }
+.wl-more[open] summary::after { content: "\2212"; }
+.wl-more .body { display: flex; flex-direction: column; gap: 12px; padding: 0 0 16px; }
+.wl-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; line-height: 1.45; color: var(--t2); }
+.wl-check input { margin-top: 3px; accent-color: var(--ac); flex: none; }
+
+.wl-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.wl-err { margin: 0; min-height: 1.3em; font-size: 13.5px; color: var(--dg-tx); }
+.wl-go { align-self: flex-start; height: 42px; padding: 0 22px; }
+.wl-fine { font-size: 12.5px; line-height: 1.5; color: var(--t2); max-width: 56ch; }
+
+/* success state */
+.wl-done { display: flex; flex-direction: column; gap: 16px; }
+.wl-pos { margin: 0; font-family: var(--mono); font-weight: 600; font-size: clamp(44px, 6vw, 68px); letter-spacing: -.05em; line-height: 1; }
+.wl-pos small { font-size: .38em; letter-spacing: 0; font-weight: 500; color: var(--t2); margin-left: 10px; }
+.wl-status { color: var(--t2); max-width: 52ch; }
+.wl-ref { display: flex; flex-direction: column; gap: 8px; }
+.wl-ref > label { font-size: 13px; font-weight: 500; }
+.wl-ref .curl { max-width: none; }
