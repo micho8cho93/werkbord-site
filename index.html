@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Werkbord — Werk local, ship global.</title>
+<title>Werkbord: Werk local, ship global.</title>
 <meta name="description" content="Werkbord is a local-first remote control for coding agents. A board, a calendar and Git, running on your computer, driven from your phone. No hosted backend, no account.">
 <meta name="theme-color" content="#F5F5F2">
-<meta property="og:title" content="Werkbord — Werk local, ship global.">
+<meta property="og:title" content="Werkbord: Werk local, ship global.">
 <meta property="og:description" content="A local-first remote control for coding agents. Your board, calendar and runs live on your computer.">
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="assets/css/site.css">
 <link rel="stylesheet" href="assets/css/app.css">
 <link rel="stylesheet" href="assets/css/pages.css">
+<link rel="stylesheet" href="assets/css/waitlist.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -29,7 +30,7 @@
     </a>
     <nav class="nav-links" aria-label="Site">
       <a href="./" aria-current="page">Individual</a>
-      <a href="team.html">Team</a>
+      <a href="team.html">Team<span class="chip wl-chip">waitlist</span></a>
       <a class="hide-s" href="#demo">Try it</a>
       <a class="hide-s" href="#install">Install</a>
     </nav>
@@ -51,18 +52,25 @@
   <section class="hero">
     <div class="wrap hero-grid">
       <div class="hero-copy">
-        <h1>Werk local,<br><span class="amp">ship global.</span></h1>
-        <p class="lede">A remote control for your coding agents. The board, the calendar and every run live on your computer. Your phone, tablet or browser just connects to it.</p>
+        <p class="lab"><span class="sq"></span>A remote control for Claude Code and Codex</p>
+        <h1>Werk local,<br>ship global.</h1>
+        <p class="lede">Werkbord keeps a board, a calendar and Git on your computer, and lets you drive your coding agents from a phone or any browser. There is no account and no hosted backend.</p>
         <div style="width:100%">
           <div class="curl">
             <code><span class="ps">$</span><span id="curl-solo">curl -fsSL https://raw.githubusercontent.com/micho8cho93/werkbord/main/scripts/install.sh | sh</span></code>
             <button class="btn pri" type="button" data-copy="#curl-solo"><span class="idle">Copy</span><span class="done">Copied</span></button>
           </div>
-          <div class="curl-note"><span>macOS · Linux</span><span>Windows (experimental)</span><span>No account. No Docker. No root.</span></div>
+          <div class="curl-note"><span>Needs git and a signed-in claude or codex CLI</span></div>
         </div>
+        <dl class="spec">
+          <div><dt>Price</dt><dd>Free</dd></div>
+          <div><dt>Agents</dt><dd>Claude Code, Codex</dd></div>
+          <div><dt>Runs on</dt><dd>macOS, Linux, Windows (experimental)</dd></div>
+          <div><dt>Phone</dt><dd>Over your own Tailscale network</dd></div>
+        </dl>
         <div class="hero-links">
           <a class="btn" href="#demo">Try the app below</a>
-          <a class="btn" href="team.html">Working with a team?</a>
+          <a class="btn" href="#waitlist">Team waitlist</a>
         </div>
       </div>
       <div class="field" aria-hidden="true">
@@ -92,7 +100,7 @@
   <section class="sec" id="product">
     <div class="wrap split">
       <div class="sticky rv">
-        <h2>One control plane. Your side of the wire.</h2>
+        <h2>Everything runs on your computer.</h2>
         <p class="lede">Each repository is a project with its own board, calendar, Git view and runs. Inside one you see that project and nothing else.</p>
       </div>
       <div class="rows rv">
@@ -110,7 +118,7 @@
     <div class="wrap phone-wrap">
       <div class="rv">
         <h2>Your phone is the remote.</h2>
-        <p class="lede" style="margin-top:14px">Approve a command from the sofa. Merge a branch from the train. The agents keep working on your computer while you are away from it.</p>
+        <p class="lede" style="margin-top:14px">Approve a command or merge a branch from your phone. The agents keep working on your computer while you are away from it.</p>
         <ul class="points">
           <li><span><b>Private by construction.</b> Werkbord embeds a Tailscale node, so your phone reaches the controller over your own network. No tunnel, no certificates, no relay of ours.</span></li>
           <li><span><b>Scan, then Add to Home Screen.</b> <span class="mono-i">devboard open --qr</span> opens the app already signed in.</span></li>
@@ -126,7 +134,7 @@
       <div class="install rv">
         <div class="pxrow" aria-hidden="true"><i></i><i></i><i class="c"></i><i></i><i class="a"></i><i></i><i></i><i class="c"></i></div>
         <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;min-width:0">
-          <h2>One command.</h2>
+          <h2>Install it.</h2>
           <p class="lede">The installer checks the download against its published checksum before it installs anything, then sets Werkbord up and opens it in your browser.</p>
           <div style="width:100%">
             <div class="curl">
@@ -148,15 +156,10 @@
     </div>
   </section>
 
-  <section class="sec" style="padding-top:0">
+  <section class="sec wl-sec" id="waitlist">
     <div class="wrap">
-      <div class="band rv">
-        <div>
-          <h3>Working with a team?</h3>
-          <p>Werkbord Team is a separate, shared workspace: members, projects, one board, reviews. It coordinates. Every person's own computer still does the work.</p>
-        </div>
-        <a class="btn pri" href="team.html">See Werkbord Team</a>
-      </div>
+      <div class="wl" data-waitlist></div>
+      <noscript><p class="demo-note">The waitlist form needs JavaScript. You can read about Werkbord Team on the <a href="team.html">Team page</a>.</p></noscript>
     </div>
   </section>
 </main>
@@ -169,6 +172,7 @@
     </div>
     <nav aria-label="Footer">
       <a href="team.html">Werkbord Team</a>
+      <a href="#waitlist">Team waitlist</a>
       <a href="https://github.com/micho8cho93/werkbord" rel="noopener">GitHub</a>
       <a href="https://github.com/micho8cho93/werkbord/blob/main/docs/INSTALL.md" rel="noopener">Install docs</a>
       <a href="https://github.com/micho8cho93/werkbord/blob/main/docs/PHONE.md" rel="noopener">Phone access</a>
@@ -177,6 +181,7 @@
 </footer>
 
 <script src="assets/js/common.js"></script>
+<script src="assets/js/waitlist.js"></script>
 <script src="assets/js/app-demo.js"></script>
 <script>
 document.querySelectorAll('[data-try]').forEach(function (b) {

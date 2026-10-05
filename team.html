@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="assets/css/app.css">
 <link rel="stylesheet" href="assets/css/pages.css">
 <link rel="stylesheet" href="assets/css/team.css">
+<link rel="stylesheet" href="assets/css/waitlist.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -32,7 +33,7 @@
       <a href="./">Individual</a>
       <a href="team.html" aria-current="page">Team</a>
       <a class="hide-s" href="#demo">Try the console</a>
-      <a class="hide-s" href="#install">Install</a>
+      <a class="hide-s" href="#waitlist">Waitlist</a>
     </nav>
     <div class="nav-end">
       <a class="btn" href="https://github.com/micho8cho93/werkbord" rel="noopener">
@@ -43,7 +44,7 @@
         <svg class="sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.500M8 13v1.500M1.500 8H3M13 8h1.500M3.400 3.400l1 1M11.600 11.600l1 1M3.400 12.600l1-1M11.600 4.400l1-1"/></svg>
         <svg class="moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.500 9.500A5.500 5.500 0 0 1 6.500 2.500a5.500 5.500 0 1 0 7 7z"/></svg>
       </button>
-      <a class="btn pri" href="#install">Install</a>
+      <a class="btn pri" href="#waitlist">Join the waitlist</a>
     </div>
   </div>
 </header>
@@ -52,14 +53,12 @@
   <section class="hero">
     <div class="wrap">
       <div class="hero-copy" style="max-width:920px">
+        <p class="lab"><span class="sq"></span>Werkbord Team &middot; waitlist open</p>
         <h1 class="h1-m">One board for the team.<br><span class="amp">Your own machine for the work.</span></h1>
         <p class="lede">Werkbord Team is a shared workspace: who is on the team, which projects exist, one board of tickets, and the branches and pull requests that come out of them. It coordinates. It never runs anything on anyone&rsquo;s computer.</p>
-        <div style="width:100%">
-          <div class="curl">
-            <code><span class="ps">$</span><span id="curl-team">curl -fsSL https://raw.githubusercontent.com/micho8cho93/werkbord/main/scripts/install-team.sh | sh</span></code>
-            <button class="btn pri" type="button" data-copy="#curl-team"><span class="idle">Copy</span><span class="done">Copied</span></button>
-          </div>
-          <div class="curl-note"><span>Installs one executable: <span class="mono">werkbord-team</span></span><span>Starts nothing</span><span>Separate from individual Werkbord</span></div>
+        <div class="hero-links">
+          <a class="btn pri" href="#waitlist">Join the waitlist</a>
+          <a class="btn" href="#demo">Try the console</a>
         </div>
       </div>
       <div style="margin-top:clamp(40px,6vw,72px)" class="rv">
@@ -186,30 +185,10 @@
     </div>
   </section>
 
-  <section class="sec" id="install" style="padding-top:0">
+  <section class="sec wl-sec" id="waitlist">
     <div class="wrap">
-      <div class="install t rv">
-        <div class="pxrow" aria-hidden="true"><i></i><i class="c"></i><i></i><i class="a"></i><i></i><i class="c"></i><i></i><i></i></div>
-        <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;min-width:0">
-          <h2>Start a workspace.</h2>
-          <p class="lede">One computer hosts the server. Everyone else just opens its address in a browser and signs in with their own token.</p>
-          <div style="width:100%">
-            <div class="curl">
-              <code><span class="ps">$</span><span id="curl-team-2">curl -fsSL https://raw.githubusercontent.com/micho8cho93/werkbord/main/scripts/install-team.sh | sh</span></code>
-              <button class="btn" type="button" data-copy="#curl-team-2"><span class="idle">Copy</span><span class="done">Copied</span></button>
-            </div>
-            <div class="curl-note"><span>Checks the release against its checksums</span><span>Installs to <span class="mono">~/.local/bin</span></span></div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
-          <div class="snip"><i>$</i> <b>werkbord-team workspace create</b> --name "Acme" --owner "Ada"<br><i>#</i> prints the owner&rsquo;s token once, plus a sign-in link<br><i>$</i> <b>werkbord-team serve</b><br><i>#</i> http://127.0.0.1:7430</div>
-          <ol class="steps">
-            <li><span><b>Add everyone from the Workspace tab.</b> Each person gets their own token, shown once. Send it privately.</span></li>
-            <li><span><b>Let teammates reach it</b> behind HTTPS (Caddy, nginx) or on a VPN or tailnet. Team serves plain HTTP and says so.</span></li>
-            <li><span><b>Each person keeps working in their own Werkbord,</b> and runs <span class="mono">werkbord-team handoff</span> to bring a ticket they hold into it.</span></li>
-          </ol>
-        </div>
-      </div>
+      <div class="wl" data-waitlist></div>
+      <noscript><p class="demo-note">The waitlist form needs JavaScript.</p></noscript>
     </div>
   </section>
 
@@ -231,6 +210,7 @@
     </div>
     <nav aria-label="Footer">
       <a href="./">Individual Werkbord</a>
+      <a href="#waitlist">Team waitlist</a>
       <a href="https://github.com/micho8cho93/werkbord" rel="noopener">GitHub</a>
       <a href="https://github.com/micho8cho93/werkbord/blob/main/docs/TEAM.md" rel="noopener">Team docs</a>
       <a href="https://github.com/micho8cho93/werkbord/blob/main/docs/TEAM_SECURITY.md" rel="noopener">Team security</a>
@@ -239,6 +219,7 @@
 </footer>
 
 <script src="assets/js/common.js"></script>
+<script src="assets/js/waitlist.js"></script>
 <script src="assets/js/team-demo.js"></script>
 <script>
 (function () {

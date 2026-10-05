@@ -85,7 +85,7 @@ button { cursor: pointer; }
 .sq { width: 7px; height: 7px; background: var(--tx); flex: none; display: inline-block; }
 
 /* ---------- site nav ---------- */
-.nav { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--bd); }
+.nav { position: sticky; top: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--bd); }
 .nav .wrap { height: 60px; display: flex; align-items: center; gap: 28px; }
 .logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
 .logo img { height: 22px; width: auto; }
@@ -110,12 +110,12 @@ button { cursor: pointer; }
 
 /* ---------- type ---------- */
 h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -.03em; text-wrap: balance; }
-h1 { font-size: clamp(46px, 7.4vw, 96px); line-height: .96; letter-spacing: -.04em; }
+h1 { font-size: clamp(42px, 6vw, 80px); line-height: 1; letter-spacing: -.045em; }
 h2 { font-size: clamp(30px, 4vw, 52px); line-height: 1.04; }
 h3 { font-size: 20px; line-height: 1.2; letter-spacing: -.015em; }
 p { margin: 0; text-wrap: pretty; }
 .lede { font-size: clamp(17px, 1.6vw, 20px); line-height: 1.5; color: var(--t2); max-width: 54ch; }
-.amp { color: var(--ac); }
+.amp { color: var(--t2); }
 
 section { position: relative; }
 .sec { padding: clamp(64px, 9vw, 120px) 0; }
@@ -140,12 +140,7 @@ section { position: relative; }
 .foot a { text-decoration: none; }
 .foot a:hover { color: var(--tx); text-decoration: underline; }
 
-/* ---------- reveal ---------- */
-.rv { opacity: 1; }
-@media (prefers-reduced-motion: no-preference) {
-  .js .rv { opacity: 0; transform: translateY(14px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
-  .js .rv.in { opacity: 1; transform: none; }
-}
+/* Content is simply there: no scroll-triggered fades. The product does not animate on scroll either. */
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 @media (max-width: 560px) {
