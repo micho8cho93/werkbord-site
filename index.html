@@ -60,9 +60,12 @@
       <div class="hero-copy">
         <p class="lede">One board for Claude Code and Codex. Plan the work, review the changes, and pick up from your phone.</p>
         <div class="hero-links">
-          <a class="btn pri" href="#install">Install Werkbord</a>
+          <a class="btn pri" href="https://github.com/micho8cho93/werkbord/releases/latest/download/Werkbord.dmg" data-mac-download><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.500 11.500 7M3 13.500h10"/></svg> Download for Mac</a>
+          <a class="text-link" href="#install">Other ways to install</a>
           <a class="text-link" href="team.html">For teams <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a>
         </div>
+        <p class="hero-note">macOS 13 or later · Apple Silicon and Intel · one app, signed and notarized by Apple</p>
+        <p class="hero-note dl-note" data-mac-note role="status" hidden></p>
       </div>
     </div>
   </section>
@@ -109,15 +112,24 @@
       <div class="install">
         <div class="install-copy">
           <h2>Install Werkbord.</h2>
-          <p>macOS · Linux · Windows (experimental)</p>
+          <p>The Mac app, or the command line for macOS · Linux · Windows (experimental)</p>
+          <a class="btn pri" href="https://github.com/micho8cho93/werkbord/releases/latest/download/Werkbord.dmg" data-mac-download><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.500 11.500 7M3 13.500h10"/></svg> Download for Mac</a>
+          <p class="dl-meta">Werkbord.dmg · macOS 13 or later · Apple Silicon and Intel</p>
+          <p class="dl-note" data-mac-note role="status" hidden></p>
           <a class="text-link" href="docs/installation.html">Installation guide <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a>
         </div>
         <div class="install-command">
+          <p class="install-label">Mac app, from a terminal</p>
+          <div class="curl">
+            <code><span class="ps">$</span><span id="curl-app">curl -fL -o Werkbord.dmg https://github.com/micho8cho93/werkbord/releases/latest/download/Werkbord.dmg</span></code>
+            <button class="btn" type="button" data-copy="#curl-app"><span class="idle">Copy</span><span class="done">Copied</span></button>
+          </div>
+          <p class="install-label">Command line · macOS and Linux</p>
           <div class="curl">
             <code><span class="ps">$</span><span id="curl-solo">curl -fsSL https://raw.githubusercontent.com/micho8cho93/werkbord/main/scripts/install.sh | sh</span></code>
             <button class="btn" type="button" data-copy="#curl-solo"><span class="idle">Copy</span><span class="done">Copied</span></button>
           </div>
-          <p class="curl-note">Requires Git and a signed-in Claude Code or Codex CLI.</p>
+          <p class="curl-note">The app needs nothing else. The command line requires Git and a signed-in Claude Code or Codex CLI. Both install the same Werkbord.</p>
         </div>
       </div>
     </div>
@@ -143,6 +155,7 @@
 </footer>
 
 <script src="assets/js/common.js"></script>
+<script src="assets/js/download.js"></script>
 <script src="assets/js/waitlist.js"></script>
 <script src="assets/js/app-demo.js"></script>
 <script>

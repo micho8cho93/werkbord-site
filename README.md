@@ -37,6 +37,14 @@ Any element with `data-waitlist` is replaced by the waitlist block (offer, seat 
 
 The demos replay rules from the product's docs ([Team setup](docs/team-setup.html), [Installation](docs/installation.html)). The install commands are the ones in the product README and `scripts/`. If the installer moves, update the `curl` line in `index.html`. Team installation is documented for users who already have access.
 
+## The Mac app's download button
+
+`Download for Mac` (the hero and the install block, `data-mac-download`) links to `https://github.com/micho8cho93/werkbord/releases/latest/download/Werkbord.dmg`. That address never changes: every individual release uploads its disk image twice, as `Werkbord_<version>_darwin_universal.dmg` and, byte for byte, as `Werkbord.dmg`, and GitHub serves `/releases/latest/download/<file>` from the newest individual release (Team releases are never "latest"). The disk image is signed and notarized, and is one app for Apple Silicon and Intel.
+
+`assets/js/download.js` adds one thing to the plain link: **when someone clicks**, it asks GitHub's API whether the newest release has `Werkbord.dmg`; if so the click goes on to the download, and if not (before the first release that carries the app) the page says so and points at the command line installer. The page itself makes no request to GitHub on load. Without JavaScript the link is followed as it is.
+
+The terminal line next to it (`curl -fL -o Werkbord.dmg …`) is the same address. If the product ever renames the asset, change it in `index.html`, `scripts/build-docs.py` (then run it) and `assets/js/download.js`.
+
 ## Page behavior
 
 - The entry animation covers the viewport with the brand grid, reveals the mark and name, then exits in under two seconds. Internal navigation and reduced-motion preferences skip it. Keyboard/pointer input dismisses it, and both CSS and JavaScript provide automatic exits.
