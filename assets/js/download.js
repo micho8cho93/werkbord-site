@@ -1,20 +1,14 @@
-/* The Mac download buttons.
- *
- * Every [data-mac-download] is an ordinary link to the newest disk image,
- *   https://github.com/micho8cho93/werkbord/releases/latest/download/Werkbord.dmg
- * which works with no script, and in a new tab, and is what a search engine and a screen reader see.
- *
- * This makes it honest in one case: the Mac app is published with a release, and until a release carries it that
- * address finds nothing. When someone CLICKS (not before: the page makes no request to GitHub when it loads), the
- * newest release is looked at; if it has the disk image the click goes on to the download, and if it does not, the
- * person is told so, and sent to the command line installer, which works. If GitHub cannot be asked (offline, rate
- * limited) the link is simply followed. Nothing is stored, and nothing is sent but the request itself.
+/* Resolve an actual published Mac installer on click. A newer CLI-only release
+ * must not hide the last available DMG. Plain links still work without JavaScript.
  */
 (function () {
   'use strict';
   var links = document.querySelectorAll('[data-mac-download]');
   if (!links.length || !window.fetch) return;
-  var API = 'https://api.github.com/repos/micho8cho93/werkbord/releases/latest';
+  var API = 'https://api.github.com/repos/micho8cho93/werkbord/releases';
+  var BASE = 'https://github.com/micho8cho93/werkbord/releases/download/';
+  var PREVIEW_TAG = 'werkbord-v1.3.1-preview.1';
+  var pending = false;
 
   function say(text) {
     document.querySelectorAll('[data-mac-note]').forEach(function (n) {
@@ -23,24 +17,82 @@
     });
   }
 
+  function busy(value) {
+    pending = value;
+    links.forEach(function (link) {
+      if (value) link.setAttribute('aria-busy', 'true');
+      else link.removeAttribute('aria-busy');
+    });
+  }
+
+  function read(url, signal) {
+    return fetch(url, { headers: { Accept: 'application/vnd.github+json' }, signal: signal })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); });
+  }
+
+  function installer(release) {
+    if (release.draft || release.prerelease || !/^werkbord-v\d+\.\d+\.\d+$/.test(release.tag_name)) return null;
+    var name = 'Werkbord_' + release.tag_name.slice(10) + '_darwin_universal.dmg';
+    var assets = release.assets || [];
+    return assets.find(function (a) { return a.name === 'Werkbord.dmg' && a.state === 'uploaded' && a.size > 0 && a.browser_download_url === BASE + release.tag_name + '/Werkbord.dmg'; }) ||
+      assets.find(function (a) { return a.name === name && a.state === 'uploaded' && a.size > 0 && a.browser_download_url === BASE + release.tag_name + '/' + name; });
+  }
+
+  function previewInstaller(release) {
+    if (release.draft || !release.prerelease || release.tag_name !== PREVIEW_TAG) return null;
+    return (release.assets || []).find(function (a) {
+      return a.name === 'Werkbord-preview.dmg' && a.state === 'uploaded' && a.size > 0 &&
+        a.browser_download_url === BASE + PREVIEW_TAG + '/Werkbord-preview.dmg';
+    });
+  }
+
+  function newestFirst(a, b) {
+    var av = a.tag_name.slice(10).split('.').map(Number);
+    var bv = b.tag_name.slice(10).split('.').map(Number);
+    return bv[0] - av[0] || bv[1] - av[1] || bv[2] - av[2];
+  }
+
   links.forEach(function (link) {
     link.addEventListener('click', function (e) {
-      // a new tab, a download-as, the middle button: the browser's own business
+      // Preserve the browser's new-tab, middle-click and save-link gestures.
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       e.preventDefault();
-      say('');
-      fetch(API, { headers: { Accept: 'application/vnd.github+json' } })
-        .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); })
+      if (pending) return;
+      busy(true);
+      say('Finding the Mac installer…');
+      var controller = window.AbortController ? new AbortController() : null;
+      var timer = controller ? setTimeout(function () { controller.abort(); }, 8000) : null;
+      var signal = controller ? controller.signal : undefined;
+      read(API + '/latest', signal)
         .then(function (release) {
-          var has = (release.assets || []).some(function (a) { return a.name === 'Werkbord.dmg'; });
-          if (has) {
-            window.location.href = link.href;
+          var asset = installer(release);
+          if (asset) return asset;
+          return read(API + '?per_page=100', signal).then(function (releases) {
+            var available = releases.filter(function (r) { return installer(r); }).sort(newestFirst);
+            if (available.length) return installer(available[0]);
+            var preview = releases.find(function (r) { return previewInstaller(r); });
+            return preview ? previewInstaller(preview) : null;
+          });
+        })
+        .then(function (asset) {
+          if (asset) {
+            // Use the asset's own release, rather than racing a changing /latest URL.
+            links.forEach(function (l) { l.href = asset.browser_download_url; });
+            say(asset.name === 'Werkbord-preview.dmg' ?
+              'Starting the unsigned preview download. Open the DMG and drag Werkbord to Applications. If blocked, use Privacy & Security → Open Anyway.' :
+              'Starting the DMG download. Check your browser’s downloads.');
+            window.location.assign(asset.browser_download_url);
           } else {
-            say('The Mac app is not published yet. The command line installer below works on any Mac today.');
+            say('The Mac installer is not available yet. Use the command line installer below, or try again after the Mac app is released.');
           }
         })
         .catch(function () {
-          window.location.href = link.href;
+          // API limits or an unavailable API must not block GitHub's direct download.
+          window.location.assign(link.href);
+        })
+        .finally(function () {
+          if (timer) clearTimeout(timer);
+          busy(false);
         });
     });
   });

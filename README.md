@@ -39,11 +39,22 @@ The demos replay rules from the product's docs ([Team setup](docs/team-setup.htm
 
 ## The Mac app's download button
 
-`Download for Mac` (the hero and the install block, `data-mac-download`) links to `https://github.com/micho8cho93/werkbord/releases/latest/download/Werkbord.dmg`. That address never changes: every individual release uploads its disk image twice, as `Werkbord_<version>_darwin_universal.dmg` and, byte for byte, as `Werkbord.dmg`, and GitHub serves `/releases/latest/download/<file>` from the newest individual release (Team releases are never "latest"). The disk image is signed and notarized, and is one app for Apple Silicon and Intel.
+`Download for Mac` links directly to the explicitly requested unsigned test preview:
+`https://github.com/micho8cho93/werkbord/releases/download/werkbord-v1.3.1-preview.1/Werkbord-preview.dmg`.
+The page labels it as an unsigned preview and gives the macOS **Privacy & Security → Open Anyway** first-launch instructions.
+It is a universal DMG for Apple Silicon and Intel, with an ad-hoc app signature, no notarization, and no Sparkle app updater.
+It is a GitHub prerelease, never the latest stable release, and is never published as `Werkbord.dmg` or an appcast update.
 
-`assets/js/download.js` adds one thing to the plain link: **when someone clicks**, it asks GitHub's API whether the newest release has `Werkbord.dmg`; if so the click goes on to the download, and if not (before the first release that carries the app) the page says so and points at the command line installer. The page itself makes no request to GitHub on load. Without JavaScript the link is followed as it is.
+`assets/js/download.js` resolves the actual asset **when someone clicks**. It checks the latest stable release first,
+then searches the most recent 100 releases for the highest stable individual version with a universal DMG. If none exists,
+it uses only the named preview above. Team, drafts, other prereleases, empty assets and foreign URLs are excluded.
+The click uses the asset’s pinned release URL. Repeated clicks share the pending check; API failures and an eight-second
+timeout fall back to the ordinary link. No GitHub request is made on page load. Without JavaScript the preview link works directly.
 
-The terminal line next to it (`curl -fL -o Werkbord.dmg …`) is the same address. If the product ever renames the asset, change it in `index.html`, `scripts/build-docs.py` (then run it) and `assets/js/download.js`.
+GitHub serves the asset as a file download. Browsers use their configured download folder (normally Downloads);
+a website cannot override that preference. The copyable terminal command explicitly saves it in `~/Downloads`.
+Run `node --test scripts/test-download.cjs` for the download selection regressions.
+The product repository’s `docs/DESKTOP_RELEASE.md` describes both preview builds and the Apple setup for signed releases.
 
 ## Page behavior
 
