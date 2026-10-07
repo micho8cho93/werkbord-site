@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Werkbord: werk local, ship global.</title>
-<meta name="description" content="Run Claude Code and Codex from one board. Schedule tasks, review changes and control your agents from your phone. Local-first.">
+<title>Werkbord: a desk for Claude Code and Codex, on your Mac</title>
+<meta name="description" content="Give Claude Code and Codex tasks on a board, schedule the rest for later, answer their questions from your phone, and merge only what you have read. It all runs on your Mac.">
 <meta name="theme-color" content="#F5F5F2">
 <meta property="og:title" content="Werkbord: werk local, ship global.">
-<meta property="og:description" content="A local-first remote control for coding agents. Your board, calendar and runs live on your computer.">
+<meta property="og:description" content="A desk for your coding agents. Tasks, questions, schedules and reviews, running on your own Mac. No account, no cloud.">
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,19 +36,19 @@
     <nav class="nav-links" aria-label="Site">
       <a href="./" aria-current="page">Individual</a>
       <a href="team.html">Team</a>
-      <a href="#install">Install</a>
       <a href="docs/getting-started.html">Docs</a>
+      <a href="productivity.html">Productivity</a>
     </nav>
     <div class="nav-end">
       <a class="btn" href="https://github.com/micho8cho93/werkbord" rel="noopener">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .2a8 8 0 0 0-2.5 15.6c.4.1.5-.2.5-.4v-1.4c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.9.9 2.3.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.200.8a7.600 7.600 0 0 1 4 0c1.500-1 2.200-.8 2.200-.8.4 1.100.2 1.900.1 2.100.5.600.8 1.300.8 2.100 0 3.100-1.900 3.800-3.600 4 .3.300.6.800.6 1.500v2.200c0 .2.1.5.6.4A8 8 0 0 0 8 .2z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .2a8 8 0 0 0-2.5 15.6c.4.1.5-.2.5-.4v-1.4c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.9.9 2.3.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.2.8a7.6 7.6 0 0 1 4 0c1.5-1 2.2-.8 2.2-.8.4 1.1.2 1.9.1 2.1.5.6.8 1.3.8 2.1 0 3.1-1.9 3.8-3.6 4 .3.3.6.8.6 1.5v2.2c0 .2.1.5.6.4A8 8 0 0 0 8 .2z"/></svg>
         <span class="hide-s">GitHub</span>
       </a>
       <button class="btn theme-btn" type="button" data-theme-toggle aria-label="Switch theme">
-        <svg class="sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.500M8 13v1.500M1.500 8H3M13 8h1.500M3.400 3.400l1 1M11.600 11.600l1 1M3.400 12.600l1-1M11.600 4.400l1-1"/></svg>
-        <svg class="moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.500 9.500A5.500 5.500 0 0 1 6.500 2.500a5.500 5.500 0 1 0 7 7z"/></svg>
+        <svg class="sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>
+        <svg class="moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"/></svg>
       </button>
-      <a class="btn pri" href="#install">Install</a>
+      <a class="btn pri" href="https://github.com/micho8cho93/werkbord/releases/download/werkbord-v1.3.1-preview.1/Werkbord-preview.dmg" data-mac-download><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>Download</a>
     </div>
   </div>
 </header>
@@ -58,13 +58,14 @@
     <div class="wrap hero-grid">
       <h1>werk local,<br><span class="amp">ship <span class="accent-word">global.</span></span></h1>
       <div class="hero-copy">
-        <p class="lede">One board for Claude Code and Codex. Plan the work, review the changes, and pick up from your phone.</p>
+        <p class="lede">Werkbord is a desk for Claude Code and Codex. Hand them tasks on a board, schedule the rest for tonight, answer their questions from your phone, and merge only what you have read. All of it runs on your Mac.</p>
         <div class="hero-links">
-          <a class="btn pri" href="https://github.com/micho8cho93/werkbord/releases/download/werkbord-v1.3.1-preview.1/Werkbord-preview.dmg" data-mac-download><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.500 11.500 7M3 13.500h10"/></svg> Download for Mac</a>
-          <a class="text-link" href="#install">Other ways to install</a>
-          <a class="text-link" href="team.html">For teams <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a>
+          <a class="btn pri" href="https://github.com/micho8cho93/werkbord/releases/download/werkbord-v1.3.1-preview.1/Werkbord-preview.dmg" data-mac-download><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>Download for Mac</a>
+          <a class="text-link" href="#demo">Try it in your browser <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></a>
         </div>
-        <p class="hero-note">macOS 13 or later · Apple Silicon and Intel · unsigned preview</p>
+        <ul class="facts" aria-label="At a glance">
+          <li>No account</li><li>No cloud relay</li><li>Agents never merge</li>
+        </ul>
         <p class="hero-note dl-note" data-mac-note role="status" hidden></p>
       </div>
     </div>
@@ -73,66 +74,144 @@
   <section class="demo-section" id="demo" aria-labelledby="demo-title">
     <div class="wrap">
       <div class="demo-head">
-        <h2 id="demo-title">Your agents, at a glance.</h2>
-        <div class="try" role="group" aria-label="Explore the demo">
-          <button class="btn" type="button" data-try="board">Start an agent</button>
-          <button class="btn" type="button" data-try="calendar">Plan the week</button>
-          <button class="btn" type="button" data-try="overview">Review changes</button>
+        <div>
+          <h2 id="demo-title">This is the app. Go ahead.</h2>
+          <p class="demo-sub">Three agents are mid-shift on a made-up repository. One has a question. One stopped rather than guess. Everything here works.</p>
+        </div>
+        <div class="try" role="group" aria-label="Things to try">
+          <button class="btn" type="button" data-try="answer"><span class="try-dot" style="background:var(--amber)"></span>Answer a question</button>
+          <button class="btn" type="button" data-try="merge"><span class="try-dot" style="background:var(--ok)"></span>Merge finished work</button>
+          <button class="btn" type="button" data-try="plan"><span class="try-dot" style="background:var(--ac)"></span>Plan the week</button>
+          <button class="btn" type="button" data-try="new"><span class="try-dot" style="background:var(--tx)"></span>Write a task</button>
         </div>
       </div>
-      <div id="app-demo"></div>
+      <div id="app-demo" class="app-demo"></div>
+      <p class="demo-cap">The Werkbord window, at its real size, scaled to fit. Drag cards between columns, drag tasks onto the calendar, press <kbd class="key">⌘</kbd><kbd class="key">K</kbd> to jump anywhere or <kbd class="key">N</kbd> for a new task. The phone below shares the same controller.</p>
     </div>
   </section>
 
-  <section class="sec" id="phone">
-    <div class="wrap phone-wrap">
-      <div class="phone-copy">
-        <h2>Your board.<br><span class="accent-word">In your pocket.</span></h2>
-        <p class="lede">The same board, wherever you are. Your agents keep running on your computer.</p>
-        <div class="rows">
-          <div class="row"><h3>Plan ahead</h3><p>Schedule tasks and dependencies. Runs continue with the browser closed.</p></div>
-          <div class="row"><h3>Stay involved</h3><p>Answer questions and approve commands from any browser.</p></div>
-          <div class="row"><h3>Review and ship</h3><p>Inspect the changes. You decide when to merge.</p></div>
-        </div>
+  <section class="sec rules-sec" aria-labelledby="rules-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="rules-title">Four house rules.<br><span class="amp">Kept by the software, not by willpower.</span></h2>
+      </div>
+      <ol class="rules">
+        <li class="rule">
+          <span class="rule-n">01</span>
+          <div class="rule-copy">
+            <h3>It asks instead of guessing.</h3>
+            <p>When an agent reaches a real decision, it stops and puts the question on its card, with the answers it can see. One click and it carries on. Work that can’t continue is marked <em>blocked</em>, not buried in a log you’ll read on Friday.</p>
+          </div>
+          <div class="wbx mini" aria-hidden="true">
+            <div class="w-card w-item" data-kind="question"><p class="w-kind"><span class="w-dot" data-tone="ask"></span><b>Needs input</b><span>my-app · 4M</span></p><p class="w-q">Two callers still read the old 24-hour session TTL. Keep it for them?</p><div class="acts"><span class="w-btn sm">Keep 24 hours</span><span class="w-btn sm">Move both to 12 hours</span></div></div>
+          </div>
+        </li>
+        <li class="rule">
+          <span class="rule-n">02</span>
+          <div class="rule-copy">
+            <h3>Nothing merges without you.</h3>
+            <p>Every task runs in its own Git worktree, so your checkout never shifts under your feet. Finished work waits in Review with its branch, its commits and every changed line. Merging is a button only you press, and it checks the repository again the moment you do.</p>
+          </div>
+          <div class="wbx mini" aria-hidden="true">
+            <div class="w-card w-task" data-tone="ok"><span class="title">Fix date picker off-by-one</span><p class="w-st"><span class="w-dot" data-tone="ok"></span>Ready for review</p><p class="w-well">werkbord/fix-date-picker-off-by-one · 1 commit ahead</p><div class="acts"><span class="w-btn sm pri">Merge…</span><span class="w-btn sm">Review</span></div></div>
+          </div>
+        </li>
+        <li class="rule">
+          <span class="rule-n">03</span>
+          <div class="rule-copy">
+            <h3>Your code stays home.</h3>
+            <p>There is no Werkbord account and no server of ours in the middle. The board, the database and your agents’ sign-ins live on your Mac. Your phone reaches it over your own private network, not through someone else’s cloud.</p>
+          </div>
+          <div class="wbx mini net" aria-hidden="true">
+            <div class="net-row"><span class="net-node">Your Mac<small>controller · agents · database</small></span><span class="net-line"><span>your tailnet</span></span><span class="net-node">Your phone<small>the same board</small></span></div>
+            <p class="w-mm">Nothing else in the picture. That is the point.</p>
+          </div>
+        </li>
+        <li class="rule">
+          <span class="rule-n">04</span>
+          <div class="rule-copy">
+            <h3>The work doesn’t clock out when you do.</h3>
+            <p>Werkbord runs as a background service. Close the window, quit the app, and your agents and schedules keep going for as long as the Mac is awake. Put tomorrow’s chores on the calendar and they start on time, in order, without you.</p>
+          </div>
+          <div class="wbx mini" aria-hidden="true">
+            <div class="mini-cal"><div class="w-ev run" style="position:static"><b>Fix flaky auth test</b><span>10:00 · running</span></div><div class="w-ev" style="position:static"><b>Audit dependencies</b><span>15:00 · Codex</span></div><div class="w-ev dep" style="position:static"><b>Upgrade vite</b><span>Fri 14:00 · after Fix flaky auth test</span></div></div>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec day-sec" id="phone" aria-labelledby="day-title">
+    <div class="wrap day-wrap">
+      <div class="day-copy">
+        <h2 id="day-title">Your board.<br><span class="accent-word">In your pocket.</span></h2>
+        <p class="lede">The phone shows the same board, live, from the same Mac. Questions arrive as notifications. Answers are a tap.</p>
+        <ol class="day" aria-label="A day with Werkbord">
+          <li><time>08:40</time><p>Coffee. You write four tasks before standup and drag two onto this afternoon.</p></li>
+          <li><time>09:05</time><p>Claude Code is chasing the flaky test. Codex has the date picker. The third task waits for a free slot instead of trampling the other two.</p></li>
+          <li><time>11:52</time><p>On the train, your phone buzzes: keep the 24-hour session limit for the two old callers? You tap <em>Keep</em>. It carries on.</p></li>
+          <li><time>15:00</time><p>The audit you scheduled starts by itself. You’re in a meeting. It doesn’t need you.</p></li>
+          <li><time>17:30</time><p>Back at your desk, three branches wait in Review. You read each change, merge two, and send the third back for another pass.</p></li>
+        </ol>
         <a class="text-link" href="docs/phone-access.html">Connect your phone <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a>
       </div>
-      <div class="phone" aria-label="Werkbord on a phone">
-        <div class="phone-glass">
-          <div class="phone-status" aria-hidden="true"><span>9:41</span><span class="phone-island"></span><svg width="61" height="14" viewBox="0 0 61 14" fill="none"><path d="M1 11V8h3v3zm5 0V6h3v5zm5 0V4h3v7zm5 0V2h3v9z" fill="currentColor"/><path d="M24 5c4-4 10-4 14 0M27 8c2-2 6-2 8 0m-5 3 1-1 1 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="44" y="3" width="14" height="8" rx="2" stroke="currentColor"/><path d="M60 5v4" stroke="currentColor"/><rect x="46" y="5" width="10" height="4" rx="1" fill="currentColor"/></svg></div>
-          <div class="phone-address"><svg width="11" height="12" viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="2" y="6" width="8" height="7" rx="1"/><path d="M3.5 6V3.5a2.5 2.5 0 0 1 5 0V6"/></svg>werkbord.local</div>
-          <iframe id="phone-demo" title="Werkbord app on a phone: Board, Calendar and Overview" data-src="demo.html"></iframe>
-          <div class="phone-home" aria-hidden="true"><span></span></div>
+      <div class="phone-col">
+        <div id="phone-demo" class="phone-demo" role="region" aria-label="Werkbord on a phone, sharing the controller with the window above"></div>
+        <div class="phone-try" role="group" aria-label="Phone sections">
+          <button class="btn sm" type="button" data-phone="control">Needs you</button>
+          <button class="btn sm" type="button" data-phone="board">Board</button>
+          <button class="btn sm" type="button" data-phone="calendar">Today</button>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="sec install-section" id="install">
+  <section class="sec how-sec" aria-labelledby="how-title">
     <div class="wrap">
-      <div class="install">
-        <div class="install-copy">
-          <h2>Install Werkbord.</h2>
-          <p>The Mac app, or the command line for macOS · Linux · Windows (experimental)</p>
-          <a class="btn pri" href="https://github.com/micho8cho93/werkbord/releases/download/werkbord-v1.3.1-preview.1/Werkbord-preview.dmg" data-mac-download><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.500 11.500 7M3 13.500h10"/></svg> Download for Mac</a>
-          <p class="dl-meta">Werkbord-preview.dmg · macOS 13 or later · Apple Silicon and Intel</p>
-          <p class="dl-note">Unsigned test preview. If macOS blocks the app, open System Settings → Privacy &amp; Security → Open Anyway after trying to launch it.</p>
-          <p class="dl-note" data-mac-note role="status" hidden></p>
+      <div class="sec-head">
+        <h2 id="how-title">Three steps from download<br><span class="amp">to an agent at work.</span></h2>
+      </div>
+      <ol class="steps">
+        <li><span class="step-n">1</span><h3>Open the app</h3><p>Drag Werkbord to Applications and open it. It sets itself up in a few seconds and starts the background service that keeps working when the window is closed.</p></li>
+        <li><span class="step-n">2</span><h3>Add a repository</h3><p>Choose a folder on your Mac, or connect GitHub and pick one from your list. Each repository becomes a project with its own board, calendar and Git view.</p></li>
+        <li><span class="step-n">3</span><h3>Write the first task</h3><p>Say what done looks like, choose Claude Code or Codex, and press start. It uses the agent you already have, signed in with your own account. Werkbord never asks for an API key.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec dl-sec" id="download" aria-labelledby="dl-title">
+    <div class="wrap">
+      <div class="dl">
+        <div class="dl-copy">
+          <img class="dl-mark" src="assets/img/mark-dark.svg" alt="" width="66" height="48">
+          <h2 id="dl-title">Werkbord for Mac.</h2>
+          <p>One download for Apple Silicon and Intel. Bring Claude Code or Codex, signed in with your own account.</p>
+        </div>
+        <div class="dl-action">
+          <a class="btn pri" href="https://github.com/micho8cho93/werkbord/releases/download/werkbord-v1.3.1-preview.1/Werkbord-preview.dmg" data-mac-download><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>Download for Mac</a>
+          <p class="dl-meta">Werkbord-preview.dmg · macOS 13 or later</p>
+          <p class="dl-note">This is an unsigned test preview. If macOS refuses to open it the first time, go to System Settings → Privacy &amp; Security and choose Open Anyway.</p>
+          <p class="dl-note live" data-mac-note role="status" hidden></p>
           <a class="text-link" href="docs/installation.html">Installation guide <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a>
         </div>
-        <div class="install-command">
-          <p class="install-label">Mac app, from a terminal</p>
-          <div class="curl">
-            <code><span class="ps">$</span><span id="curl-app">curl -fL -o ~/Downloads/Werkbord-preview.dmg https://github.com/micho8cho93/werkbord/releases/download/werkbord-v1.3.1-preview.1/Werkbord-preview.dmg</span></code>
-            <button class="btn" type="button" data-copy="#curl-app"><span class="idle">Copy</span><span class="done">Copied</span></button>
-          </div>
-          <p class="install-label">Command line · macOS and Linux</p>
-          <div class="curl">
-            <code><span class="ps">$</span><span id="curl-solo">curl -fsSL https://raw.githubusercontent.com/micho8cho93/werkbord/main/scripts/install.sh | sh</span></code>
-            <button class="btn" type="button" data-copy="#curl-solo"><span class="idle">Copy</span><span class="done">Copied</span></button>
-          </div>
-          <p class="curl-note">The app needs nothing else. The command line requires Git and a signed-in Claude Code or Codex CLI. Both install the same Werkbord.</p>
-        </div>
       </div>
+    </div>
+  </section>
+
+  <section class="sec cross-sec" aria-label="More ways to use Werkbord">
+    <div class="wrap cross">
+      <a class="cross-card" href="productivity.html">
+        <span class="lab">Productivity</span>
+        <h3>Not a developer?</h3>
+        <p>If your work lives in files, a manuscript, a website, research notes, a pile of spreadsheets, an agent can work on it too. Werkbord shows you every changed line before you accept a single one.</p>
+        <span class="text-link">Werkbord for everyone else <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></span>
+      </a>
+      <a class="cross-card" href="team.html">
+        <span class="lab">Team</span>
+        <h3>Working with other people?</h3>
+        <p>Werkbord Team puts everyone’s tickets, branches and reviews on one shared board, while each person’s agents, code and keys stay on their own machine.</p>
+        <span class="text-link">See Werkbord Team <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></span>
+      </a>
     </div>
   </section>
 
@@ -149,8 +228,9 @@
     <span class="footer-brand">werkbord</span>
     <nav aria-label="Footer">
       <a href="team.html">Team</a>
-      <a href="#install">Install</a>
+      <a href="#download">Download</a>
       <a href="docs/getting-started.html">Docs</a>
+      <a href="productivity.html">Productivity</a>
     </nav>
   </div>
 </footer>
@@ -162,9 +242,12 @@
 <script>
 document.querySelectorAll('[data-try]').forEach(function (b) {
   b.addEventListener('click', function () {
-    if (window.WBApp) window.WBApp.goto(b.getAttribute('data-try'));
     document.getElementById('app-demo').scrollIntoView({ block: 'center', behavior: WB.reduced ? 'auto' : 'smooth' });
+    if (window.WBApp) window.WBApp.go(b.getAttribute('data-try'));
   });
+});
+document.querySelectorAll('[data-phone]').forEach(function (b) {
+  b.addEventListener('click', function () { if (window.WBApp) window.WBApp.phone(b.getAttribute('data-phone')); });
 });
 </script>
 </body>

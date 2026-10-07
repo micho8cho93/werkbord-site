@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Werkbord Team | Work together</title>
-<meta name="description" content="A shared board for teams using coding agents. Claim tickets, track branches and review work. Each developer keeps their own machine.">
+<title>Werkbord Team: one board for the team, every agent stays home</title>
+<meta name="description" content="A shared board for teams that work with coding agents. Claim tickets, see every branch and pull request, catch collisions early. Each person's agents, code and keys stay on their own machine.">
 <meta name="theme-color" content="#0B0B0C">
-<meta property="og:title" content="Werkbord Team | Work together">
-<meta property="og:description" content="A shared workspace that coordinates a team. Every member keeps their own computer, runner and credentials.">
+<meta property="og:title" content="Werkbord Team: one board for the team">
+<meta property="og:description" content="Team coordinates the work. It never runs anything: every member keeps their own computer, runner and credentials.">
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,17 +37,17 @@
     <nav class="nav-links" aria-label="Site">
       <a href="./">Individual</a>
       <a href="team.html" aria-current="page">Team</a>
-      <a href="./#install">Install</a>
       <a href="docs/getting-started.html">Docs</a>
+      <a href="productivity.html">Productivity</a>
     </nav>
     <div class="nav-end">
       <a class="btn" href="https://github.com/micho8cho93/werkbord" rel="noopener">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .2a8 8 0 0 0-2.5 15.6c.4.1.5-.2.5-.4v-1.4c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.9.9 2.3.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.200.8a7.600 7.600 0 0 1 4 0c1.500-1 2.200-.8 2.200-.8.4 1.100.2 1.900.1 2.100.5.600.8 1.300.8 2.100 0 3.100-1.900 3.800-3.600 4 .3.300.6.800.6 1.500v2.200c0 .2.1.5.6.4A8 8 0 0 0 8 .2z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .2a8 8 0 0 0-2.5 15.6c.4.1.5-.2.5-.4v-1.4c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.9.9 2.3.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.2.8a7.6 7.6 0 0 1 4 0c1.5-1 2.2-.8 2.2-.8.4 1.1.2 1.9.1 2.1.5.6.8 1.3.8 2.1 0 3.1-1.9 3.8-3.6 4 .3.3.6.8.6 1.5v2.2c0 .2.1.5.6.4A8 8 0 0 0 8 .2z"/></svg>
         <span class="hide-s">GitHub</span>
       </a>
       <button class="btn theme-btn" type="button" data-theme-toggle aria-label="Switch theme">
-        <svg class="sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.500M8 13v1.500M1.500 8H3M13 8h1.500M3.400 3.400l1 1M11.600 11.600l1 1M3.400 12.600l1-1M11.600 4.400l1-1"/></svg>
-        <svg class="moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.500 9.500A5.500 5.500 0 0 1 6.500 2.500a5.500 5.500 0 1 0 7 7z"/></svg>
+        <svg class="sun" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>
+        <svg class="moon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"/></svg>
       </button>
       <a class="btn pri" href="#waitlist">Join the waitlist</a>
     </div>
@@ -57,13 +57,14 @@
 <main id="main">
   <section class="hero team-hero">
     <div class="wrap hero-grid">
-      <h1>One board.<br><span class="accent-word">The whole team.</span></h1>
+      <h1>One board for the team.<br><span class="accent-word">Agents stay home.</span></h1>
       <div class="hero-copy">
-        <p class="lede">Pick up work. See what’s changed. Review together. Your agents and code stay on your machine.</p>
+        <p class="lede">Werkbord Team is where a team that works with coding agents decides who does what. Claim a ticket, take it to your own Werkbord, and the board learns your branch, your commits and your pull request. The server never runs code, never holds a key, and never opens a repository.</p>
         <div class="hero-links">
           <a class="btn pri" href="#waitlist">Join the waitlist</a>
-          <span class="hero-note">Be one of the first 50.</span>
+          <a class="text-link" href="#demo">Try the console <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></a>
         </div>
+        <ul class="facts" aria-label="At a glance"><li>Coordinates, never executes</li><li>Collisions named early</li><li>Done means merged</li></ul>
       </div>
     </div>
   </section>
@@ -71,32 +72,72 @@
   <section class="demo-section" id="demo" aria-labelledby="demo-title">
     <div class="wrap">
       <div class="demo-head">
-        <h2 id="demo-title">Try working together.</h2>
-        <div class="try" role="group" aria-label="Explore the Team demo">
-          <button class="btn" type="button" data-t="claim">Claim a ticket</button>
-          <button class="btn" type="button" data-t="review">Review work</button>
-          <button class="btn" type="button" data-t="repo">Check branches</button>
+        <div>
+          <h2 id="demo-title">Pick a seat. The rules come with it.</h2>
+          <p class="demo-sub">Ada owns the workspace. Bo is a member. Cy reviews Shop. Switch between them and the console shows exactly what each one may do. Two branches are about to collide; see if you can find where.</p>
+        </div>
+        <div class="try" role="group" aria-label="Things to try">
+          <button class="btn" type="button" data-t="claim"><span class="try-dot" style="background:var(--ac)"></span>Claim a ticket as Bo</button>
+          <button class="btn" type="button" data-t="review"><span class="try-dot" style="background:var(--ok)"></span>Sign off as Cy</button>
+          <button class="btn" type="button" data-t="repo"><span class="try-dot" style="background:var(--amber)"></span>Find the collision</button>
+          <button class="btn" type="button" data-t="handoff"><span class="try-dot" style="background:var(--tx)"></span>Open in my runner</button>
         </div>
       </div>
-      <div id="team-demo"></div>
+      <div class="view-as"><span>Viewing as</span>
+        <div class="as-seg" role="group" aria-label="View the console as">
+          <button type="button" data-as="ada" aria-pressed="true"><span class="av">A</span>Ada <small>owner</small></button>
+          <button type="button" data-as="bo" aria-pressed="false"><span class="av">B</span>Bo <small>member</small></button>
+          <button type="button" data-as="cy" aria-pressed="false"><span class="av">C</span>Cy <small>reviewer</small></button>
+        </div>
+      </div>
+      <div id="team-demo" class="app-demo"></div>
+      <p class="demo-cap">The Team console, at its real size, scaled to fit. Drag a ticket and it does only what the matching button would: claim, submit, sign off. Everything else gets a plain refusal with the reason.</p>
     </div>
   </section>
 
-  <section class="sec" id="together">
-    <div class="wrap split">
-      <div class="feature-intro">
-        <h2>Shared work.<br><span class="accent-word warm">Clear ownership.</span></h2>
-        <p class="lede">See what everyone is doing and what needs a decision.</p>
+  <section class="sec" aria-labelledby="flow-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="flow-title">Who owns which fact.<br><span class="amp">The line Team never crosses.</span></h2>
+        <p class="lede">Every fact on the board has exactly one source. Team keeps the shared ones and asks for the rest.</p>
+      </div>
+      <ol class="flow">
+        <li><span class="who">Team</span><b>Ticket</b><span>Written once, in Backlog. Made Available when someone can start.</span></li>
+        <li><span class="who">Team</span><b>Claim</b><span>One guarded operation. Two people pressing Claim at once get one owner and one clear answer.</span></li>
+        <li><span class="who">Your Werkbord</span><b>Agent run</b><span>Open in my runner hands the ticket to your own machine. Your agent, your keys, your checkout.</span></li>
+        <li><span class="who">Your Git host</span><b>Branch &amp; PR</b><span>Your Werkbord reports the branch, commits and pull request. Team records them; it never looks.</span></li>
+        <li><span class="who">Team</span><b>Review &amp; Done</b><span>A reviewer signs off. Done is refused while the pull request is open.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec" id="together" aria-labelledby="claims-title" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head"><h2 id="claims-title">Things Team will not do.<br><span class="amp">On purpose, and enforced.</span></h2></div>
+      <ul class="claims">
+        <li><h3>Run anything.</h3><p>The server has no code path that starts a process, no shell, no file access and no way into anyone’s machine. A test in the codebase fails the build if that ever changes.</p><span class="proof">internal/archtest</span></li>
+        <li><h3>Hold your keys.</h3><p>Git, GitHub and agent credentials never reach it. What it stores is coordination: tickets, roles, branch names, commit subjects, pull request state. Never file contents, never diffs.</p><span class="proof">metadata only · validated on the way in</span></li>
+        <li><h3>Let a collision surprise you.</h3><p>When two active branches change the same file, both people see it on the board while it is still a conversation and not yet a rebase.</p><span class="proof">overlap · behind · conflict · stale</span></li>
+        <li><h3>Call it done early.</h3><p>A ticket cannot reach Done while its pull request is open, and a reviewer cannot sign off their own work. The board means what it says.</p><span class="proof">enforced on the server, not in the page</span></li>
+        <li><h3>Make you rent a network.</h3><p>A workspace can have a private network of its own, owned by you, with no account at anyone else’s service.</p><span class="proof">Team 2.5 and later</span></li>
+        <li><h3>Lock out people who don’t code.</h3><p>Product managers and designers write tickets, follow progress and sign off outcomes from the browser. No terminal, no repository.</p><a class="proof" href="productivity.html" style="color:var(--ac)">How non-developers use it →</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sec day-sec" aria-labelledby="pocket-title" style="padding-top:0">
+    <div class="wrap day-wrap">
+      <div class="day-copy">
+        <h2 id="pocket-title">The whole team.<br><span class="accent-word warm">On the train home.</span></h2>
+        <p class="lede">The console fits a phone without losing a rule. Check who picked up what, sign off a review, or claim tomorrow’s ticket before you get in.</p>
         <dl class="metrics" aria-label="Team technical details">
-          <div><dt>Board sync in tests</dt><dd>&lt;1<span>s</span></dd></div>
+          <div><dt>Board sync, measured in tests</dt><dd>&lt;1<span>s</span></dd></div>
           <div><dt>Access tokens</dt><dd>256<span>bit</span></dd></div>
         </dl>
-        <a class="text-link" href="docs/team-security.html#sync">Technical details <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a>
+        <a class="text-link" href="docs/team-security.html#sync">How sync and access work <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a>
       </div>
-      <div class="rows">
-        <div class="row"><h3>Claim and run</h3><p>Pick up a ticket and open it in your own Werkbord. Everyone sees who owns it.</p></div>
-        <div class="row"><h3>Review together</h3><p>Track pull requests and catch overlapping changes before they become conflicts.</p></div>
-        <div class="row"><h3>Keep control</h3><p>Share progress. Code and agent credentials stay on each developer’s machine.</p></div>
+      <div class="phone-col">
+        <div id="team-phone" class="phone-demo" role="region" aria-label="The Team console on a phone, sharing the workspace with the window above"></div>
       </div>
     </div>
   </section>
@@ -114,8 +155,9 @@
     <span class="footer-brand">werkbord</span>
     <nav aria-label="Footer">
       <a href="team.html">Team</a>
-      <a href="./#install">Install</a>
+      <a href="./#download">Download</a>
       <a href="docs/getting-started.html">Docs</a>
+      <a href="productivity.html">Productivity</a>
     </nav>
   </div>
 </footer>
@@ -125,17 +167,16 @@
 <script src="assets/js/team-demo.js"></script>
 <script>
 (function () {
-  var go = function (fn) { fn(); document.getElementById('team-demo').scrollIntoView({ block: 'center', behavior: WB.reduced ? 'auto' : 'smooth' }); };
-  var T = window.WBTeam;
+  var T = window.WBTeam; if (!T) return;
+  document.querySelectorAll('[data-as]').forEach(function (b) { b.addEventListener('click', function () { T.as(b.dataset.as); }); });
   document.querySelectorAll('[data-t]').forEach(function (b) {
     b.addEventListener('click', function () {
       var k = b.getAttribute('data-t');
-      go(function () {
-        if (k === 'claim') { T.as('ada'); T.show('board', 'WB-141'); }
-        else if (k === 'review') { T.as('cy'); T.show('reviews'); }
-        else if (k === 'handoff') { T.as('bo'); T.show('board', 'WB-142'); T.handoff('WB-142'); }
-        else if (k === 'repo') { T.as('ada'); T.show('repo', 'WB-142'); }
-      });
+      document.getElementById('team-demo').scrollIntoView({ block: 'center', behavior: WB.reduced ? 'auto' : 'smooth' });
+      if (k === 'claim') { T.as('bo'); T.show('board', 'WB-46'); }
+      else if (k === 'review') { T.as('cy'); T.show('reviews'); }
+      else if (k === 'repo') { T.as('ada'); T.show('repository'); }
+      else if (k === 'handoff') { T.as('bo'); T.show('board', 'WB-48', true); }
     });
   });
 })();

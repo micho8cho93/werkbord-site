@@ -83,7 +83,7 @@
               'Starting the DMG download. Check your browser’s downloads.');
             window.location.assign(asset.browser_download_url);
           } else {
-            say('The Mac installer is not available yet. Use the command line installer below, or try again after the Mac app is released.');
+            say('The Mac download is not available right now. Try again in a few minutes, or get it from the releases page on GitHub.');
           }
         })
         .catch(function () {

@@ -58,7 +58,7 @@ test('does not navigate to an empty, unfinished or foreign download asset', asyn
   const p = page([broken, [broken, pending, foreign]]);
   p.click(); await settled();
   assert.deepEqual(p.downloads, []);
-  assert.match(p.notes[0].textContent, /not available yet/);
+  assert.match(p.notes[0].textContent, /not available right now/);
   assert.equal(p.notes[1].hidden, false);
 });
 test('falls back to the direct link on API failure and permits retry', async () => {

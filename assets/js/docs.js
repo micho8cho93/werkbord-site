@@ -61,3 +61,26 @@
     document.querySelectorAll('.doc-article section').forEach(function (section) { observer.observe(section); });
   }
 })();
+/* Annotated screenshots: a note and its box light up together; a click enlarges the picture. */
+(function () {
+  'use strict';
+  document.querySelectorAll('figure.shot').forEach(function (fig) {
+    function light(n, on) { fig.querySelectorAll('[data-pin="' + n + '"]').forEach(function (el) { el.classList.toggle('on', on); }); }
+    fig.querySelectorAll('.pin-notes li').forEach(function (li) {
+      li.addEventListener('mouseenter', function () { light(li.dataset.pin, true); });
+      li.addEventListener('mouseleave', function () { light(li.dataset.pin, false); });
+    });
+    var btn = fig.querySelector('.shot-img');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var open = fig.classList.toggle('zoom');
+      document.documentElement.style.overflow = open ? 'hidden' : '';
+      btn.setAttribute('aria-expanded', String(open));
+    });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var z = document.querySelector('figure.shot.zoom');
+    if (z) { z.classList.remove('zoom'); document.documentElement.style.overflow = ''; }
+  });
+})();
