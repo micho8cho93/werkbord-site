@@ -1,0 +1,70 @@
+# Werkbord
+
+> Werkbord is a local-first team workspace for AI agents. People plan and approve the work on one board, agents do it in their own Git worktrees, and nothing merges without a person. The board, database and agent sign-ins stay on your own machines, and a phone connects over your own Tailscale network. There is no Werkbord account and no hosted backend.
+
+Werkbord is spelled with an e and is unrelated to WorkBoard, the enterprise OKR software.
+
+## Availability
+
+- **Werkbord for Mac**: available now as an unsigned test preview. It works with Claude Code and Codex.
+- **Werkbord Team**: early access through a waitlist. A shared board for product, design and engineering.
+- **Planned, not available today**: support for models other than Claude Code and Codex, and simpler flows for people who don't code.
+
+## Facts
+
+- **What it is**: a board, calendar and Git view for each project, plus a background service that runs and supervises AI agents. The board has four columns: Backlog, Doing, Review and Done. Werkbord Team adds a shared board across people.
+- **Who it is for**: developers who run agents on their own repositories; teams where product managers and designers write tickets and sign off from a browser (Werkbord Team); people who don't code and want an agent to work on files.
+- **Agents**: Claude Code and Codex today, through their own command-line tools, signed in with the user's own accounts. Werkbord never asks for an API key.
+- **Platforms**: a Mac app for macOS 13 or later (one universal download for Apple Silicon and Intel). A command-line installer for macOS and Linux. Windows is experimental. Git is required.
+- **Where data lives**: a SQLite database and configuration in `~/Library/Application Support/werkbord` on a Mac. The agents' work lives in Git branches and worktrees.
+- **Isolation**: every task runs in its own Git worktree on its own branch, so the user's checkout is not touched. Agents run as the user's operating-system user. This is isolation, not a sandbox.
+- **Review**: a finished task waits in Review. Merging is a button only a person presses, after a fresh repository check. Agents never merge. Permission requests always go to a person.
+- **Questions**: when an agent reaches a decision, it stops and puts the question on its task card. Each task sets how often an agent may ask: ask when needed (the default), work autonomously, or work autonomously and stop if blocked.
+- **Scheduling**: a task can have an exact start time or a queue position, and can wait for other tasks. Each project has a concurrency limit from 1 to 16 (default 1). The controller starts scheduled work with the window closed, while the Mac is awake. Each schedule is one attempt. A missed schedule runs late or is skipped, as configured.
+- **Phone access**: Werkbord embeds a Tailscale node, so a phone on the same tailnet reaches the app directly. Nothing is exposed to the internet, and every request still needs an access token. The phone needs the free Tailscale app. There is no push relay, so alerts can wait until the app is opened.
+- **Privacy**: Werkbord runs no server of its own. Agents talk to their own providers (Anthropic for Claude Code, OpenAI for Codex). Git and GitHub calls use the user's own sign-in. A release check asks GitHub for new versions and can be turned off.
+- **Recovery**: before any upgrade that changes the database, it is copied and the newest five copies are kept. `werkbord db restore --latest` restores the newest. A restart cannot launch the same scheduled task twice. An interrupted run keeps its worktree.
+- **Several machines**: tasks can be sent to other machines the user owns, called runners.
+- **Werkbord Team**: one shared board for tickets, claims, branches and reviews. Product managers and designers write tickets, follow progress and sign off from a browser, with no terminal or repository. Each member runs agents on their own machine with their own keys. The Team server only coordinates: it never runs code or holds credentials, its build cannot link the code that runs agents or Git, and a ticket cannot reach Done while its pull request is open.
+- **Not only for code**: work that lives in files (manuscripts, websites, research notes, spreadsheets) can also be handed to an agent. Werkbord shows every changed line before it is accepted.
+
+## When to use Werkbord
+
+- Your team uses AI agents and you want one place where people plan the work, agents do it, and a person approves what ships.
+- Product managers or designers should follow and sign off the work without a terminal.
+- You use Claude Code or Codex on local Git repositories and want several tasks running side by side without touching each other's files.
+- You want agents to ask before guessing, and to stop rather than decide for you.
+- You want your code, database and agent sign-ins to stay on your own machines.
+
+## When not to use it yet
+
+- You need models other than Claude Code and Codex today.
+- You need recurring schedules. Each schedule is one attempt.
+- You need work to continue while your computer is off, or a hosted cloud workspace.
+- You need a notarized, auto-updating Mac app today. The current Mac download is an unsigned preview.
+- You need a sandbox. Agents run as your user.
+
+## Known limits
+
+- Werkbord does not keep a Mac awake, and a sleeping Mac pauses everything.
+- Environment filtering is not a sandbox, and prompts, commits and agent output can contain secrets.
+- A worktree separates files, not ports, databases or other services. Tasks whose expected files overlap run one after the other, but Werkbord cannot predict what an agent edits later.
+- Alerts need the app to be open. There is no push relay.
+
+## Pages
+
+- [Home](https://micho8cho93.github.io/werkbord-site/): the live app in a browser, one board for people who code and people who don't, the four rules, phone access, proof and FAQ
+- [Getting started](https://micho8cho93.github.io/werkbord-site/docs/getting-started.html): from download to a first agent at work
+- [Security, backups and recovery](https://micho8cho93.github.io/werkbord-site/docs/security.html): what can reach Werkbord, what leaves the computer, backups, crash recovery, tests and known limits
+- [Phone access](https://micho8cho93.github.io/werkbord-site/docs/phone-access.html): connect a phone over Tailscale
+- [Scheduling](https://micho8cho93.github.io/werkbord-site/docs/scheduling.html): times, dependencies, concurrency and missed runs
+- [Tasks and review](https://micho8cho93.github.io/werkbord-site/docs/tasks-and-review.html): write a task, follow the run, decide what ships
+- [Installation](https://micho8cho93.github.io/werkbord-site/docs/installation.html): install the Mac app and open the preview the first time
+- [Command reference](https://micho8cho93.github.io/werkbord-site/docs/commands.html): the werkbord command
+- [Werkbord Team](https://micho8cho93.github.io/werkbord-site/team.html): one shared board for a team, where every agent stays on its owner's machine
+- [Werkbord for people who don't write code](https://micho8cho93.github.io/werkbord-site/productivity.html): to-do list, calendar and review for agents working on files
+
+## Source
+
+- [GitHub repository](https://github.com/micho8cho93/werkbord)
+- [Mac preview download (unsigned)](https://github.com/micho8cho93/werkbord/releases/download/werkbord-v1.3.1-preview.1/Werkbord-preview.dmg)

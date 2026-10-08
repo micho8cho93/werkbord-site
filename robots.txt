@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://micho8cho93.github.io/werkbord-site/sitemap.xml

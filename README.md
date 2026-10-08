@@ -2,7 +2,7 @@
 
 The landing site for [Werkbord](https://github.com/micho8cho93/werkbord): a home page for individual Werkbord and a page for Werkbord Team. Plain HTML, CSS and JavaScript. No build step, no dependencies, so it runs as-is on GitHub Pages.
 
-- `index.html`: individual Werkbord. A short intro, interactive app and phone demos sharing one state, installation, and the Team waitlist.
+- `index.html`: the home page, a team workspace for AI agents. A short intro, interactive app and phone demos sharing one state, the Team and Productivity routes, four rules, proof from tests and docs, three install steps, an FAQ, the download, and the Team waitlist.
 - `team.html`: Werkbord Team. The interactive Team console immediately below the intro, three core benefits with sourced technical figures, and the Team waitlist. Public access is offered through the waitlist; the docs include installation for people with access.
 - `assets/css`: tokens from the identity sheet (`site.css`), the app replica (`app.css`), page layout (`pages.css`, `team.css`), the waitlist block (`waitlist.css`).
 - `assets/js`: `intro.js` (finite full-screen pixel entrance), `common.js` (theme and copy buttons), `app-demo.js`, `team-demo.js`, `waitlist.js`.
@@ -10,6 +10,8 @@ The landing site for [Werkbord](https://github.com/micho8cho93/werkbord): a home
 - `demo.html`: the same individual app inside the phone, with shared tasks and independent navigation.
 - `docs/waitlist-schema.sql`: the waitlist database schema and functions.
 - `assets/img`: the mark (light and dark ramps) and the favicon, drawn from the identity sheet's pixel geometry.
+- `llms.txt`, `robots.txt`, `sitemap.xml`: the plain-text summary for AI assistants, crawler rules, and the list of public pages. `assets/img/og*.png` are the 1200 by 630 share images (home, Team, Productivity), rendered from the templates in `scripts/og/` (edit the headline there, then run `NODE_PATH=<folder with playwright-core> node scripts/og/shoot.cjs`).
+- `scripts/test-seo.cjs`: guards the search basics. Run `node --test scripts/test-seo.cjs`.
 
 ## Run it locally
 
@@ -33,9 +35,17 @@ Any element with `data-waitlist` is replaced by the waitlist block (offer, seat 
 - Invite links are `<page>/?ref=<8 hex>`. A visit with `?ref=` stores the code in `localStorage` (`wb-wl-ref`) and sends it with the signup. A returning signup is remembered under `wb-wl-code`.
 - Read the list as the owner in the Supabase dashboard (Table editor or SQL editor). Nothing on the site can list emails.
 
+## Search and AI visibility
+
+- The home page names the category in its title, H1 and description (a local-first team workspace for AI agents, with no named tool and no roadmap claim; the test enforces both), and carries a canonical link, share tags and JSON-LD (`Organization`, `WebSite`, `SoftwareApplication`, `WebPage`, `FAQPage`). The FAQ in the JSON-LD is the visible FAQ: edit both together, `test-seo.cjs` fails if they differ. There are no reviews or ratings to mark up, so none are.
+- `sitemap.xml` is hand-maintained. Add every new public page to it; the test fails if one is missing. Update `llms.txt` when a fact on the site changes, and keep its limits section honest.
+- **The site is served from a project path on `github.io`.** Crawlers read `robots.txt` and `llms.txt` only at the root of a host, so those two files take effect once the site has its own domain (Settings → Pages → Custom domain). Then replace `https://micho8cho93.github.io/werkbord-site/` everywhere (`grep -rl` it), run `python3 scripts/build-docs.py`, and submit `sitemap.xml` in Google Search Console and Bing Webmaster Tools.
+- When the home page changes in substance, bump `dateModified` in its JSON-LD and the matching `lastmod` in `sitemap.xml`.
+- Do not publish a claim the product's own docs do not support: no "open source" while the product repository has no license, no "free" beyond the preview, no recurring schedules or push notifications, nothing implying an independent security audit.
+
 ## Keeping it true
 
-The demos replay rules from the product's docs ([Team setup](docs/team-setup.html), [Installation](docs/installation.html)). The install commands are the ones in the product README and `scripts/`. If the installer moves, update the `curl` line in `index.html`. Team installation is documented for users who already have access.
+The proof rows and FAQ answers on the home page, and `docs/security.html`, come from the product's `docs/PHONE.md`, `INSTALL.md`, `ORCHESTRATION.md`, `audit/` reports and `.github/workflows/ci.yml`. The performance figure is `go test ./internal/runner -run TestPlanQueueScaling -v` in the product repository: re-run it before changing the number. The demos replay rules from the product's docs ([Team setup](docs/team-setup.html), [Installation](docs/installation.html)). The install commands are the ones in the product README and `scripts/`. If the installer moves, update the `curl` line in `index.html`. Team installation is documented for users who already have access.
 
 ## The Mac app's download button
 
