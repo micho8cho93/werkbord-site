@@ -254,7 +254,7 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .w-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; }
 .w-big { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
 
-/* Control Center */
+/* Needs you */
 .w-ccbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .w-cc .w-pane:first-child { gap: 14px; }
 
@@ -436,6 +436,56 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .w-mcal .w-caltitle { font-size: 18px; }
 .w-mday { display: grid; grid-template-columns: 52px minmax(0, 1fr); border-top: 1px solid var(--border); }
 .w-mday .w-dcol { min-height: calc(48px * 11); }
+
+/* ---------- the rail's Assistant button, and the header's icon on a phone ---------- */
+.w-ask { padding: 0 0 10px; }
+.w-askbtn { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); box-shadow: var(--card-sh); color: var(--text); font-weight: 500; font-size: 13px; text-align: left; transition: background .12s; }
+.w-askbtn:hover { background: var(--surface-2); }
+.w-askbtn > svg { flex: none; color: var(--accent); }
+.w-askl { flex: 1; min-width: 0; }
+.w-askbtn .w-num { margin-left: auto; }
+.w-macts { display: flex; gap: 8px; }
+
+/* ---------- the assistant: a surface over the window, with predefined messages only ---------- */
+/* No entrance animation here: the surface is redrawn with each word of a reply, and a fade would restart on every word. */
+.w-asst { position: absolute; inset: 0; z-index: 42; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; background: var(--bg); }
+.w-atop { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 8px 16px 8px 20px; border-bottom: 1px solid var(--border); }
+.w-awho { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.w-awho h2 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.w-amodel { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 8px; border: 0; border-radius: 5px; background: none; color: var(--text); font-size: 13px; white-space: nowrap; }
+.w-amodel span { color: var(--text-2); }
+.w-amodel:hover { background: var(--surface-2); }
+.w-aacts { display: flex; align-items: center; gap: 6px; }
+.w-achat { min-height: 0; overflow-y: auto; }
+.w-acol { width: min(720px, 100% - 48px); margin-inline: auto; }
+.w-achat .w-acol { display: flex; flex-direction: column; gap: 18px; min-height: 100%; padding: 28px 0 20px; }
+.w-aempty { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 0; text-align: center; }
+.w-aempty h2 { margin-top: 8px; font-size: 22px; }
+.w-aempty p { max-width: 42ch; color: var(--text-2); font-size: 14px; }
+.w-ame { align-self: flex-end; max-width: 70%; padding: 8px 14px; border-radius: 16px; background: var(--surface-2); font-size: 14px; }
+.w-aai { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.55; }
+.w-acur { display: inline-block; width: 7px; height: 14px; margin-left: 3px; vertical-align: -2px; background: var(--text-2); }
+.w-reads summary { font-size: 12px; color: var(--text-2); cursor: pointer; }
+.w-reads p { margin-top: 6px; font-size: 12.5px; color: var(--text-2); }
+.w-astat { font-size: 12px; color: var(--text-2); }
+.w-acard { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 8px; background: var(--surface); box-shadow: var(--card-sh); }
+.w-acl { font-size: 14px; }
+.w-acard .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.w-acard .w-muted { font-size: 12.5px; }
+.w-adock { padding: 12px 0 16px; display: flex; flex-direction: column; gap: 10px; }
+.w-apills { display: flex; flex-wrap: wrap; gap: 8px; }
+.w-apill { min-height: 34px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); box-shadow: var(--card-sh); font-size: 13px; font-weight: 500; text-align: left; transition: background .12s; }
+.w-apill:hover { background: var(--surface-2); }
+.w-anote { font-size: 12px; color: var(--text-2); }
+/* On a phone the assistant fills the screen, and its controls take the phone's touch sizes. */
+.wbx-phone .w-atop { padding: 14px 16px 10px; }
+.wbx-phone .w-awho h2 { font-size: 20px; }
+.wbx-phone .w-amodel { min-height: 36px; font-size: 14px; }
+.wbx-phone .w-acol { width: calc(100% - 32px); }
+.wbx-phone .w-achat .w-acol { padding-top: 20px; }
+.wbx-phone .w-apill { min-height: 40px; font-size: 14px; }
+.wbx-phone .w-adock { padding-bottom: 34px; }
+.wbx-phone .w-ame { max-width: 82%; }
 
 @media (prefers-reduced-motion: reduce) {
   .wbx *, .wbx *::before, .wbx *::after { animation: none !important; transition: none !important; }

@@ -87,10 +87,6 @@ section { position: relative; }
 .logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
 .logo img { height: 22px; width: auto; }
 .wm { font-family: var(--mono); font-weight: 600; letter-spacing: -.06em; line-height: 1; font-size: 18px; }
-.theme-btn { width: 34px; height: 34px; padding: 0; justify-content: center; }
-.theme-btn .moon { display: none; }
-:root[data-theme="dark"] .theme-btn .sun { display: none; }
-:root[data-theme="dark"] .theme-btn .moon { display: block; }
 
 /* ---------- type ---------- */
 h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -.03em; text-wrap: balance; }

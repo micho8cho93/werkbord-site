@@ -10,7 +10,7 @@
 .hero h1 .hl { display: block; white-space: nowrap; }
 .hero h1 .accent { color: var(--ac); }
 .points { display: flex; flex-direction: column; gap: 8px; margin: clamp(12px, 2.2vh, 22px) 0 0; padding: 0; list-style: none; font-family: var(--mono); font-size: clamp(16px, 1.15vw, 20px); line-height: 1.4; letter-spacing: -.01em; }
-.points li { display: flex; align-items: center; gap: 12px; }
+.points li { display: flex; align-items: center; gap: 12px; text-wrap: balance; }
 .sq { flex: none; width: 9px; height: 9px; background: var(--ac); }
 .sq.amber { background: var(--amber); }
 .sq.ink { background: var(--tx); }
@@ -35,7 +35,6 @@
 .demo-desk { min-width: 0; }
 .demo-static { display: block; width: 100%; height: auto; border: 1px solid var(--bd); border-radius: 12px; box-shadow: var(--win-sh); }
 .demo-cap { margin-top: 14px; color: var(--t2); font-size: 13px; line-height: 1.6; max-width: 92ch; }
-.demo-cap .key { margin-inline: 1px; }
 
 .demo-bar { display: none; }
 .demo-tag { display: none; }
@@ -88,6 +87,7 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
   .device-home { display: block; position: absolute; z-index: 30; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: var(--tx); }
   .device .w-mhead { padding-top: 66px; }
   .device .w-mtask .w-phead { padding-top: 66px; }
+  .device .w-asst .w-atop { padding-top: 66px; }
 }
 
 /* Landscape screens from 1200px: one screen with no scroll. The copy is the left column; the right block holds the switch
@@ -102,7 +102,6 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
   .demo-section { --demo-chrome: 180px; --stage-h: calc(100vh - 122px); height: var(--stage-h); width: min(100%, max(320px, calc((var(--stage-h) - var(--demo-chrome)) * 1.6))); justify-self: end; padding: 0; border-top: 0; }
   .demo-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
   .try .btn { font-size: clamp(13px, 0.72vw, 15px); }
-  .demo-panel[data-panel="desktop"] .demo-cap { max-width: none; white-space: nowrap; font-size: clamp(13px, 0.8vw, 14px); }
   .demo-panel[data-panel="phone"] .demo-cap { display: none; }
   .phone-demo { --dev-h: min(calc(var(--stage-h) - 56px), 868px); }
   .foot { height: 37px; padding: 0; display: flex; align-items: center; }

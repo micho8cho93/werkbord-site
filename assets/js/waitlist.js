@@ -36,7 +36,7 @@
     for (var i = 0; i < PLACES; i++) seats += '<i></i>';
     root.innerHTML =
       '<div class="wl-copy">' +
-        '<p class="wl-lede">The first 50 to sign up get beta access. It covers individual and team apps, with up to 5 seats per team.</p>' +
+        '<p class="wl-lede">The first 50 to sign up get beta access to individual and team plans, with up to 5 seats per team.</p>' +
         '<div class="wl-capacity"><div class="wl-seats" aria-hidden="true" data-seats>' + seats + '</div>' +
         '<p class="wl-seats-cap" data-seats-cap aria-live="polite">50 places</p></div>' +
       '</div>' +

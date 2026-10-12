@@ -55,7 +55,7 @@
 
   /* Escape closes the demo, unless the phone app has its own sheet or task open: that one closes first. */
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && full && !phone.querySelector('.w-mtask, .w-sheet, .w-pal')) closeFull(true);
+    if (e.key === 'Escape' && full && !phone.querySelector('.w-asst, .w-mtask, .w-sheet, .w-pal')) closeFull(true);
   }, true);
 
   /* Growing back to a wide screen leaves the full-screen phone; the switch takes over again. */

@@ -5,14 +5,14 @@ The launch page for [Werkbord](https://github.com/micho8cho93/werkbord): a headl
 - `index.html`: the page. The headline and subheader, the waitlist, and the demo. From 1200px in landscape the page fits one screen with no scroll: the copy on the left, and on the right a Desktop and Phone switch that shows one simulator at a time, the desktop window or the phone in an iPhone frame. The headline and the simulator scale with the screen. From 768px to 1199px, and in portrait, the same parts stack and the page scrolls. Below 768px the waitlist comes first, and Try the demo opens the phone app full screen with a Back control.
 - `404.html`: sends visitors home.
 - `assets/css`: `site.css` (tokens from the identity sheet, buttons, header, footer), `app.css` (the app replica), `pages.css` (the page layout, the headline, and the iPhone frame), `waitlist.css` (the waitlist block).
-- `assets/js`: `common.js` (helpers and the theme toggle), `app-demo.js` (the app replica; the desktop window and the phone share one controller), `demo-view.js` (the full-screen phone below 768px), `waitlist.js` (the email waitlist).
+- `assets/js`: `common.js` (helpers shared by the demo), `app-demo.js` (the app replica; the desktop window and the phone share one controller, and the assistant offers only predefined messages with scripted replies), `demo-view.js` (the full-screen phone below 768px), `waitlist.js` (the email waitlist).
 - `assets/img`: the mark in light and dark, the favicon, `og.png` (the 1200 by 630 share image), and `app/overview-light.webp` (the picture shown to visitors without JavaScript).
 - `docs/waitlist-schema.sql`: the waitlist database schema and its functions.
 - `llms.txt`, `robots.txt`, `sitemap.xml`: a plain-text summary for AI assistants, the crawler rules, and the list of public pages (the home page only).
 - `scripts/test-seo.cjs`: the checks for the page.
 - `PRODUCT.md`, `DESIGN.md`: the positioning and the design rules the copy and the visuals follow.
 
-The demo is a replica of the Mac app's interface driven by simulated agents. It runs in the page and does not start any agent.
+The demo is a replica of the Mac app's interface driven by simulated agents. It runs in the page and does not start any agent. Its assistant has no text box: visitors pick from predefined messages, and each one gets a reply written in advance. A reply that would change the board waits for a confirmation. The theme switch is in the demo's rail.
 
 ## Run it locally
 

@@ -1,4 +1,4 @@
-/* Shared behaviour: the WB helpers used by the demo, and the theme toggle. No dependencies. */
+/* Shared behaviour: the WB helpers used by the demo. The theme follows the demo's own switch in the app rail. No dependencies. */
 (function () {
   'use strict';
   var root = document.documentElement;
@@ -11,16 +11,4 @@
   };
   WB.reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   WB.theme = function () { return root.dataset.theme === 'dark' ? 'dark' : 'light'; };
-
-  /* ---------- theme toggle ---------- */
-  document.querySelectorAll('[data-theme-toggle]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var next = WB.theme() === 'dark' ? 'light' : 'dark';
-      root.dataset.theme = next;
-      try { localStorage.setItem('wb-theme', next); } catch (e) {}
-      b.setAttribute('aria-label', next === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
-      window.dispatchEvent(new Event('themechange'));
-    });
-    b.setAttribute('aria-label', WB.theme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
-  });
 })();

@@ -32,7 +32,9 @@
     merge: '<circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="10.5" r="1.5"/><path d="M4.5 5v6M4.5 5c0 3 2.5 5.5 5.5 5.5"/>',
     grip: '<circle cx="6" cy="4" r="0.5"/><circle cx="10" cy="4" r="0.5"/><circle cx="6" cy="8" r="0.5"/><circle cx="10" cy="8" r="0.5"/><circle cx="6" cy="12" r="0.5"/><circle cx="10" cy="12" r="0.5"/>',
     pr: '<circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="12.5" r="1.5"/><path d="M4.5 5v6M11.5 11V7.5a2 2 0 0 0-2-2H7"/>',
-    changes: '<path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/>'
+    changes: '<path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/>',
+    assistant: '<path d="M6 2.5l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/><path d="M12 9.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/>',
+    help: '<circle cx="8" cy="8" r="5.8"/><path d="M6.3 6.4a1.8 1.8 0 1 1 2.5 1.6c-.5.3-.8.6-.8 1.1v.3"/><path d="M8 11.7v.1"/>'
   };
   function ic(n, size) { size = size || 16; return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>'; }
   function mark(h) { var w = Math.round(h * 130 / 94); return '<span class="w-mark"><img class="mark-l" src="assets/img/mark-light.svg" alt="" width="' + w + '" height="' + h + '"><img class="mark-d" src="assets/img/mark-dark.svg" alt="" width="' + w + '" height="' + h + '"></span>'; }
@@ -285,6 +287,174 @@
     toast('Scheduled for ' + dayLabel(d) + ', ' + clock(m) + '. It starts by itself, even with this window closed.');
   }
 
+  /* ---------- the assistant: predefined messages, scripted replies ----------
+     The person picks one of the messages on offer; there is no text box. Each message has a reply written in advance,
+     which streams in word by word, and the next messages on offer follow from it. A reply that would change the board
+     ends in a card: nothing changes until the person confirms it. The replies read the demo's current state. */
+  var ROOT = ['What needs me today?', 'What is blocked right now?', 'What is planned for this week?'];
+  var BACK = ['What needs me today?', 'What is planned for this week?'];
+  var CARD_LEAD = 'Here is what I will do. Nothing changes until you confirm.';
+  var NOT_OPEN = 'That is already settled, so nothing needs to change.';
+  var AS = { msgs: [], opts: ROOT.slice(), busy: false, timer: null };
+  function waitingChanges() { return AS.msgs.filter(function (m) { return m.card && !m.card.state; }).length; }
+  function isOpen(id) { var t = get(id); return !!(t && t.run && (t.run.st === 'needs' || t.run.st === 'blocked')); }
+
+  function needsText() {
+    var all = attention(), need = all.filter(function (i) { return i.kind !== 'review'; }), review = all.length - need.length;
+    var out = !need.length ? 'Nothing needs you right now.' :
+      (need.length === 1 ? 'One thing needs you. ' : need.length + ' things need you. ') +
+      need.map(function (i) { return '“' + i.t.title + '” ' + (i.kind === 'question' ? 'has a question for you: ' : 'stopped rather than guess: ') + i.t.run.q; }).join(' ');
+    if (review) out += ' ' + review + (review === 1 ? ' finished task is' : ' finished tasks are') + ' ready for review.';
+    return out;
+  }
+  function blockedText() {
+    var b = S.tasks.filter(function (t) { return t.run && t.run.st === 'blocked'; });
+    if (!b.length) return 'Nothing is blocked right now.';
+    return b.map(function (t) { return '“' + t.title + '” is blocked. ' + t.agent + ' stopped rather than guess: ' + t.run.q; }).join(' ');
+  }
+  function agendaText() {
+    var rows = S.tasks.filter(function (t) { return t.sched && t.state !== 'done'; }).sort(function (a, b) { return schedAbs(a) - schedAbs(b); });
+    if (!rows.length) return 'Nothing is scheduled in my-app yet.';
+    return 'Here is the schedule for my-app, in order. ' + rows.map(function (t) {
+      return dayLabel(t.sched.d) + ' at ' + clock(t.sched.s) + ': ' + t.title + (waitingFor(t).length ? ', after ' + waitingFor(t)[0].title : '');
+    }).join('. ') + '.';
+  }
+  function answerCard(id, v) {
+    var t = get(id);
+    return { tag: 'ANSWER', line: 'Answer “' + t.title + '” with “' + v + '”', done: 'Sent. ' + t.agent + ' carries on with “' + v + '”.',
+      ok: function () { return isOpen(id); }, run: function () { answer(id, v); } };
+  }
+  function scheduleCard(id, d, m) {
+    var t = get(id), when = dayLabel(d) + ', ' + clock(m);
+    return { tag: 'SCHEDULE', line: 'Move “' + t.title + '” to ' + when, done: 'Moved. “' + t.title + '” now starts ' + when + '.',
+      ok: function () { return t.state === 'backlog' && !t.run; }, run: function () { schedule(id, d, m); } };
+  }
+
+  /* Each key is a message the person can pick. text: the scripted reply (a string, or a function that reads the state).
+     next: the messages offered after it. ok and gone: the message is only open while ok() holds. card: a change to confirm. */
+  var REPLY = {
+    'What needs me today?': { reads: 'Read the attention list for my-app', text: needsText, next: ['Answer the TTL question', 'Explain the time zone question', 'What is planned for this week?'] },
+    'What is blocked right now?': { reads: 'Read the blocked tasks and their last run', text: blockedText, next: ['Explain the time zone question', 'What needs me today?'] },
+    'What is planned for this week?': { reads: 'Read the schedule for my-app', text: agendaText, next: ['Move the CSV export to Friday', 'What needs me today?'] },
+    'Answer the TTL question': { reads: 'Read “Migrate runs table to WAL” and its question',
+      text: 'There are two options. Keep the 24-hour TTL for the two callers that still read it, or move both to the new 12-hour default. Which one should the agent use?',
+      ok: function () { return isOpen(2); }, gone: NOT_OPEN, next: ['Keep 24 hours', 'Move both to 12 hours', 'What needs me today?'] },
+    'Keep 24 hours': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return isOpen(2); }, gone: NOT_OPEN,
+      card: function () { return answerCard(2, 'Keep 24 hours'); } },
+    'Move both to 12 hours': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return isOpen(2); }, gone: NOT_OPEN,
+      card: function () { return answerCard(2, 'Move both to 12 hours'); } },
+    'Explain the time zone question': { reads: 'Read the scheduler settings and config.json',
+      text: 'config.json says UTC, but this project is set to Europe/Amsterdam. A run missed during sleep would start an hour apart depending on which setting wins. Use the project’s zone to keep missed runs on the calendar’s clock, or UTC to match config.json.',
+      next: ['Use the project’s zone', 'Use UTC', 'What needs me today?'] },
+    'Use the project’s zone': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return isOpen(3); }, gone: NOT_OPEN,
+      card: function () { return answerCard(3, 'Use the project’s zone'); } },
+    'Use UTC': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return isOpen(3); }, gone: NOT_OPEN,
+      card: function () { return answerCard(3, 'Use UTC'); } },
+    'Move the CSV export to Friday': { reads: 'Read the task and the calendar', text: CARD_LEAD,
+      ok: function () { var t = get(6); return !!t && t.state === 'backlog' && !t.run; }, gone: 'That task has already started, so its time is not changed.',
+      card: function () { return scheduleCard(6, 4, 540); } }
+  };
+
+  function askAsst(label) {
+    var e = REPLY[label];
+    if (!e || AS.busy) return;
+    AS.msgs.push({ r: 'me', x: label });
+    AS.opts = [];
+    if (e.ok && !e.ok()) { replyAsst({ text: e.gone, next: BACK }); return; }
+    replyAsst(e);
+  }
+  /* The reply streams in. Under reduced motion it appears at once. */
+  function replyAsst(e) {
+    var text = typeof e.text === 'function' ? e.text() : e.text;
+    var m = { r: 'ai', x: '', reads: e.reads || '', done: false, card: null, next: e.next || BACK, open: false };
+    var words = text.split(' '), i = 0;
+    AS.msgs.push(m);
+    AS.busy = true;
+    function complete() {
+      AS.busy = false; AS.timer = null; m.done = true;
+      if (e.card) { m.card = e.card(); AS.opts = []; } else AS.opts = m.next.slice();
+      renderAsst(true); render();
+    }
+    if (WB.reduced) { m.x = text; complete(); return; }
+    (function step() {
+      i++; m.x = words.slice(0, i).join(' ');
+      if (i < words.length) { AS.timer = setTimeout(step, 45); renderAsst(true); }
+      else complete();
+    })();
+  }
+  function decideAsst(i, yes) {
+    var m = AS.msgs[i], c = m && m.card;
+    if (!c || c.state || AS.busy) return;
+    var go = yes && c.ok();
+    c.state = go ? 'yes' : yes ? 'gone' : 'no';
+    if (go) c.run();
+    replyAsst({ text: go ? c.done : yes ? 'That changed before you confirmed, so nothing was sent.' : 'Nothing changed. The task stays as it was.', next: BACK });
+  }
+  function startOverAsst() {
+    clearTimeout(AS.timer);
+    AS.msgs = []; AS.opts = ROOT.slice(); AS.busy = false; AS.timer = null;
+    renderAsst(false); render();
+  }
+  function openAsst(where) {
+    var V = where === 'desk' ? D : P, root = where === 'desk' ? deskRoot : phoneRoot;
+    V.sheet = null; if (where === 'desk') D.pal = null;
+    V.asst = true;
+    renderAsst(false);
+    var first = root && root.querySelector('.w-asst .w-apill, .w-asst [data-a="asst-x"]');
+    if (first) first.focus({ preventScroll: true });
+  }
+  function closeAsst(where) {
+    var V = where === 'desk' ? D : P, root = where === 'desk' ? deskRoot : phoneRoot;
+    V.asst = false;
+    renderAsst(false);
+    var opener = root && root.querySelector('[data-a="asst-open"]');
+    if (opener) opener.focus({ preventScroll: true });
+  }
+  /* Both surfaces show the same conversation; each keeps its own open flag and scroll. */
+  function renderAsst(stick) {
+    [[deskRoot, D], [phoneRoot, P]].forEach(function (pair) {
+      var root = pair[0], V = pair[1], o = root && root.querySelector('[data-overlay]');
+      if (!o) return;
+      if (!V.asst) { if (o.querySelector('.w-asst')) setOverlay(root, ''); return; }
+      var store = V === P ? P.scroll : D.scroll, fk = focusKey(o);
+      keepScroll(o, store);
+      o.innerHTML = assistantHTML(V === P);
+      restoreScroll(o, store);
+      var chat = o.querySelector('.w-achat');
+      if (chat && stick) chat.scrollTop = chat.scrollHeight;
+      if (fk) { var n = o.querySelector(fk); if (n) n.focus({ preventScroll: true }); }
+    });
+  }
+  function assistantHTML(phone) {
+    var newBtn = AS.msgs.length ? '<button class="w-btn quiet sm" type="button" data-a="asst-new" aria-label="Start a new conversation">' + ic('plus', 14) + (phone ? '' : 'New') + '</button>' : '';
+    var closeBtn = phone ? '<button class="w-btn quiet ic" type="button" data-a="asst-x" aria-label="Close assistant">' + ic('close') + '</button>'
+      : '<button class="w-btn quiet sm" type="button" data-a="asst-x" aria-label="Close assistant">' + ic('close', 14) + 'Close<kbd class="w-key">Esc</kbd></button>';
+    var top = '<header class="w-atop"><div class="w-awho"><h2>Assistant</h2><button class="w-amodel" type="button" data-a="asst-model">Claude Code<span>· Default</span>' + ic('down', 14) + '</button></div><div class="w-aacts">' + newBtn + closeBtn + '</div></header>';
+    return '<div class="w-asst" role="dialog" aria-modal="true" aria-label="Assistant">' + top +
+      '<div class="w-achat" data-keep="achat"><div class="w-acol">' + chatHTML() + '</div></div>' + dockHTML() + '</div>';
+  }
+  function chatHTML() {
+    if (!AS.msgs.length) return '<div class="w-aempty">' + mark(40) + '<h2>What can I help with?</h2><p>Pick a message below. I will ask you before I change anything.</p></div>';
+    return AS.msgs.map(function (m, i) {
+      if (m.r === 'me') return '<div class="w-ame"><p>' + esc(m.x) + '</p></div>';
+      return '<div class="w-aai"><p class="w-atext">' + esc(m.x) + (m.done ? '' : '<span class="w-acur" aria-hidden="true"></span>') + '</p>' +
+        (m.reads ? '<details class="w-reads" data-i="' + i + '"' + (m.open ? ' open' : '') + '><summary>What I looked at</summary><p>' + esc(m.reads) + '</p></details>' : '') +
+        '<p class="w-astat">' + (m.done ? 'Reply finished.' : 'Working on it') + '</p>' +
+        (m.done && m.card ? assistCardHTML(m.card, i) : '') + '</div>';
+    }).join('');
+  }
+  function assistCardHTML(c, i) {
+    var body = !c.state
+      ? '<div class="acts"><button class="w-btn pri sm" type="button" data-a="asst-ok" data-id="' + i + '">Confirm</button><button class="w-btn sm" type="button" data-a="asst-no" data-id="' + i + '">Not now</button></div><p class="w-muted">Nothing changes until you confirm.</p>'
+      : '<p class="w-muted">' + ({ yes: 'Confirmed.', no: 'Not now.', gone: 'No longer open. Nothing was sent.' })[c.state] + '</p>';
+    return '<div class="w-acard"><p class="w-lab">' + c.tag + '</p><p class="w-acl">' + esc(c.line) + '</p>' + body + '</div>';
+  }
+  function dockHTML() {
+    var pills = AS.opts.map(function (o) { return '<button class="w-apill" type="button" data-a="asst-ask" data-id="" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('');
+    var note = waitingChanges() ? 'Confirm or decline the change above to continue.' : AS.busy ? 'Working on it.' : 'Pick a message. Replies are scripted in this demo, and nothing is sent to a model.';
+    return '<div class="w-acol w-adock">' + (pills ? '<div class="w-apills" role="group" aria-label="Predefined messages">' + pills + '</div>' : '') + '<p class="w-anote">' + note + '</p></div>';
+  }
+
   /* ---------- toasts ---------- */
   var toastTimer;
   function toast(m) {
@@ -301,16 +471,18 @@
   function railHTML() {
     var n = needsYou(), act = active();
     return '<aside class="w-rail" aria-label="Werkbord">' +
-      '<button class="w-brand" type="button" data-a="view" data-id="control" aria-label="Werkbord, Control Center">' + mark(20) + '<span class="w-wm">werkbord</span></button>' +
-      '<button class="w-nav" type="button" data-a="view" data-id="control"' + (D.view === 'control' ? ' aria-current="page"' : '') + '>' + ic('control') + 'Control Center' + (n ? '<span class="w-num">' + n + '</span>' : '') + '</button>' +
+      '<button class="w-brand" type="button" data-a="view" data-id="control" aria-label="Werkbord, Needs you">' + mark(20) + '<span class="w-wm">werkbord</span></button>' +
+      '<div class="w-ask"><button class="w-askbtn" type="button" data-a="asst-open" aria-haspopup="dialog">' + ic('assistant') + '<span class="w-askl">Assistant</span>' + (waitingChanges() ? '<span class="w-num pend">' + waitingChanges() + '</span>' : '') + '</button></div>' +
+      '<button class="w-nav" type="button" data-a="view" data-id="control"' + (D.view === 'control' ? ' aria-current="page"' : '') + '>' + ic('control') + 'Needs you' + (n ? '<span class="w-num">' + n + '</span>' : '') + '</button>' +
       '<div class="w-sec"><span>' + ic('folder') + 'Projects</span><button class="add" type="button" data-a="other" aria-label="Add a project">' + ic('plus', 14) + '</button></div>' +
       '<button class="w-nav" type="button" data-a="other"><span class="sq"></span><span class="name">api-server</span><span class="n">1</span></button>' +
       '<button class="w-nav" type="button" data-a="other"><span class="sq"></span><span class="name">marketing-site</span></button>' +
       '<button class="w-nav" type="button" data-a="view" data-id="board"' + (D.view !== 'control' ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">my-app</span>' + (n ? '<span class="w-num pend">' + n + '</span>' : act ? '<span class="n">' + act + '</span>' : '') + '</button>' +
       '<div class="w-sec"><span>' + ic('runner') + 'Runners</span></div>' +
       '<div class="w-nav">' + dot('ok') + '<span class="name">this computer</span><span class="n" data-conc>' + (act + 1) + '/' + (LIMIT + 1) + '</span></div>' +
-      '<div class="w-rfoot"><button class="w-nav" type="button" data-a="settings">' + ic('settings') + 'Settings</button>' +
-      '<div class="w-rrow"><span class="w-status">' + dot('ok') + 'Live</span><button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div></aside>';
+      '<div class="w-rfoot"><button class="w-nav" type="button" data-a="help">' + ic('help') + 'Help</button>' +
+      '<button class="w-nav" type="button" data-a="settings">' + ic('settings') + 'Settings</button>' +
+      '<div class="w-rrow"><button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div></aside>';
   }
   function bannerHTML() {
     var q = questions(); if (!q.length) return '';
@@ -564,7 +736,7 @@
   }
   function palItems(q) {
     q = (q || '').toLowerCase();
-    var items = [['view', 'control', 'Control Center', 'everywhere'], ['view', 'overview', 'Overview', 'my-app'], ['view', 'board', 'Board', 'my-app'], ['view', 'calendar', 'Calendar', 'my-app'], ['view', 'git', 'Git', 'my-app'], ['view', 'runs', 'Runs', 'my-app'], ['new', '', 'New task', 'action']]
+    var items = [['view', 'control', 'Needs you', 'everywhere'], ['view', 'overview', 'Overview', 'my-app'], ['view', 'board', 'Board', 'my-app'], ['view', 'calendar', 'Calendar', 'my-app'], ['view', 'git', 'Git', 'my-app'], ['view', 'runs', 'Runs', 'my-app'], ['new', '', 'New task', 'action']]
       .concat(S.tasks.filter(function (t) { return t.state !== 'done'; }).map(function (t) { return ['open', t.id, t.title, 'task']; }));
     return items.filter(function (i) { return i[2].toLowerCase().indexOf(q) > -1; }).slice(0, 9);
   }
@@ -588,7 +760,7 @@
     keepScroll(deskRoot, D.scroll);
     var fk = focusKey(deskRoot);
     var main;
-    if (D.view === 'control') main = '<header class="w-ghead"><h1>Control Center</h1><button class="w-btn" type="button" data-a="pal">' + ic('search') + 'Jump to</button></header><main class="w-main" data-keep="main-cc">' + controlHTML(false) + '</main>';
+    if (D.view === 'control') main = '<header class="w-ghead"><h1>Needs you</h1><button class="w-btn" type="button" data-a="pal">' + ic('search') + 'Jump to</button></header><main class="w-main" data-keep="main-cc">' + controlHTML(false) + '</main>';
     else main = headHTML() + bannerHTML() + '<main class="w-main" data-keep="main-' + D.view + '"' + (D.view === 'runs' ? '' : ' style="overflow:hidden"') + '>' + ({ board: boardHTML, overview: overviewHTML, calendar: calendarHTML, git: gitHTML, runs: runsHTML })[D.view]() + '</main>';
     var panel = D.task && get(D.task) && D.view !== 'control' ? '<section class="w-panel" role="dialog" aria-label="Task">' + panelInner(get(D.task), D.ptab, false) + '</section>' : '';
     // Sheets, the switcher and toasts live outside this part, so an open form keeps what was typed.
@@ -607,12 +779,14 @@
     var f = focusSel && o.querySelector(focusSel); if (f) f.focus({ preventScroll: true });
   }
   function openOverlay(html, focusSel) { setOverlay(deskRoot, html, focusSel); }
-  function closeOverlay() { D.sheet = null; D.pal = null; setOverlay(deskRoot, ''); }
+  function closeOverlay() { D.sheet = null; D.pal = null; D.asst = false; setOverlay(deskRoot, ''); }
 
   /* ================= phone ================= */
   function phoneHeader(title, sub, global) {
-    if (global) return '<header class="w-mhead g"><div style="display:flex;align-items:center;gap:10px">' + mark(18) + '<h1>' + title + '</h1></div><button class="w-btn ic" type="button" data-a="toast" data-v="Jump to searches projects, sections and tasks." aria-label="Jump to">' + ic('search') + '</button></header>';
-    return '<header class="w-mhead"><div class="w-where"><button class="w-pname" type="button" data-a="toast" data-v="The project name switches projects. This demo has one.">' + mark(18) + '<h1>my-app</h1><span class="chev">' + ic('down', 14) + '</span></button><p class="w-path">~/code/my-app · main</p></div><button class="w-btn ic" type="button" data-a="toast" data-v="Jump to searches projects, sections and tasks." aria-label="Jump to">' + ic('search') + '</button></header>';
+    var asst = '<button class="w-btn ic" type="button" data-a="asst-open" aria-haspopup="dialog" aria-label="Assistant">' + ic('assistant') + '</button>';
+    var search = '<button class="w-btn ic" type="button" data-a="toast" data-v="Jump to searches projects, sections and tasks." aria-label="Jump to">' + ic('search') + '</button>';
+    if (global) return '<header class="w-mhead g"><div style="display:flex;align-items:center;gap:10px">' + mark(18) + '<h1>' + title + '</h1></div><div class="w-macts">' + asst + search + '</div></header>';
+    return '<header class="w-mhead"><div class="w-where"><button class="w-pname" type="button" data-a="toast" data-v="The project name switches projects. This demo has one.">' + mark(18) + '<h1>my-app</h1><span class="chev">' + ic('down', 14) + '</span></button><p class="w-path">~/code/my-app · main</p></div><div class="w-macts">' + asst + search + '</div></header>';
   }
   function phoneBoard() {
     var cols = COLS.map(function (c) { return [c[0], c[1], inCol(c[0])]; });
@@ -646,7 +820,7 @@
     keepScroll(phoneRoot, P.scroll);
     var fk = focusKey(phoneRoot);
     var page, g = P.tab === 'control';
-    if (g) page = phoneHeader('Control Center', '', true) + phoneControl();
+    if (g) page = phoneHeader('Needs you', '', true) + phoneControl();
     else page = phoneHeader() + bannerHTML() + ({ board: phoneBoard, calendar: phoneCalendar, git: phoneGit, runs: phoneRuns })[P.tab]();
     var n = needsYou();
     var tabbar = '<nav class="w-tabbar" aria-label="Primary">' + [['control', 'control', 'Needs you'], ['board', 'board', 'Board'], ['calendar', 'calendar', 'Calendar'], ['git', 'git', 'Git'], ['runs', 'runs', 'Runs']].map(function (x) {
@@ -796,6 +970,14 @@
         case 'pick': D.pick = D.pick == id ? null : +id; render(); break;
         case 'finding': S.finding = false; var nt = newTask('Rebase refactor-settings-page onto main', 'Claude Code', 'normal'); nt.desc = 'Repository health found the branch 14 commits behind main.'; toast('“' + nt.title + '” is in Backlog. Findings never act on their own: you start it when you want.'); render(); break;
         case 'theme': var next = WB.theme() === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = next; try { localStorage.setItem('wb-theme', next); } catch (x) {} window.dispatchEvent(new Event('themechange')); render(); break;
+        case 'asst-open': openAsst(where); break;
+        case 'asst-x': closeAsst(where); break;
+        case 'asst-new': startOverAsst(); break;
+        case 'asst-ask': askAsst(v); break;
+        case 'asst-ok': decideAsst(+id, true); break;
+        case 'asst-no': decideAsst(+id, false); break;
+        case 'asst-model': toast('Replies are scripted here, so the model is fixed in this demo.'); break;
+        case 'help': toast('Help opens the product docs in the app. They are not part of this demo.'); break;
         case 'toast': toast(v); break;
         case 'other': toast('This demo opens one project. In the app, every repository you add gets its own board, calendar and Git view.'); break;
         case 'settings': toast('Settings cover agents, runners, phone access and defaults. They are not part of this demo.'); break;
@@ -832,22 +1014,28 @@
     root.addEventListener('input', function (e) {
       if (e.target.matches('[data-pal]')) { var l = root.querySelector('[data-pallist]'); if (l) l.innerHTML = palListHTML(e.target.value); }
     });
+    /* A "What I looked at" panel stays open or shut across the re-renders of a streaming reply. */
+    root.addEventListener('toggle', function (e) {
+      var d = e.target, m = d.tagName === 'DETAILS' && d.dataset.i != null ? AS.msgs[+d.dataset.i] : null;
+      if (m) m.open = d.open;
+    }, true);
     root.addEventListener('keydown', function (e) {
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); return; }
       if (e.key === 'Escape') {
+        if (V.asst) { e.stopPropagation(); closeAsst(where); return; }
         if (V.sheet || (where === 'desk' && D.pal !== null)) { closeOverlayFor(where); return; }
         if (V.task) { V.task = null; render(); return; }
       }
-      if (where === 'desk' && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); D.pal = ''; openOverlay(palHTML(), '[data-pal]'); }
+      if (where === 'desk' && !D.asst && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); D.pal = ''; openOverlay(palHTML(), '[data-pal]'); }
       if (e.target.matches('[data-pal]') && e.key === 'Enter') { var first = root.querySelector('[data-pallist] button'); if (first) first.click(); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && e.target.closest('form[data-form="new"]')) { e.preventDefault(); var sb = e.target.closest('form').querySelector('[value="start"]'); if (sb) sb.click(); }
-      if (where === 'desk' && e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey && !e.target.matches('input,textarea,select') && !D.sheet) { e.preventDefault(); D.sheet = { kind: 'new' }; openOverlay(sheetHTML(D.sheet), 'input[name=title]'); }
+      if (where === 'desk' && e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey && !e.target.matches('input,textarea,select') && !D.sheet && !D.asst) { e.preventDefault(); D.sheet = { kind: 'new' }; openOverlay(sheetHTML(D.sheet), 'input[name=title]'); }
     });
     if (where === 'desk') bindDrag(root);
   }
   function closeOverlayFor(where) {
     if (where === 'desk') closeOverlay();
-    else { P.sheet = null; setOverlay(phoneRoot, ''); }
+    else { P.sheet = null; P.asst = false; setOverlay(phoneRoot, ''); }
   }
 
   /* drag and drop: board columns follow the work; the calendar takes any task */
@@ -926,6 +1114,12 @@
   render();
   if ('ResizeObserver' in window) new ResizeObserver(fit).observe(document.body); else window.addEventListener('resize', fit);
   window.addEventListener('themechange', function () { render(); });
+  /* Escape closes the assistant even when focus has fallen back to the page, as it does once a card's buttons are gone. */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (D.asst) closeAsst('desk');
+    else if (P.asst) closeAsst('phone');
+  });
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (es) {
       es.forEach(function (en) { if (en.isIntersecting) seen.add(en.target); else seen.delete(en.target); });
