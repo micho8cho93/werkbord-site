@@ -79,16 +79,27 @@
             '<button class="btn pri wl-go" type="submit">Join the waitlist</button>' +
           '</div>' +
         '</div>' +
+        '<div class="wl-pick">' +
+          '<label class="wl-q" for="wl-size-' + n + '">Team size (optional)</label>' +
+          '<select class="wl-sel" id="wl-size-' + n + '" name="team_size">' +
+            '<option value="">Choose</option>' +
+            '<option value="2">2</option>' +
+            '<option value="3">3</option>' +
+            '<option value="4">4</option>' +
+            '<option value="5">5</option>' +
+            '<option value="6+">6+</option>' +
+          '</select>' +
+        '</div>' +
         '<div class="wl-hp" aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label></div>' +
         '<p class="wl-err" id="wl-error-' + n + '" role="alert"></p>' +
       '</form>';
 
     var f = right.querySelector('form'), err = right.querySelector('.wl-err'), go = right.querySelector('.wl-go');
-    var email = f.elements.email;
+    var email = f.elements.email, size = f.elements.team_size;
 
-    function fail(msg, invalid) {
+    function fail(msg, el) {
       err.textContent = msg;
-      if (invalid) { email.setAttribute('aria-invalid', 'true'); email.focus(); }
+      if (el) { el.setAttribute('aria-invalid', 'true'); el.focus(); }
     }
     email.addEventListener('input', function () { email.removeAttribute('aria-invalid'); });
 
@@ -99,7 +110,10 @@
       if (f.elements.website.value) return;           // a bot filled the hidden field
 
       var addr = (email.value || '').trim().toLowerCase();
-      if (!EMAIL.test(addr) || addr.length > 254) return fail('Enter a valid email address.', true);
+      if (!EMAIL.test(addr) || addr.length > 254) return fail('Enter a valid email address.', email);
+
+      /* the team size is optional: a blank answer is stored as null */
+      var teamSize = size.value ? 'team of ' + size.value : null;
 
       if (go.disabled) return;
       go.disabled = true; go.textContent = 'Joining…';
@@ -107,7 +121,7 @@
       rpc('join_waitlist', {
         p_email: addr,
         p_agent: null,
-        p_team_size: null,
+        p_team_size: teamSize,
         p_referral_code: get(K_REF),
         p_colleagues: [],
         p_colleague_consent: false
@@ -120,7 +134,7 @@
           return;
         }
         var msg = String((r.body && r.body.message) || '');
-        if (msg.indexOf('invalid_email') > -1) fail('That email address does not look valid.', true);
+        if (msg.indexOf('invalid_email') > -1) fail('That email address does not look valid.', email);
         else fail('Something went wrong. Please try again in a moment.');
         go.disabled = false; go.textContent = 'Join the waitlist'; f.removeAttribute('aria-busy');
       }).catch(function () {

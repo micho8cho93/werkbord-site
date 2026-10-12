@@ -1,60 +1,106 @@
-/* Launch page: a hero, the beta waitlist, and the live app in a desktop window or at phone width. */
-.hero { padding: clamp(56px, 9vw, 120px) 0 clamp(48px, 6vw, 80px); }
-.hero h1 { max-width: 18ch; }
-.hero .lede { margin-top: 24px; }
+/* Launch page. From 1024px the page fits one screen with no scroll: the headline and the waitlist on the left, and on the
+   right one simulator at a time, the web app or the iPhone, picked with the Desktop and Phone switch. From 768px the same
+   parts stack and the page scrolls. Below 768px the phone opens full screen from Try the demo. */
+
+/* ---------- the headline and subheader (og-candidate-1 layout) ---------- */
+.home { display: flex; flex-direction: column; gap: 56px; padding: 56px 0 72px; }
+.home-copy { display: flex; flex-direction: column; gap: clamp(16px, 2.6vh, 26px); min-width: 0; }
+.hero h1 { font-size: clamp(36px, min(4.1vw, 6.8vh), 64px); line-height: 1.02; letter-spacing: -.045em; text-wrap: initial; }
+.hero h1 .hl { display: block; white-space: nowrap; }
+.hero h1 .accent { color: var(--ac); }
+.points { display: flex; flex-direction: column; gap: 8px; margin: clamp(12px, 2.2vh, 22px) 0 0; padding: 0; list-style: none; font-family: var(--mono); font-size: 16px; line-height: 1.4; letter-spacing: -.01em; }
+.points li { display: flex; align-items: center; gap: 12px; }
+.sq { flex: none; width: 9px; height: 9px; background: var(--ac); }
+.sq.amber { background: var(--amber); }
+.sq.ink { background: var(--tx); }
 
 /* ---------- the demo ---------- */
-.demo-section { padding: clamp(64px, 8vw, 104px) 0 clamp(72px, 9vw, 120px); border-top: 1px solid var(--bd); scroll-margin-top: 24px; }
-.demo-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 20px 32px; margin-bottom: 28px; }
-.demo-intro { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; max-width: 60ch; }
-.demo-intro h2 { font-size: clamp(28px, 3vw, 40px); }
+.demo-section { min-width: 0; padding-top: 56px; border-top: 1px solid var(--bd); }
+.demo-head { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 28px; max-width: 60ch; }
+.demo-head h2 { font-size: clamp(28px, 3vw, 40px); }
 .demo-sub { color: var(--t2); font-size: 16px; max-width: 58ch; }
 .demo-open { display: none; margin-top: 8px; height: 44px; padding: 0 22px; font-size: 15px; }
 
-.demo-switch { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--bd); border-radius: 8px; background: var(--s2); box-shadow: var(--tray-sh); }
-.demo-switch button { height: 34px; min-width: 100px; padding: 0 16px; border: 0; border-radius: 6px; background: transparent; color: var(--t2); font-weight: 500; font-size: 14px; }
+.demo-switch { display: none; }
+.demo-switch button { height: 32px; min-width: 104px; padding: 0 16px; border: 0; border-radius: 6px; background: transparent; color: var(--t2); font-weight: 500; font-size: 14px; }
 .demo-switch button:hover { color: var(--tx); }
 .demo-switch button[aria-pressed="true"] { background: var(--sf); color: var(--tx); box-shadow: var(--btn-sh); }
 
-.try { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-.try .btn { font-size: 13px; height: 36px; padding: 0 14px; }
+.try { display: flex; flex-wrap: nowrap; gap: 8px; margin-bottom: 16px; }
+.try .btn { font-size: 13px; height: 36px; padding: 0 13px; }
 .try-dot { width: 7px; height: 7px; flex: none; }
 
 .app-demo { min-height: 120px; }
+.demo-desk { min-width: 0; }
 .demo-static { display: block; width: 100%; height: auto; border: 1px solid var(--bd); border-radius: 12px; box-shadow: var(--win-sh); }
-.demo-cap { margin-top: 16px; color: var(--t2); font-size: 13px; line-height: 1.6; max-width: 92ch; }
+.demo-cap { margin-top: 14px; color: var(--t2); font-size: 13px; line-height: 1.6; max-width: 92ch; }
 .demo-cap .key { margin-inline: 1px; }
 
-/* The phone is 390px wide, the width of the app's real layout, with no device frame. */
-.demo-panel[data-panel="phone"] { display: none; flex-direction: column; align-items: center; gap: 4px; }
 .demo-bar { display: none; }
 .demo-tag { display: none; }
-.phone-demo { width: 390px; max-width: 100%; height: 844px; overflow: hidden; border-radius: 12px; box-shadow: 0 0 0 1px var(--bd); background: var(--bg); }
-.phone-demo .stage { --h: 844px; }
-.demo-panel[data-panel="phone"] .demo-cap { text-align: center; max-width: 390px; }
+.demo-panel[data-panel="phone"] { display: none; }
+.phone-demo { position: relative; min-width: 0; }
+.device-wrap { position: relative; width: 100%; height: 100%; }
+.device { position: relative; width: 100%; height: 100%; }
+.device-screen { position: absolute; inset: 0; overflow: hidden; background: var(--bg); }
+.device-screen > .wbx { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.device-btn, .device-island, .device-status, .device-home { display: none; }
 
-/* Wide screens: one panel at a time, chosen by the switch. */
-@media (min-width: 768px) {
-  .demo-section[data-view="phone"] .demo-panel[data-panel="desktop"] { display: none; }
-  .demo-section[data-view="phone"] .demo-panel[data-panel="phone"] { display: flex; }
-}
-html:not(.js) .demo-switch, html:not(.js) .try { display: none; }
-html:not(.js) .demo-panel[data-panel="desktop"] { display: block; }
-
-/* Small screens: the waitlist, then Try the demo, which opens the phone app full screen. */
+/* Below 768px: the desktop window is hidden, and Try the demo opens the phone app full screen. */
 @media (max-width: 767px) {
-  .demo-section { padding-top: 56px; }
-  .demo-head { margin-bottom: 0; }
-  .demo-switch { display: none; }
   .demo-panel[data-panel="desktop"] { display: none; }
-  html.js .demo-open { display: inline-flex; }
-  .demo-panel[data-panel="phone"].is-full { display: flex; position: fixed; inset: 0; z-index: 200; gap: 0; align-items: stretch; background: var(--bg); }
+  .demo-open { display: inline-flex; }
+  .demo-panel[data-panel="phone"].is-full { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 200; gap: 0; align-items: stretch; background: var(--bg); }
   .demo-panel.is-full .demo-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; height: 56px; padding: 0 16px; border-bottom: 1px solid var(--bd); }
   .demo-panel.is-full .demo-tag { display: inline; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--t2); }
   .demo-panel.is-full .demo-cap { display: none; }
-  .demo-panel.is-full .phone-demo { flex: 1; min-height: 0; width: 100%; height: auto; border-radius: 0; box-shadow: none; }
-  .demo-panel.is-full .phone-demo .stage { height: 100%; }
-  .demo-panel.is-full .phone-demo .stage > .wbx { width: 100%; height: 100%; transform: none; }
+  .demo-panel.is-full .phone-demo { flex: 1; min-height: 0; width: 100%; }
+  .demo-panel.is-full .device-wrap { height: 100%; }
+}
+html:not(.js) .demo-open, html:not(.js) .try, html:not(.js) .demo-switch { display: none; }
+html:not(.js) .demo-panel[data-panel="desktop"] { display: block; }
+html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
+
+/* 768px and up: one simulator at a time, chosen by the switch. The phone is framed as an iPhone at its real proportions. */
+@media (min-width: 768px) {
+  .demo-open { display: none; }
+  .demo-section { padding-top: 64px; }
+  .demo-switch { display: inline-flex; gap: 2px; margin-bottom: 16px; padding: 3px; border: 1px solid var(--bd); border-radius: 8px; background: var(--s2); box-shadow: var(--tray-sh); }
+  .demo-section[data-view="phone"] .demo-panel[data-panel="desktop"] { display: none; }
+  .demo-section[data-view="desktop"] .demo-panel[data-panel="phone"] { display: none; }
+  .demo-panel[data-panel="desktop"] { display: block; }
+  .demo-panel[data-panel="phone"] { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .demo-panel[data-panel="phone"] .demo-cap { text-align: center; }
+  .phone-demo { --dev-h: min(680px, 88vh); }
+  .device-wrap { width: calc(var(--dev-h) * 414 / 868); height: var(--dev-h); }
+  .device { position: absolute; left: 0; top: 0; width: 414px; height: 868px; padding: 12px; border-radius: 66px; background: #0C0C0D; transform: scale(var(--s, 1)); transform-origin: 0 0; box-shadow: inset 0 0 0 2px #7D7D83, inset 0 0 0 4px #1A1A1C, 0 0 0 1px rgba(0,0,0,.35), 0 40px 70px -30px rgba(21,21,21,.6), 0 18px 36px -20px rgba(21,21,21,.4); }
+  .device-btn { display: block; position: absolute; width: 4px; border-radius: 2px; background: linear-gradient(90deg, #2E2E31, #6F6F76); }
+  .device-btn.act { left: -4px; top: 168px; height: 30px; }
+  .device-btn.up { left: -4px; top: 226px; height: 58px; }
+  .device-btn.down { left: -4px; top: 298px; height: 58px; }
+  .device-btn.pwr { right: -4px; top: 256px; height: 92px; }
+  .device-screen { inset: 12px auto auto 12px; width: 390px; height: 844px; border-radius: 54px; }
+  .device-island { display: block; position: absolute; z-index: 30; top: 11px; left: 50%; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; }
+  .device-status { display: block; position: absolute; z-index: 25; left: 0; right: 0; top: 0; height: 54px; color: var(--tx); font-family: var(--sans); font-weight: 600; font-size: 16px; letter-spacing: -.01em; pointer-events: none; }
+  .device-status .time { position: absolute; left: 0; top: 0; width: 150px; line-height: 54px; text-align: center; }
+  .device-status .icons { position: absolute; right: 26px; top: 0; height: 54px; display: flex; align-items: center; gap: 6px; }
+  .device-home { display: block; position: absolute; z-index: 30; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: var(--tx); }
+  .device .w-mhead { padding-top: 66px; }
+  .device .w-mtask .w-phead { padding-top: 66px; }
+}
+
+/* 1024px and up: one screen. The copy is the left column; the right column holds the switch and the simulator it picks. */
+@media (min-width: 1024px) {
+  .top-in { height: 56px; }
+  .home { display: grid; grid-template-columns: minmax(0, 34%) minmax(0, 1fr); gap: clamp(32px, 4.5vw, 64px); align-items: center; height: calc(100vh - 94px); padding: 14px 0; }
+  .demo-section { --stage-h: calc(100vh - 122px); height: var(--stage-h); padding: 0; border-top: 0; }
+  .demo-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
+  .demo-desk { width: min(100%, calc((var(--stage-h) - 168px) * 1.6)); }
+  .demo-panel[data-panel="desktop"] .demo-cap { max-width: none; white-space: nowrap; font-size: clamp(10.5px, 0.95vw, 12.5px); }
+  .demo-panel[data-panel="phone"] .demo-cap { display: none; }
+  .phone-demo { --dev-h: min(calc(var(--stage-h) - 56px), 640px); }
+  .foot { height: 37px; padding: 0; display: flex; align-items: center; }
+  .foot-in { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

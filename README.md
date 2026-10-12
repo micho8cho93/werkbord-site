@@ -2,10 +2,10 @@
 
 The launch page for [Werkbord](https://github.com/micho8cho93/werkbord): a headline, a beta waitlist, and a working demo of the app. Plain HTML, CSS and JavaScript. No build step and no dependencies, so it runs as-is on GitHub Pages.
 
-- `index.html`: the page. The headline, the waitlist, and the demo. At 768px and wider the demo switches between the Desktop window and the Phone at its real width (390px, no device frame). Below 768px the waitlist comes first, and Try the demo opens the phone app full screen with a Back control.
+- `index.html`: the page. The headline and subheader, the waitlist, and the demo. From 1024px the page fits one screen with no scroll: the copy on the left, and on the right a Desktop and Phone switch that shows one simulator at a time, the desktop window or the phone in an iPhone frame. From 768px the same parts stack and the page scrolls. Below 768px the waitlist comes first, and Try the demo opens the phone app full screen with a Back control.
 - `404.html`: sends visitors home.
-- `assets/css`: `site.css` (tokens from the identity sheet, buttons, header, footer), `app.css` (the app replica), `pages.css` (the page layout and the demo switch), `waitlist.css` (the waitlist block).
-- `assets/js`: `common.js` (helpers and the theme toggle), `app-demo.js` (the app replica; the desktop window and the phone share one controller), `demo-view.js` (the Desktop and Phone switch and the full-screen phone), `waitlist.js` (the email waitlist).
+- `assets/css`: `site.css` (tokens from the identity sheet, buttons, header, footer), `app.css` (the app replica), `pages.css` (the page layout, the headline, and the iPhone frame), `waitlist.css` (the waitlist block).
+- `assets/js`: `common.js` (helpers and the theme toggle), `app-demo.js` (the app replica; the desktop window and the phone share one controller), `demo-view.js` (the full-screen phone below 768px), `waitlist.js` (the email waitlist).
 - `assets/img`: the mark in light and dark, the favicon, `og.png` (the 1200 by 630 share image), and `app/overview-light.webp` (the picture shown to visitors without JavaScript).
 - `docs/waitlist-schema.sql`: the waitlist database schema and its functions.
 - `llms.txt`, `robots.txt`, `sitemap.xml`: a plain-text summary for AI assistants, the crawler rules, and the list of public pages (the home page only).
@@ -42,7 +42,7 @@ The form talks to a separate Supabase project, `werkbord-waitlist`, through thre
 - `waitlist_status` returns a returning browser's position. The browser remembers its code in `localStorage` (`wb-wl-code`).
 - `waitlist_counter` returns the number of the first 50 places taken.
 
-The page collects an email only. A visit with `?ref=<8 hex>` stores the invite code in `localStorage` (`wb-wl-ref`) and sends it with the signup, but the page does not show invite links.
+The page collects an email and, optionally, the team size (2, 3, 4, 5 or 6+). The team size is stored in the existing `team_size` column as `team of 2` to `team of 6+`; a blank answer is stored as null. A visit with `?ref=<8 hex>` stores the invite code in `localStorage` (`wb-wl-ref`) and sends it with the signup, but the page does not show invite links.
 
 - The key in `assets/js/waitlist.js` is a **publishable** key and is meant to be public. Never put the `service_role` or a secret key in this repo.
 - The table is not readable from the browser: row level security is on with no policies, and `anon` has no table privileges.

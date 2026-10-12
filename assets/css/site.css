@@ -16,7 +16,7 @@
   --win-sh: 0 1px 1px rgba(21,21,21,.10), 0 18px 40px -18px rgba(21,21,21,.35), 0 40px 80px -40px rgba(21,21,21,.25);
   --sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --wrap: 1180px;
+  --wrap: 1280px;
   --ease: cubic-bezier(.16, 1, .3, 1);
   color-scheme: light;
 }
@@ -97,7 +97,6 @@ h1 { font-size: clamp(42px, 6.2vw, 80px); line-height: 1; letter-spacing: -.04em
 h2 { font-size: clamp(30px, 4vw, 52px); line-height: 1.04; }
 h3 { font-size: 20px; line-height: 1.2; letter-spacing: -.015em; }
 p { margin: 0; text-wrap: pretty; }
-.lede { font-size: clamp(18px, 1.6vw, 22px); line-height: 1.5; color: var(--t2); max-width: 46ch; }
 
 /* ---------- footer: the mark and a copyright line ---------- */
 .foot { border-top: 1px solid var(--bd); padding: 40px 0 56px; color: var(--t2); font-size: 14px; }

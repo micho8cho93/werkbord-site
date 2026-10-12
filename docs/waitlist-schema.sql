@@ -9,7 +9,7 @@ create table public.waitlist_signups (
   id                uuid primary key default gen_random_uuid(),
   email             text not null,
   agent             text,
-  team_size         text,
+  team_size         text,                    -- 'team of 2' to 'team of 6+' (the waitlist form), or null when left blank
   referral_code     text not null unique,
   referred_by       uuid references public.waitlist_signups (id) on delete set null,
   colleague_emails  text[] not null default '{}',

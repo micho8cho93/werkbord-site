@@ -1,6 +1,6 @@
-/* The demo's controls on the launch page. Screens 768px and wider switch between the Desktop window and
-   the Phone at true phone width. Smaller screens open the phone app full screen from Try the demo, with a
-   Back control to return. The apps and their data come from app-demo.js; this file only shows and hides them. */
+/* The demo's controls on the launch page. From 768px one simulator shows at a time: the desktop window or the phone,
+   picked with the Desktop and Phone switch. Below 768px the phone app opens full screen from Try the demo, with a Back
+   control to return. The apps and their data come from app-demo.js; this file only shows and hides them. */
 (function () {
   'use strict';
   var section = document.getElementById('demo');
@@ -11,9 +11,10 @@
   var openBtn = section.querySelector('[data-open-phone]');
   var backBtn = section.querySelector('[data-close-phone]');
   var views = section.querySelectorAll('[data-view-button]');
-  var behind = document.querySelectorAll('.top, .wl-sec, .foot, #demo .demo-head, #demo [data-panel="desktop"]');
+  var behind = document.querySelectorAll('.top, .hero, .wl-sec, .foot, #demo .demo-head, #demo .demo-switch, #demo [data-panel="desktop"]');
   var full = false;
 
+  /* Desktop or Phone: shows one simulator and refits it, since a hidden one has no size yet. */
   function setView(name) {
     section.setAttribute('data-view', name);
     views.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-view-button') === name)); });
@@ -57,17 +58,17 @@
     if (e.key === 'Escape' && full && !phone.querySelector('.w-mtask, .w-sheet, .w-pal')) closeFull(true);
   }, true);
 
-  /* Growing back to a wide screen leaves the full-screen phone; the Desktop and Phone switch takes over. */
+  /* Growing back to a wide screen leaves the full-screen phone; the switch takes over again. */
   small.addEventListener('change', function () {
     if (!small.matches) closeFull(false);
     WBApp.refit();
   });
 
-  /* The four quick actions drive the desktop window, so they bring it forward first. */
+  /* The four quick actions drive the desktop window, so they show it first. */
   section.querySelectorAll('[data-try]').forEach(function (b) {
     b.addEventListener('click', function () {
       setView('desktop');
-      document.getElementById('app-demo').scrollIntoView({ block: 'center', behavior: WB.reduced ? 'auto' : 'smooth' });
+      document.getElementById('app-demo').scrollIntoView({ block: 'nearest', behavior: WB.reduced ? 'auto' : 'smooth' });
       WBApp.go(b.getAttribute('data-try'));
     });
   });

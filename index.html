@@ -81,55 +81,62 @@
   </div>
 </header>
 
-<main id="main">
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="wrap">
-      <h1 id="hero-title">Werkbord is a <span class="nowrap">local-first</span> team workspace for AI agents.</h1>
-      <p class="lede">Plan and approve the work on one board. Claude Code and Codex do it in their own Git worktrees, and nothing merges without you.</p>
-    </div>
-  </section>
+<main id="main" class="wrap home">
+  <div class="home-copy">
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">
+        <span class="hl">werkbord is a</span>
+        <span class="hl accent">local-first</span>
+        <span class="hl">team workspace</span>
+        <span class="hl">for AI agents.</span>
+      </h1>
+      <ul class="points">
+        <li><i class="sq" aria-hidden="true"></i>Runs on your own machines</li>
+        <li><i class="sq amber" aria-hidden="true"></i>Agents never merge</li>
+        <li><i class="sq ink" aria-hidden="true"></i>Works with Claude Code and Codex</li>
+      </ul>
+    </section>
 
-  <section class="wl-sec" id="waitlist" aria-label="Waitlist">
-    <div class="wrap">
+    <section class="wl-sec" id="waitlist" aria-labelledby="wl-title">
+      <h2 id="wl-title" class="sr">Join the waitlist</h2>
       <div class="wl" data-waitlist></div>
       <noscript><p class="wl-note">Enable JavaScript to join the waitlist.</p></noscript>
-    </div>
-  </section>
+    </section>
+  </div>
 
   <section class="demo-section" id="demo" data-view="desktop" aria-labelledby="demo-title">
-    <div class="wrap">
-      <div class="demo-head">
-        <div class="demo-intro">
-          <h2 id="demo-title">Try the app in your browser</h2>
-          <p class="demo-sub">Three agents are mid-shift on a made-up repository. One has a question. One stopped rather than guess. Everything here works.</p>
-          <button class="btn pri demo-open" type="button" data-open-phone aria-haspopup="dialog">Try the demo</button>
-        </div>
-        <div class="demo-switch" role="group" aria-label="Demo view">
-          <button type="button" data-view-button="desktop" aria-pressed="true">Desktop</button>
-          <button type="button" data-view-button="phone" aria-pressed="false">Phone</button>
-        </div>
-      </div>
+    <div class="demo-head">
+      <h2 id="demo-title">Try the app in your browser</h2>
+      <p class="demo-sub">Three agents are mid-shift on a made-up repository. One has a question. One stopped rather than guess. Everything here works.</p>
+      <button class="btn pri demo-open" type="button" data-open-phone aria-haspopup="dialog">Try the demo</button>
+    </div>
 
-      <div class="demo-panel" data-panel="desktop">
-        <div class="try" role="group" aria-label="Things to try">
-          <button class="btn" type="button" data-try="answer"><span class="try-dot" style="background:var(--amber)"></span>Answer a question</button>
-          <button class="btn" type="button" data-try="merge"><span class="try-dot" style="background:var(--ok)"></span>Merge finished work</button>
-          <button class="btn" type="button" data-try="plan"><span class="try-dot" style="background:var(--ac)"></span>Plan the week</button>
-          <button class="btn" type="button" data-try="new"><span class="try-dot" style="background:var(--tx)"></span>Write a task</button>
-        </div>
+    <div class="demo-switch" role="group" aria-label="Demo view">
+      <button type="button" data-view-button="desktop" aria-pressed="true">Desktop</button>
+      <button type="button" data-view-button="phone" aria-pressed="false">Phone</button>
+    </div>
+
+    <div class="demo-panel" data-panel="desktop">
+      <div class="try" role="group" aria-label="Things to try">
+        <button class="btn" type="button" data-try="answer"><span class="try-dot" style="background:var(--amber)"></span>Answer a question</button>
+        <button class="btn" type="button" data-try="merge"><span class="try-dot" style="background:var(--ok)"></span>Merge finished work</button>
+        <button class="btn" type="button" data-try="plan"><span class="try-dot" style="background:var(--ac)"></span>Plan the week</button>
+        <button class="btn" type="button" data-try="new"><span class="try-dot" style="background:var(--tx)"></span>Write a task</button>
+      </div>
+      <div class="demo-desk">
         <div id="app-demo" class="app-demo"></div>
         <noscript><img class="demo-static" src="assets/img/app/overview-light.webp" width="1280" height="800" alt="The Werkbord window on a project called my-app: a banner says one question needs your input, the question from Claude Code has two answer buttons, one task is ready for review, and the Git panel lists two items that need attention."></noscript>
-        <p class="demo-cap">Drag cards between columns, drag tasks onto the calendar, press <kbd class="key">⌘</kbd><kbd class="key">K</kbd> to jump anywhere or <kbd class="key">N</kbd> for a new task.</p>
       </div>
+      <p class="demo-cap">Drag cards between columns, drag tasks onto the calendar, press <kbd class="key">⌘</kbd><kbd class="key">K</kbd> to jump anywhere or <kbd class="key">N</kbd> for a new task.</p>
+    </div>
 
-      <div class="demo-panel demo-phone" data-panel="phone">
-        <div class="demo-bar">
-          <button class="btn" type="button" data-close-phone><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>Back</button>
-          <span class="demo-tag">Demo</span>
-        </div>
-        <div id="phone-demo" class="phone-demo" role="region" aria-label="Werkbord on a phone, sharing the controller with the desktop view"></div>
-        <p class="demo-cap">The same board as the desktop view, at phone width. Answer a question with one tap.</p>
+    <div class="demo-panel demo-phone" data-panel="phone">
+      <div class="demo-bar">
+        <button class="btn" type="button" data-close-phone><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>Back</button>
+        <span class="demo-tag">Demo</span>
       </div>
+      <div id="phone-demo" class="phone-demo" role="region" aria-label="Werkbord on a phone, sharing the controller with the desktop view"></div>
+      <p class="demo-cap">The same board as the desktop view, at phone width. Answer a question with one tap.</p>
     </div>
   </section>
 </main>

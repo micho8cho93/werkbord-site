@@ -719,19 +719,37 @@
     deskRoot = deskMount.querySelector('.wbx-desk');
     bind(deskRoot, 'desk');
   }
+  /* The phone sits in an iPhone frame (drawn at 414 by 868 around the 390 by 844 screen). The frame's shell,
+     status bar and island are shown by pages.css from 768px; on a phone the same markup is the bare app. */
   function mountPhone() {
-    phoneMount.innerHTML = '<div class="stage"><div class="wbx wbx-phone" data-root="phone"><div data-app></div><div data-overlay></div><div class="w-toast" role="status" aria-live="polite"></div></div></div>';
+    phoneMount.innerHTML =
+      '<div class="device-wrap"><div class="device">' +
+        '<i class="device-btn act" aria-hidden="true"></i><i class="device-btn up" aria-hidden="true"></i><i class="device-btn down" aria-hidden="true"></i><i class="device-btn pwr" aria-hidden="true"></i>' +
+        '<div class="device-screen">' +
+          '<div class="wbx wbx-phone" data-root="phone"><div data-app></div><div data-overlay></div><div class="w-toast" role="status" aria-live="polite"></div></div>' +
+          '<div class="device-island" aria-hidden="true"></div>' +
+          '<div class="device-status" aria-hidden="true"><span class="time">9:41</span>' +
+            '<span class="icons">' +
+              '<svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="0.8"/><rect x="5" y="5.5" width="3" height="6.5" rx="0.8"/><rect x="10" y="3" width="3" height="9" rx="0.8"/><rect x="15" y="0" width="3" height="12" rx="0.8"/></svg>' +
+              '<svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.6c2.2 0 4.2.8 5.7 2.2l1.1-1.2C13 2.2 10.6 1.2 8 1.2S3 2.2 1.2 3.6l1.1 1.2C3.8 3.4 5.8 2.6 8 2.6zm0 3.2c1.3 0 2.5.5 3.4 1.3l1.1-1.2C11.3 4.8 9.7 4.2 8 4.2s-3.3.6-4.5 1.7l1.1 1.2c.9-.8 2.1-1.3 3.4-1.3zM8 9.4 9.9 11.4 8 12 6.1 11.4z"/></svg>' +
+              '<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23" height="12" rx="3.5" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2z" fill="currentColor" opacity=".45"/></svg>' +
+            '</span>' +
+          '</div>' +
+          '<div class="device-home" aria-hidden="true"></div>' +
+        '</div>' +
+      '</div></div>';
     phoneRoot = phoneMount.querySelector('.wbx-phone');
     bind(phoneRoot, 'phone');
   }
   function fit() {
-    [[deskMount, 1280], [phoneMount, 390]].forEach(function (m) {
-      if (!m[0]) return;
-      var stage = m[0].querySelector('.stage'); if (!stage) return;
-      var s = stage.clientWidth / m[1];
-      stage.style.setProperty('--s', s);
-      if (m[1] === 1280) D.s = s; else P.s = s;
-    });
+    if (deskMount) {
+      var stage = deskMount.querySelector('.stage');
+      if (stage) { D.s = stage.clientWidth / 1280; stage.style.setProperty('--s', D.s); }
+    }
+    if (phoneMount) {
+      var wrap = phoneMount.querySelector('.device-wrap');
+      if (wrap) { P.s = wrap.clientWidth / 414; wrap.style.setProperty('--s', P.s); }
+    }
   }
 
   /* ---------- events ---------- */

@@ -12,7 +12,7 @@
 - Claude Code and Codex work with Werkbord today, through their own command-line tools and the user's own accounts.
 - Nothing merges without a person. Agents do not merge their own work.
 - Beta: the first 50 people to sign up get beta access. It covers individual and team apps, with up to 5 seats per team.
-- The waitlist asks for an email address and nothing else.
+- The waitlist asks for an email address and, optionally, the team size: 2, 3, 4, 5 or 6 or more.
 - The demo runs in the page on a made-up repository. It needs no install.
 
 ## Planned, not available today

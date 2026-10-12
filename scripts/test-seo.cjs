@@ -21,7 +21,7 @@ test('the page has one H1 that names the category, the audience and the AI agent
   const h1s = h.match(/<h1[\s>][\s\S]*?<\/h1>/g) || [];
   assert.strictEqual(h1s.length, 1);
   const t = text(h1s[0]);
-  assert.strictEqual(t, 'Werkbord is a local-first team workspace for AI agents.');
+  assert.strictEqual(t, 'werkbord is a local-first team workspace for AI agents.');
   for (const word of ['workspace', 'team', 'AI agents']) assert.ok(t.includes(word), 'H1 should include ' + word + ': ' + t);
 });
 
@@ -135,11 +135,13 @@ test('the footer holds the mark and a copyright line, and no navigation', () => 
   assert.match(footer, /©\s*\d{4} Werkbord/);
 });
 
-test('the waitlist asks for an email only, and uses the three database functions', () => {
+test('the waitlist asks for an email and an optional team size of 2 to 6+, and uses the three database functions', () => {
   const js = read('assets/js/waitlist.js');
   for (const fn of ['join_waitlist', 'waitlist_counter', 'waitlist_status']) assert.ok(js.includes(fn), 'missing ' + fn);
-  assert.doesNotMatch(js, /name="(agent|team_size|colleagues|consent)"/);
-  assert.doesNotMatch(js, /textarea|<select/);
+  assert.match(js, /name="team_size"/);
+  for (const size of ['2', '3', '4', '5', '6+']) assert.ok(js.includes('<option value="' + size + '">'), 'missing team size ' + size);
+  assert.doesNotMatch(js, /name="(use|agent|colleagues|consent)"/);
+  assert.doesNotMatch(js, /textarea/);
   assert.strictEqual((js.match(/type="email"/g) || []).length, 1);
 });
 
