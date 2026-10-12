@@ -64,19 +64,4 @@
     WBApp.refit();
   });
 
-  /* The four quick actions sit under the switch. In the Phone view they run on the phone, so the visitor sees the
-     phone's version of the action; otherwise they show the desktop window first. */
-  section.querySelectorAll('[data-try]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var what = b.getAttribute('data-try'), scroll = { block: 'nearest', behavior: WB.reduced ? 'auto' : 'smooth' };
-      if (section.getAttribute('data-view') === 'phone') {
-        WBApp.go(what, 'phone');
-        document.getElementById('phone-demo').scrollIntoView(scroll);
-        return;
-      }
-      setView('desktop');
-      document.getElementById('app-demo').scrollIntoView(scroll);
-      WBApp.go(what);
-    });
-  });
 })();

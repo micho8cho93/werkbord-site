@@ -35,14 +35,6 @@ html.js .rolo-w.is-out { opacity: 0; transform: translateY(-.36em) rotateX(80deg
 .demo-switch button:hover { color: var(--tx); }
 .demo-switch button[aria-pressed="true"] { background: var(--sf); color: var(--tx); box-shadow: var(--btn-sh); }
 
-/* The quick actions sit in a row right above the desktop window, and wrap only when the window is too narrow for one row. */
-.try { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
-.try .btn { justify-content: flex-start; font-size: 13px; height: 36px; padding: 0 13px; }
-/* In the Phone view they stack in a column above the phone, each as wide as the switch. */
-.demo-section[data-view="phone"] .try { flex-direction: column; align-items: flex-start; }
-.demo-section[data-view="phone"] .try .btn { width: 218px; }
-.try-dot { width: 7px; height: 7px; flex: none; }
-
 .app-demo { min-height: 120px; }
 .demo-desk { min-width: 0; }
 .demo-static { display: block; width: 100%; height: auto; border: 1px solid var(--bd); border-radius: 12px; box-shadow: var(--win-sh); }
@@ -61,7 +53,6 @@ html.js .rolo-w.is-out { opacity: 0; transform: translateY(-.36em) rotateX(80deg
 /* Below 768px: the desktop window is hidden, and Try the demo opens the phone app full screen. */
 @media (max-width: 767px) {
   .demo-panel[data-panel="desktop"] { display: none; }
-  .try { display: none; }
   .demo-open { display: inline-flex; }
   .demo-panel[data-panel="phone"].is-full { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 200; gap: 0; align-items: stretch; background: var(--bg); }
   .demo-panel.is-full .demo-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; height: 56px; padding: 0 16px; border-bottom: 1px solid var(--bd); }
@@ -70,7 +61,7 @@ html.js .rolo-w.is-out { opacity: 0; transform: translateY(-.36em) rotateX(80deg
   .demo-panel.is-full .phone-demo { flex: 1; min-height: 0; width: 100%; }
   .demo-panel.is-full .device-wrap { height: 100%; }
 }
-html:not(.js) .demo-open, html:not(.js) .try, html:not(.js) .demo-switch { display: none; }
+html:not(.js) .demo-open, html:not(.js) .demo-switch { display: none; }
 html:not(.js) .demo-panel[data-panel="desktop"] { display: block; }
 html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
 
@@ -110,20 +101,20 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
 /* Landscape screens from 1200px: one screen with no scroll. The copy is the left column; the right block holds the switch
    and the simulator it picks, and lines up with the header's right edge. The block is as wide as its column allows, and no
    taller than the screen: the window is 1.6 times as wide as its stage is tall, and --demo-chrome is the height of the
-   switch, the Try row, the caption and the bar. */
+   switch and its margin, the only thing above the simulator. */
 @media (min-width: 1200px) and (min-aspect-ratio: 1/1) {
   .top-in { height: 56px; }
-  .home { display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); gap: clamp(32px, 4.5vw, 64px); align-items: center; min-height: calc(100vh - 94px); padding: 14px 0; }
+  .home { display: grid; grid-template-columns: minmax(0, 35%) minmax(0, 1fr); gap: clamp(28px, 3.5vw, 48px); align-items: center; min-height: calc(100vh - 94px); padding: 14px 0; }
   /* The headline also stops at the height of the screen, so the copy column fits beside the simulator. */
   .hero h1 { font-size: clamp(36px, min(calc(100cqi / 8.4), calc(24vh - 130px)), 112px); }
-  .demo-section { --demo-chrome: 244px; --stage-h: calc(100vh - 122px); height: var(--stage-h); width: min(100%, max(320px, calc((var(--stage-h) - var(--demo-chrome)) * 1.6))); justify-self: end; padding: 0; border-top: 0; }
+  .demo-section { --demo-chrome: 56px; --stage-h: calc(100vh - 122px); height: var(--stage-h); width: min(100%, max(320px, calc((var(--stage-h) - var(--demo-chrome)) * 1.6))); justify-self: end; padding: 0; border-top: 0; display: flex; flex-direction: column; justify-content: center; }
+  .demo-switch { align-self: flex-start; }
   .demo-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
-  .try .btn { font-size: clamp(13px, 0.72vw, 15px); }
   .demo-panel[data-panel="phone"] .demo-cap { display: none; }
-  /* The switch and the stacked quick actions sit above the phone, about 240px together. */
-  .phone-demo { --dev-h: min(calc(var(--stage-h) - 244px), 868px); }
+  /* The switch sits above the phone, so the phone takes the rest of the stage. */
+  .phone-demo { --dev-h: min(calc(var(--stage-h) - var(--demo-chrome)), 868px); }
+  /* The footer shares the header's wrap, so its line starts under the logo. */
   .foot { height: 37px; padding: 0; display: flex; align-items: center; }
-  .foot-in { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

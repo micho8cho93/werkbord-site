@@ -21,7 +21,7 @@ test('the page has one H1 that names the category, and its rotating word is team
   const h1s = h.match(/<h1[\s>][\s\S]*?<\/h1>/g) || [];
   assert.strictEqual(h1s.length, 1);
   const t = text(h1s[0]);
-  assert.strictEqual(t, 'A local-first team werkspace');
+  assert.strictEqual(t, 'A local-first team workspace');
   assert.deepStrictEqual(h.match(/data-words="([^"]+)"/)[1].split(' '), ['team', 'agent', 'project']);
   assert.ok(h.includes('assets/js/rolodex.js'), 'the rotating word needs rolodex.js');
 });
