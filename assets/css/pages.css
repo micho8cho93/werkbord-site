@@ -35,9 +35,12 @@ html.js .rolo-w.is-out { opacity: 0; transform: translateY(-.36em) rotateX(80deg
 .demo-switch button:hover { color: var(--tx); }
 .demo-switch button[aria-pressed="true"] { background: var(--sf); color: var(--tx); box-shadow: var(--btn-sh); }
 
-/* The quick actions stack in a column under the Desktop and Phone switch, as wide as the switch. */
-.try { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
-.try .btn { width: 218px; justify-content: flex-start; font-size: 13px; height: 36px; padding: 0 13px; }
+/* The quick actions sit in a row right above the desktop window, and wrap only when the window is too narrow for one row. */
+.try { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
+.try .btn { justify-content: flex-start; font-size: 13px; height: 36px; padding: 0 13px; }
+/* In the Phone view they stack in a column above the phone, each as wide as the switch. */
+.demo-section[data-view="phone"] .try { flex-direction: column; align-items: flex-start; }
+.demo-section[data-view="phone"] .try .btn { width: 218px; }
 .try-dot { width: 7px; height: 7px; flex: none; }
 
 .app-demo { min-height: 120px; }
@@ -75,6 +78,10 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
 @media (min-width: 768px) {
   .demo-open { display: none; }
   .demo-section { padding-top: 64px; }
+  /* Each point is one line. The text shrinks, down to 14px, before it would wrap: the longest point is about 31em wide, and
+     the 9px square and its 12px gap take 21px of the column. Below 768px the points wrap, as they always did. */
+  .points { font-size: min(clamp(16px, 1.15vw, 20px), max(14px, calc((100cqi - 21px) / 31))); }
+  .points li { white-space: nowrap; }
   .demo-switch { display: inline-flex; gap: 2px; margin-bottom: 16px; padding: 3px; border: 1px solid var(--bd); border-radius: 8px; background: var(--s2); box-shadow: var(--tray-sh); }
   .demo-section[data-view="phone"] .demo-panel[data-panel="desktop"] { display: none; }
   .demo-section[data-view="desktop"] .demo-panel[data-panel="phone"] { display: none; }
@@ -106,7 +113,7 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
    switch, the Try row, the caption and the bar. */
 @media (min-width: 1200px) and (min-aspect-ratio: 1/1) {
   .top-in { height: 56px; }
-  .home { display: grid; grid-template-columns: minmax(0, 34%) minmax(0, 1fr); gap: clamp(32px, 4.5vw, 64px); align-items: center; min-height: calc(100vh - 94px); padding: 14px 0; }
+  .home { display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); gap: clamp(32px, 4.5vw, 64px); align-items: center; min-height: calc(100vh - 94px); padding: 14px 0; }
   /* The headline also stops at the height of the screen, so the copy column fits beside the simulator. */
   .hero h1 { font-size: clamp(36px, min(calc(100cqi / 8.4), calc(24vh - 130px)), 112px); }
   .demo-section { --demo-chrome: 244px; --stage-h: calc(100vh - 122px); height: var(--stage-h); width: min(100%, max(320px, calc((var(--stage-h) - var(--demo-chrome)) * 1.6))); justify-self: end; padding: 0; border-top: 0; }

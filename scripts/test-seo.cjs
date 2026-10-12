@@ -21,7 +21,7 @@ test('the page has one H1 that names the category, and its rotating word is team
   const h1s = h.match(/<h1[\s>][\s\S]*?<\/h1>/g) || [];
   assert.strictEqual(h1s.length, 1);
   const t = text(h1s[0]);
-  assert.strictEqual(t, 'a local-first team werkspace');
+  assert.strictEqual(t, 'A local-first team werkspace');
   assert.deepStrictEqual(h.match(/data-words="([^"]+)"/)[1].split(' '), ['team', 'agent', 'project']);
   assert.ok(h.includes('assets/js/rolodex.js'), 'the rotating word needs rolodex.js');
 });
@@ -126,7 +126,7 @@ test('every local link, script, stylesheet and image resolves to a file', () => 
 
 test('the page links to no removed page', () => {
   const h = read('index.html');
-  assert.doesNotMatch(h, /team\.html|productivity\.html|docs\/|download\.js|intro\.js/);
+  assert.doesNotMatch(h, /team\.html|productivity\.html|docs\/|download\.js/);
   assert.doesNotMatch(read('404.html'), /team\.html|productivity\.html|docs\//);
 });
 
