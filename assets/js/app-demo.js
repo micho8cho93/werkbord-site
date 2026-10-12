@@ -657,7 +657,6 @@
     restoreScroll(phoneRoot, P.scroll);
     if (fk) { var el = phoneRoot.querySelector(fk); if (el) el.focus({ preventScroll: true }); }
   }
-  var PHONE_CHROME = '<div class="w-status-bar" aria-hidden="true"><span>9:41</span><svg width="68" height="13" viewBox="0 0 68 13" fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="13" rx="1"/><path d="M33 3.2c2.3 0 4.4.9 6 2.4l1.1-1.2A10 10 0 0 0 33 1.6a10 10 0 0 0-7.1 2.8L27 5.6a8.4 8.4 0 0 1 6-2.4zm0 3.4c1.4 0 2.6.5 3.6 1.4l1.1-1.2A7 7 0 0 0 33 5a7 7 0 0 0-4.7 1.8L29.4 8c1-.9 2.2-1.4 3.6-1.4zm0 3.3c.5 0 1 .2 1.3.5L33 12l-1.3-1.6c.3-.3.8-.5 1.3-.5z"/><rect x="45" y="1" width="20" height="11" rx="3" fill="none" stroke="currentColor" stroke-opacity=".4"/><rect x="47" y="3" width="15" height="7" rx="1.5"/><path d="M66.5 5v3" stroke="currentColor" stroke-opacity=".4" stroke-linecap="round"/></svg></div><div class="w-island" aria-hidden="true"></div><div class="w-home" aria-hidden="true"></div>';
 
   function render() { renderDesk(); renderPhone(); S.tasks.forEach(function (t) { t.fresh = false; }); }
 
@@ -721,7 +720,7 @@
     bind(deskRoot, 'desk');
   }
   function mountPhone() {
-    phoneMount.innerHTML = '<div class="iphone"><div class="stage"><div class="wbx wbx-phone" data-root="phone"><div data-app></div><div data-overlay></div><div class="w-toast" role="status" aria-live="polite"></div>' + PHONE_CHROME + '</div></div></div>';
+    phoneMount.innerHTML = '<div class="stage"><div class="wbx wbx-phone" data-root="phone"><div data-app></div><div data-overlay></div><div class="w-toast" role="status" aria-live="polite"></div></div></div>';
     phoneRoot = phoneMount.querySelector('.wbx-phone');
     bind(phoneRoot, 'phone');
   }
@@ -921,6 +920,7 @@
   /* The page's own controls drive the app the way a person would. */
   window.WBApp = {
     state: S,
+    refit: fit,
     go: function (what) {
       D.task = null; closeOverlay();
       if (what === 'answer') { var q = questions()[0] || S.tasks.filter(function (t) { return t.run && t.run.st === 'blocked'; })[0]; D.view = 'control'; render(); if (q) { var b = deskRoot.querySelector('[data-a="answer"][data-id="' + q.id + '"]'); if (b) b.focus({ preventScroll: true }); } }
@@ -928,7 +928,6 @@
       else if (what === 'plan') { D.view = 'calendar'; render(); }
       else if (what === 'new') { D.view = 'board'; render(); D.sheet = { kind: 'new' }; openOverlay(sheetHTML(D.sheet), 'input[name=title]'); }
       else { D.view = what; render(); }
-    },
-    phone: function (tab) { P.task = null; P.tab = tab; render(); }
+    }
   };
 })();

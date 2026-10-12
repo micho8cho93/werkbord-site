@@ -2,9 +2,9 @@
    Tokens, sizes and component rules are copied from the product's web/src/app.css and its Svelte
    components. Everything is scoped under .wbx and prefixed w- so the site's own .btn, .card and
    heading rules never leak in. The desktop app renders at its real size (1280 x 800) and is scaled
-   to fit; the phone renders at 390 x 844 and is scaled into the device frame. */
+   to fit; the phone renders at its real size (390 x 844) with no device frame. */
 
-/* ---------- device chrome ---------- */
+/* ---------- window chrome ---------- */
 .mac { position: relative; border-radius: 12px; overflow: hidden; background: var(--bg); box-shadow: var(--win-sh), 0 0 0 1px rgba(0,0,0,.14); }
 :root[data-theme="dark"] .mac { box-shadow: var(--win-sh), 0 0 0 1px rgba(255,255,255,.1); }
 .mac-bar { height: 30px; display: grid; grid-template-columns: 80px 1fr 80px; align-items: center; background: linear-gradient(#ECECEA, #E3E3E0); border-bottom: 1px solid #CFCFCB; user-select: none; }
@@ -18,11 +18,6 @@
 .stage { position: relative; overflow: hidden; height: calc(var(--h, 800px) * var(--s, 1)); }
 .stage > .wbx { position: absolute; left: 0; top: 0; transform-origin: 0 0; transform: scale(var(--s, 1)); }
 
-.iphone { position: relative; width: 100%; max-width: 360px; margin-inline: auto; padding: 11px; border-radius: 56px; background: linear-gradient(145deg, #2C2C2F, #121214); box-shadow: 0 30px 60px -24px rgba(0,0,0,.45), 0 0 0 1px #3A3A3D, inset 0 0 0 1px #4A4A4E; }
-.iphone::before, .iphone::after { content: ""; position: absolute; width: 3px; border-radius: 2px; background: #3E3E42; }
-.iphone::before { left: -3px; top: 160px; height: 58px; box-shadow: 0 -70px 0 #3E3E42; }
-.iphone::after { right: -3px; top: 190px; height: 80px; }
-.iphone .stage { border-radius: 45px; background: var(--bg); --h: 844px; }
 
 /* ---------- tokens (copied from the product) ---------- */
 .wbx {
@@ -78,9 +73,9 @@
 .wbx img, .wbx svg { display: inline-block; max-width: none; }
 .wbx .w-mark { display: inline-flex; flex: none; }
 .wbx .w-mark img { display: block; }
-.wbx .w-mark .mark-d, .tcx .mark-d { display: none; }
-:root[data-theme="dark"] .wbx .w-mark .mark-l, :root[data-theme="dark"] .tcx .mark-l { display: none; }
-:root[data-theme="dark"] .wbx .w-mark .mark-d, :root[data-theme="dark"] .tcx .mark-d { display: block; }
+.wbx .w-mark .mark-d { display: none; }
+:root[data-theme="dark"] .wbx .w-mark .mark-l { display: none; }
+:root[data-theme="dark"] .wbx .w-mark .mark-d { display: block; }
 
 /* ---------- shared atoms ---------- */
 .w-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; padding: 0 14px; border: 1px solid var(--border); border-radius: 5px; background: var(--btn-bg); box-shadow: var(--btn-sh); color: var(--text); font-weight: 500; font-size: 13px; line-height: 1.2; white-space: nowrap; text-decoration: none; transition: transform .12s var(--ease), box-shadow .12s, background .12s; }
@@ -382,12 +377,9 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 
 /* ---------- phone ---------- */
 .wbx-phone { width: 390px; height: 844px; }
-.wbx-phone .w-status-bar { position: absolute; z-index: 30; top: 0; left: 0; right: 0; height: 50px; padding: 18px 30px 0 34px; display: flex; justify-content: space-between; font: 600 15px/1 -apple-system, BlinkMacSystemFont, var(--font); letter-spacing: -.01em; color: var(--text); pointer-events: none; }
-.wbx-phone .w-status-bar svg { display: block; }
-.wbx-phone .w-island { position: absolute; z-index: 31; top: 11px; left: 50%; transform: translateX(-50%); width: 122px; height: 35px; border-radius: 20px; background: #000; }
 .wbx-phone .w-scroll { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 104px; scrollbar-width: none; }
 .wbx-phone .w-scroll::-webkit-scrollbar { display: none; }
-.w-mhead { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 58px 16px 8px; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.w-mhead { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 8px; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .w-mhead.g { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
 .w-mhead .w-where { flex-direction: column; }
 .w-mhead h1 { font-size: 20px; }
@@ -417,7 +409,6 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .w-tabbar button[aria-current="page"] { color: var(--text); }
 .w-tabbar .icon { position: relative; display: inline-flex; }
 .w-tabbar .w-num { position: absolute; top: -7px; left: calc(100% - 4px); min-width: 18px; height: 18px; font-size: 10.5px; padding: 0 5px; }
-.w-home { position: absolute; z-index: 30; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--text); opacity: .9; pointer-events: none; }
 .w-fab { position: absolute; z-index: 9; right: 16px; bottom: 106px; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 10px; border: 1px solid var(--pri-bd); background: var(--pri-bg); box-shadow: var(--pri-sh); color: var(--accent-text); }
 .wbx-phone .w-pn { padding: 16px; }
 .wbx-phone .w-gnav .w-btn { min-height: 40px; font-size: 14px; padding: 0 12px; }
@@ -433,7 +424,7 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .wbx-phone .w-exec { grid-template-columns: 1fr 1fr; }
 .wbx-phone .w-toast { bottom: 110px; }
 .w-mtask { position: absolute; inset: 0; z-index: 15; background: var(--bg); display: flex; flex-direction: column; animation: w-slide .22s var(--ease); }
-.w-mtask .w-phead { padding: 56px 16px 12px; }
+.w-mtask .w-phead { padding: 14px 16px 12px; }
 .w-mtask .w-phead h2 { font-size: 22px; }
 .w-mtask .w-phead .top { gap: 8px; flex-wrap: nowrap; overflow: hidden; }
 .w-mtask .w-ptabs { padding: 10px 16px; flex-wrap: wrap; }
