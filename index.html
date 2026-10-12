@@ -81,14 +81,12 @@
   <div class="home-copy">
     <section class="hero" aria-labelledby="hero-title">
       <h1 id="hero-title">
-        <span class="hl">werkbord is a</span>
-        <span class="hl accent">local-first</span>
-        <span class="hl">team workspace</span>
-        <span class="hl">for AI agents.</span>
+        <span class="hl">a <span class="accent">local-first</span></span>
+        <span class="hl"><span class="rolo" data-words="team agent project"><span class="rolo-w is-on">team</span></span> werkspace</span>
       </h1>
       <ul class="points">
-        <li><i class="sq" aria-hidden="true"></i>Runs on your own machines</li>
-        <li><i class="sq amber" aria-hidden="true"></i>Agents never merge</li>
+        <li><i class="sq" aria-hidden="true"></i>No server, no cloud, complete privacy</li>
+        <li><i class="sq amber" aria-hidden="true"></i>Brainstorm with the assistant, then verify the plan</li>
         <li><i class="sq ink" aria-hidden="true"></i>Integrate your favorite productivity &amp; AI tools</li>
       </ul>
     </section>
@@ -112,13 +110,14 @@
       <button type="button" data-view-button="phone" aria-pressed="false">Phone</button>
     </div>
 
+    <div class="try" role="group" aria-label="Things to try">
+      <button class="btn" type="button" data-try="answer"><span class="try-dot" style="background:var(--amber)"></span>Answer a question</button>
+      <button class="btn" type="button" data-try="merge"><span class="try-dot" style="background:var(--ok)"></span>Merge finished work</button>
+      <button class="btn" type="button" data-try="plan"><span class="try-dot" style="background:var(--ac)"></span>Plan the week</button>
+      <button class="btn" type="button" data-try="new"><span class="try-dot" style="background:var(--tx)"></span>Write a task</button>
+    </div>
+
     <div class="demo-panel" data-panel="desktop">
-      <div class="try" role="group" aria-label="Things to try">
-        <button class="btn" type="button" data-try="answer"><span class="try-dot" style="background:var(--amber)"></span>Answer a question</button>
-        <button class="btn" type="button" data-try="merge"><span class="try-dot" style="background:var(--ok)"></span>Merge finished work</button>
-        <button class="btn" type="button" data-try="plan"><span class="try-dot" style="background:var(--ac)"></span>Plan the week</button>
-        <button class="btn" type="button" data-try="new"><span class="try-dot" style="background:var(--tx)"></span>Write a task</button>
-      </div>
       <div class="demo-desk">
         <div id="app-demo" class="app-demo"></div>
         <noscript><img class="demo-static" src="assets/img/app/overview-light.webp" width="1280" height="800" alt="The Werkbord window on a project called my-app, showing the board: a banner says one question needs your input, the Migrate runs table card has two answer buttons, one task is ready for review, and the Git tab lists two items that need attention."></noscript>
@@ -138,7 +137,6 @@
 
 <footer class="foot">
   <div class="wrap foot-in">
-    <img class="mark-l" src="assets/img/mark-light.svg" alt="" width="30" height="22"><img class="mark-d" src="assets/img/mark-dark.svg" alt="" width="30" height="22">
     <p>© 2026 Werkbord</p>
   </div>
 </footer>
@@ -147,5 +145,6 @@
 <script src="assets/js/app-demo.js"></script>
 <script src="assets/js/waitlist.js"></script>
 <script src="assets/js/demo-view.js"></script>
+<script src="assets/js/rolodex.js"></script>
 </body>
 </html>

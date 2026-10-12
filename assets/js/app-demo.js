@@ -481,8 +481,8 @@
       '<div class="w-sec"><span>' + ic('runner') + 'Runners</span></div>' +
       '<div class="w-nav">' + dot('ok') + '<span class="name">this computer</span><span class="n" data-conc>' + (act + 1) + '/' + (LIMIT + 1) + '</span></div>' +
       '<div class="w-rfoot"><button class="w-nav" type="button" data-a="help">' + ic('help') + 'Help</button>' +
-      '<button class="w-nav" type="button" data-a="settings">' + ic('settings') + 'Settings</button>' +
-      '<div class="w-rrow"><button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div></aside>';
+      '<div class="w-rrow"><button class="w-nav" type="button" data-a="settings">' + ic('settings') + 'Settings</button>' +
+      '<button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div></aside>';
   }
   function bannerHTML() {
     var q = questions(); if (!q.length) return '';
@@ -1129,11 +1129,28 @@
   } else { seen.add(document.body); go(); }
   document.addEventListener('visibilitychange', function () { if (document.hidden) halt(); else go(); });
 
-  /* The page's own controls drive the app the way a person would. */
+  /* The quick actions on the page, run in the phone: the same steps a person would take on the phone. */
+  function goPhone(what) {
+    P.task = null; P.sheet = null; P.asst = false; setOverlay(phoneRoot, '');
+    if (what === 'answer') {
+      P.tab = 'control'; render();
+      var q = questions()[0] || S.tasks.filter(function (t) { return t.run && t.run.st === 'blocked'; })[0];
+      if (q) { var b = phoneRoot.querySelector('[data-a="answer"][data-id="' + q.id + '"]'); if (b) b.focus({ preventScroll: true }); }
+    } else if (what === 'merge') {
+      var m = S.tasks.filter(function (t) { return t.state === 'review' && t.run && t.run.st === 'completed'; })[0];
+      P.tab = 'board'; P.col = 'review'; render();
+      if (m) { P.sheet = { kind: 'merge', id: m.id }; setOverlay(phoneRoot, sheetHTML(P.sheet, true), '[data-a="mergego"]'); }
+      else toast('Nothing is in Review yet. Move a finished task there first.');
+    } else if (what === 'plan') { P.tab = 'calendar'; render(); }
+    else if (what === 'new') { P.tab = 'board'; P.col = 'backlog'; render(); P.sheet = { kind: 'new' }; setOverlay(phoneRoot, sheetHTML(P.sheet, true), 'input[name=title]'); }
+  }
+
+  /* The page's own controls drive the app the way a person would. where is 'phone' when the phone is the view on show. */
   window.WBApp = {
     state: S,
     refit: fit,
-    go: function (what) {
+    go: function (what, where) {
+      if (where === 'phone') { goPhone(what); return; }
       D.task = null; closeOverlay();
       if (what === 'answer') { var q = questions()[0] || S.tasks.filter(function (t) { return t.run && t.run.st === 'blocked'; })[0]; D.view = 'control'; render(); if (q) { var b = deskRoot.querySelector('[data-a="answer"][data-id="' + q.id + '"]'); if (b) b.focus({ preventScroll: true }); } }
       else if (what === 'merge') { var m = S.tasks.filter(function (t) { return t.state === 'review' && t.run && t.run.st === 'completed'; })[0]; D.view = 'board'; render(); if (m) { D.sheet = { kind: 'merge', id: m.id }; openOverlay(sheetHTML(D.sheet), '[data-a="mergego"]'); } else toast('Nothing is in Review yet. Move a finished task there first.'); }

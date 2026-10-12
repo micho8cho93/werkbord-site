@@ -16,13 +16,14 @@ const meta = (h, attr, name) => {
 const SITE = 'https://micho8cho93.github.io/werkbord-site/';
 const COPY = ['index.html', '404.html', 'llms.txt', 'assets/js/waitlist.js', 'assets/js/demo-view.js'];
 
-test('the page has one H1 that names the category, the audience and the AI agents', () => {
+test('the page has one H1 that names the category, and its rotating word is team, agent or project', () => {
   const h = read('index.html');
   const h1s = h.match(/<h1[\s>][\s\S]*?<\/h1>/g) || [];
   assert.strictEqual(h1s.length, 1);
   const t = text(h1s[0]);
-  assert.strictEqual(t, 'werkbord is a local-first team workspace for AI agents.');
-  for (const word of ['workspace', 'team', 'AI agents']) assert.ok(t.includes(word), 'H1 should include ' + word + ': ' + t);
+  assert.strictEqual(t, 'a local-first team werkspace');
+  assert.deepStrictEqual(h.match(/data-words="([^"]+)"/)[1].split(' '), ['team', 'agent', 'project']);
+  assert.ok(h.includes('assets/js/rolodex.js'), 'the rotating word needs rolodex.js');
 });
 
 test('headline, title and description make no roadmap or unverifiable claim', () => {
@@ -129,9 +130,9 @@ test('the page links to no removed page', () => {
   assert.doesNotMatch(read('404.html'), /team\.html|productivity\.html|docs\//);
 });
 
-test('the footer holds the mark and a copyright line, and no navigation', () => {
+test('the footer holds a copyright line and no navigation or logo', () => {
   const footer = read('index.html').match(/<footer[\s\S]*?<\/footer>/)[0];
-  assert.doesNotMatch(footer, /<a\b/);
+  assert.doesNotMatch(footer, /<a\b|<img\b/);
   assert.match(footer, /©\s*\d{4} Werkbord/);
 });
 

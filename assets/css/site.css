@@ -95,10 +95,9 @@ h2 { font-size: clamp(30px, 4vw, 52px); line-height: 1.04; }
 h3 { font-size: 20px; line-height: 1.2; letter-spacing: -.015em; }
 p { margin: 0; text-wrap: pretty; }
 
-/* ---------- footer: the mark and a copyright line ---------- */
+/* ---------- footer: a copyright line ---------- */
 .foot { border-top: 1px solid var(--bd); padding: 40px 0 56px; color: var(--t2); font-size: 14px; }
 .foot-in { display: flex; align-items: center; gap: 14px; }
-.foot-in img { width: 30px; height: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

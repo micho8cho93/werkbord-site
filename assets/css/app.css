@@ -152,7 +152,8 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .w-sec .add { margin-left: auto; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 4px; color: var(--text-2); border: 0; background: none; padding: 0; }
 .w-sec .add:hover { background: var(--surface-2); color: var(--text); }
 .w-rfoot { margin-top: auto; padding-top: 14px; display: flex; flex-direction: column; gap: 2px; }
-.w-rrow { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 0 10px; }
+.w-rrow { display: flex; align-items: center; gap: 4px; }
+.w-rrow .w-nav { flex: 1; width: auto; min-width: 0; }
 .w-status { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; color: var(--text-2); }
 .w-status .w-dot { width: 7px; height: 7px; background: var(--ok); }
 .w-mainarea { min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; }

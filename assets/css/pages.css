@@ -4,11 +4,19 @@
 
 /* ---------- the headline and subheader (og-candidate-1 layout) ---------- */
 .home { display: flex; flex-direction: column; gap: 56px; padding: 56px 0 72px; }
-/* The copy column is a size container, so the headline is sized from the column it sits in: "team workspace" is about 7.3em wide. */
+/* The copy column is a size container, so the headline is sized from the column it sits in: "project workspace", the longest line, is about 8.1em wide. */
 .home-copy { display: flex; flex-direction: column; gap: clamp(16px, 2.6vh, 26px); min-width: 0; container-type: inline-size; }
-.hero h1 { font-size: clamp(30px, calc(100cqi / 8), 72px); line-height: 1.02; letter-spacing: -.045em; text-wrap: initial; }
+.hero h1 { font-size: clamp(30px, calc(100cqi / 8.4), 72px); line-height: 1.02; letter-spacing: -.045em; text-wrap: initial; }
 .hero h1 .hl { display: block; white-space: nowrap; }
 .hero h1 .accent { color: var(--ac); }
+/* The rotating word (team, agent or project) is a slot as wide as the word, and rolodex.js sets its width in em. Each word
+   is a card on the slot: the one on show folds up and away, and the next comes up from below. */
+.rolo { display: inline-block; position: relative; height: 1.02em; vertical-align: top; perspective: 600px; }
+.rolo.is-ready { transition: width .9s cubic-bezier(.65, 0, .35, 1); }
+html.js .rolo-w { position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; transform: translateY(.36em) rotateX(-80deg); transform-origin: 50% 50%; transition: transform .9s cubic-bezier(.2, .7, .1, 1), opacity .5s ease; }
+html.js .rolo-w::before { content: attr(data-w); }
+html.js .rolo-w.is-on { opacity: 1; transform: none; }
+html.js .rolo-w.is-out { opacity: 0; transform: translateY(-.36em) rotateX(80deg); }
 .points { display: flex; flex-direction: column; gap: 8px; margin: clamp(12px, 2.2vh, 22px) 0 0; padding: 0; list-style: none; font-family: var(--mono); font-size: clamp(16px, 1.15vw, 20px); line-height: 1.4; letter-spacing: -.01em; }
 .points li { display: flex; align-items: center; gap: 12px; text-wrap: balance; }
 .sq { flex: none; width: 9px; height: 9px; background: var(--ac); }
@@ -27,8 +35,9 @@
 .demo-switch button:hover { color: var(--tx); }
 .demo-switch button[aria-pressed="true"] { background: var(--sf); color: var(--tx); box-shadow: var(--btn-sh); }
 
-.try { display: flex; flex-wrap: nowrap; gap: 8px; margin-bottom: 16px; }
-.try .btn { font-size: 13px; height: 36px; padding: 0 13px; }
+/* The quick actions stack in a column under the Desktop and Phone switch, as wide as the switch. */
+.try { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
+.try .btn { width: 218px; justify-content: flex-start; font-size: 13px; height: 36px; padding: 0 13px; }
 .try-dot { width: 7px; height: 7px; flex: none; }
 
 .app-demo { min-height: 120px; }
@@ -49,6 +58,7 @@
 /* Below 768px: the desktop window is hidden, and Try the demo opens the phone app full screen. */
 @media (max-width: 767px) {
   .demo-panel[data-panel="desktop"] { display: none; }
+  .try { display: none; }
   .demo-open { display: inline-flex; }
   .demo-panel[data-panel="phone"].is-full { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 200; gap: 0; align-items: stretch; background: var(--bg); }
   .demo-panel.is-full .demo-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; height: 56px; padding: 0 16px; border-bottom: 1px solid var(--bd); }
@@ -98,12 +108,13 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
   .top-in { height: 56px; }
   .home { display: grid; grid-template-columns: minmax(0, 34%) minmax(0, 1fr); gap: clamp(32px, 4.5vw, 64px); align-items: center; min-height: calc(100vh - 94px); padding: 14px 0; }
   /* The headline also stops at the height of the screen, so the copy column fits beside the simulator. */
-  .hero h1 { font-size: clamp(36px, min(calc(100cqi / 7.5), calc(24vh - 130px)), 112px); }
-  .demo-section { --demo-chrome: 180px; --stage-h: calc(100vh - 122px); height: var(--stage-h); width: min(100%, max(320px, calc((var(--stage-h) - var(--demo-chrome)) * 1.6))); justify-self: end; padding: 0; border-top: 0; }
+  .hero h1 { font-size: clamp(36px, min(calc(100cqi / 8.4), calc(24vh - 130px)), 112px); }
+  .demo-section { --demo-chrome: 244px; --stage-h: calc(100vh - 122px); height: var(--stage-h); width: min(100%, max(320px, calc((var(--stage-h) - var(--demo-chrome)) * 1.6))); justify-self: end; padding: 0; border-top: 0; }
   .demo-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
   .try .btn { font-size: clamp(13px, 0.72vw, 15px); }
   .demo-panel[data-panel="phone"] .demo-cap { display: none; }
-  .phone-demo { --dev-h: min(calc(var(--stage-h) - 56px), 868px); }
+  /* The switch and the stacked quick actions sit above the phone, about 240px together. */
+  .phone-demo { --dev-h: min(calc(var(--stage-h) - 244px), 868px); }
   .foot { height: 37px; padding: 0; display: flex; align-items: center; }
   .foot-in { width: 100%; }
 }
