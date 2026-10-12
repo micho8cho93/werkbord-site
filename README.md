@@ -2,7 +2,7 @@
 
 The launch page for [Werkbord](https://github.com/micho8cho93/werkbord): a headline, a beta waitlist, and a working demo of the app. Plain HTML, CSS and JavaScript. No build step and no dependencies, so it runs as-is on GitHub Pages.
 
-- `index.html`: the page. The headline and subheader, the waitlist, and the demo. From 1024px the page fits one screen with no scroll: the copy on the left, and on the right a Desktop and Phone switch that shows one simulator at a time, the desktop window or the phone in an iPhone frame. From 768px the same parts stack and the page scrolls. Below 768px the waitlist comes first, and Try the demo opens the phone app full screen with a Back control.
+- `index.html`: the page. The headline and subheader, the waitlist, and the demo. From 1200px in landscape the page fits one screen with no scroll: the copy on the left, and on the right a Desktop and Phone switch that shows one simulator at a time, the desktop window or the phone in an iPhone frame. The headline and the simulator scale with the screen. From 768px to 1199px, and in portrait, the same parts stack and the page scrolls. Below 768px the waitlist comes first, and Try the demo opens the phone app full screen with a Back control.
 - `404.html`: sends visitors home.
 - `assets/css`: `site.css` (tokens from the identity sheet, buttons, header, footer), `app.css` (the app replica), `pages.css` (the page layout, the headline, and the iPhone frame), `waitlist.css` (the waitlist block).
 - `assets/js`: `common.js` (helpers and the theme toggle), `app-demo.js` (the app replica; the desktop window and the phone share one controller), `demo-view.js` (the full-screen phone below 768px), `waitlist.js` (the email waitlist).

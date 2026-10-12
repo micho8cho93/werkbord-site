@@ -2,27 +2,27 @@
 .wl-sec { min-width: 0; }
 .wl { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .wl-copy { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.wl-lede { font-size: 14px; line-height: 1.5; color: var(--t2); max-width: 52ch; }
+.wl-lede { font-size: clamp(14px, 0.95vw, 17px); line-height: 1.5; color: var(--t2); max-width: 52ch; }
 .wl-capacity { display: flex; flex-direction: column; gap: 8px; }
 .wl-seats { display: grid; grid-template-columns: repeat(25, minmax(0, 1fr)); gap: 3px; opacity: .45; }
 .wl-seats.loaded { opacity: 1; }
 .wl-seats i { display: block; aspect-ratio: 1; border-radius: 2px; background: var(--s2); box-shadow: var(--tray-sh); }
 .wl-seats i.on { background: var(--ac); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
-.wl-seats-cap { font-family: var(--mono); font-size: 12px; color: var(--t2); }
+.wl-seats-cap { font-family: var(--mono); font-size: clamp(12px, 0.8vw, 14px); color: var(--t2); }
 .wl-right { min-width: 0; }
 .wl-form { display: flex; flex-direction: column; gap: 8px; }
 .wl-f { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.wl-f > label { font-size: 13px; font-weight: 500; }
+.wl-f > label { font-size: clamp(13px, 0.85vw, 15px); font-weight: 500; }
 .wl-row { display: flex; gap: 10px; align-items: stretch; }
 .wl-in { flex: 1; min-width: 0; min-height: 42px; padding: 10px 12px; border: 1px solid var(--bd); border-radius: 5px; background: var(--sf); color: var(--tx); caret-color: var(--ac); }
 .wl-in::placeholder { color: var(--t2); opacity: 1; }
 .wl-in[aria-invalid="true"] { border-color: var(--dg); }
-.wl-go { height: 42px; padding: 0 18px; flex: none; }
+.wl-go { height: 42px; padding: 0 18px; flex: none; font-size: clamp(14px, 0.9vw, 16px); }
 
 /* The optional team size: a label and one select. */
 .wl-pick { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
-.wl-q { font-size: 13px; font-weight: 500; white-space: nowrap; }
-.wl-sel { width: 124px; height: 34px; padding: 0 30px 0 10px; border: 1px solid var(--bd); border-radius: 5px; background: var(--sf) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2355554F' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 11px center; appearance: none; -webkit-appearance: none; font-size: 13px; color: var(--tx); }
+.wl-q { font-size: clamp(13px, 0.85vw, 15px); font-weight: 500; white-space: nowrap; }
+.wl-sel { width: 124px; height: 34px; padding: 0 30px 0 10px; border: 1px solid var(--bd); border-radius: 5px; background: var(--sf) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2355554F' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 11px center; appearance: none; -webkit-appearance: none; font-size: clamp(13px, 0.85vw, 15px); color: var(--tx); }
 .wl-sel:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
 .wl-hp { position: absolute; clip: rect(0 0 0 0); clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
 .wl-err { font-size: 13px; color: var(--dg-tx); }
