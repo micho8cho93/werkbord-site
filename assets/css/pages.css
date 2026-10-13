@@ -120,3 +120,48 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: none; }
 }
+
+/* A stable control rail and shared stage keep the view switch anchored. */
+.demo-guide { min-width: 0; }
+.guide-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; color: var(--t2); font-size: 12px; }
+.guide-progress span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.guide-progress b { display: grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--bd); border-radius: 4px; font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.guide-progress [aria-current="step"] { color: var(--ac); font-weight: 600; }
+.guide-progress [aria-current="step"] b { background: var(--ac); border-color: var(--ac); color: var(--act); }
+.guide-progress .is-done b { border-color: var(--ac); color: var(--ac); }
+.guide-body { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.guide-copy { min-width: 0; }
+.guide-copy h3 { font-size: 18px; font-weight: 600; line-height: 1.2; letter-spacing: -.02em; margin-bottom: 6px; }
+.guide-copy p { font-size: 14px; line-height: 1.45; color: var(--t2); max-width: 64ch; }
+.guide-actions { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.guide-actions .btn { height: auto; min-height: 34px; padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+.guide-actions [hidden] { display: none; }
+.guide-restart { min-height: 32px; padding: 0 4px; color: var(--t2); background: none; border: 0; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+.guide-restart:hover { color: var(--tx); }
+html:not(.js) .demo-guide { display: none; }
+@media (min-width: 768px) {
+  .demo-guide { min-height: 140px; }
+  .demo-stage { --preview-h: max(680px, calc((100vw - 80px) * .625 + 30px)); height: var(--preview-h); display: grid; align-items: center; }
+  .demo-stage > .demo-panel { grid-area: 1 / 1; min-width: 0; width: 100%; }
+  .demo-panel[data-panel="phone"] .demo-cap { display: none; }
+  .phone-demo { --dev-h: min(var(--preview-h), 868px); }
+}
+@media (min-width: 1200px) and (min-aspect-ratio: 1/1) {
+  .demo-section { --demo-chrome: 216px; width: 100%; display: grid; grid-template-rows: 40px 144px minmax(0, 1fr); gap: 16px; justify-content: initial; align-content: initial; }
+  .demo-switch { justify-self: start; align-self: start; margin: 0; }
+  .demo-guide { min-height: 0; }
+  .demo-stage { --preview-h: calc(var(--stage-h) - var(--demo-chrome)); height: 100%; min-height: 0; }
+  .phone-demo { --dev-h: min(var(--preview-h), 868px); }
+  .demo-desk { width: min(100%, calc((var(--preview-h) - 30px) * 1.6)); margin-inline: auto; }
+}
+@media (max-width: 767px) {
+  .demo-stage { display: contents; }
+  .demo-panel.is-full .demo-guide { flex: none; padding: 12px 16px; border-bottom: 1px solid var(--bd); }
+  .guide-progress { gap: 8px; justify-content: space-between; margin-bottom: 10px; }
+  .guide-progress span { font-size: 0; gap: 0; }
+  .guide-progress [aria-current="step"] { font-size: 12px; gap: 5px; }
+  .guide-copy h3 { font-size: 16px; }
+  .guide-copy p { font-size: 13px; }
+  .guide-body { gap: 12px; }
+  .guide-actions .btn { max-width: 106px; white-space: normal; }
+}

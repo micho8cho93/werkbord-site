@@ -130,7 +130,12 @@
 
   /* ---------- views: each surface has its own navigation ---------- */
   var D = { view: 'board', task: null, ptab: 'activity', sheet: null, pal: null, week: 0, mode: 'week', pick: null, cc: 'all', drag: null, scroll: {} };
-  var P = { tab: 'control', task: null, ptab: 'activity', sheet: null, col: 'doing', day: TODAY, mode: 'day', cc: 'all', scroll: {} };
+  var P = { tab: 'board', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', scroll: {} };
+
+  // Start with a clean project so the visitor sees an idea become a working board.
+  S.tasks = []; S.log = []; S.finding = false;
+  var initialState = JSON.stringify(S);
+  var G = { step: 'idea', ids: [], focus: false };
 
   function get(id) { for (var i = 0; i < S.tasks.length; i++) if (S.tasks[i].id == id) return S.tasks[i]; }
   function isActive(t) { return t.run && ['running', 'needs', 'blocked', 'idle'].indexOf(t.run.st) > -1; }
@@ -291,7 +296,7 @@
      The person picks one of the messages on offer; there is no text box. Each message has a reply written in advance,
      which streams in word by word, and the next messages on offer follow from it. A reply that would change the board
      ends in a card: nothing changes until the person confirms it. The replies read the demo's current state. */
-  var ROOT = ['What needs me today?', 'What is blocked right now?', 'What is planned for this week?'];
+  var ROOT = ['Plan CSV export for reports', 'What needs me today?', 'What is blocked right now?', 'What is planned for this week?'];
   var BACK = ['What needs me today?', 'What is planned for this week?'];
   var CARD_LEAD = 'Here is what I will do. Nothing changes until you confirm.';
   var NOT_OPEN = 'That is already settled, so nothing needs to change.';
@@ -332,7 +337,27 @@
 
   /* Each key is a message the person can pick. text: the scripted reply (a string, or a function that reads the state).
      next: the messages offered after it. ok and gone: the message is only open while ok() holds. card: a change to confirm. */
+  var PLAN = [
+    { title: 'Build the reports CSV endpoint', agent: 'Claude Code', desc: 'Add a CSV endpoint for filtered reports. Include headers, quote values safely, and preserve the active filters.' },
+    { title: 'Add the CSV export button', agent: 'Codex', desc: 'Add Export CSV to the reports toolbar. Use the endpoint after it is reviewed and merged. Show progress and a useful error message.' },
+    { title: 'Test the CSV export workflow', agent: 'Claude Code', desc: 'Verify the integrated export after the endpoint and button are merged. Cover filters, quoting, empty reports, and spreadsheet compatibility.' }
+  ];
+  function planCard(i) {
+    var item = PLAN[i];
+    return { tag: 'Create task ' + (i + 1) + ' of 3', line: item.title + ' · ' + item.agent + '. ' + item.desc,
+      done: i < 2 ? 'Added to Backlog. Here is the next task.' : 'All three tasks are in Backlog. You choose when an agent starts.',
+      ok: function () { return G.ids.length === i; },
+      run: function () {
+        var t = newTask(item.title, item.agent, 'high');
+        t.desc = item.desc; t.guided = true; G.ids.push(t.id);
+        if (!i) t.script = { work: 9, ask: { at: 3, q: 'Some customers open reports in European spreadsheets. Which separator should the export use?', choices: ['Use semicolons', 'Keep commas'] },
+          logs: ['Reading the reports API and filter logic', 'Adding a CSV writer with quoted values', 'Testing filtered reports and empty results', 'Running the reports export tests', '18 tests passed. CSV endpoint ready for review.'] };
+      }, follow: i < 2 ? function () { return planCard(i + 1); } : null };
+  }
   var REPLY = {
+    'Plan CSV export for reports': { reads: 'Read the reports tasks and project context',
+      text: 'Let’s split this into three scoped tasks: the CSV endpoint, an export button, and integration tests. Each has an agent and clear acceptance criteria. Review and merge the endpoint before building the button, then test the integrated flow. Confirm each task to add it to Backlog.',
+      card: function () { return planCard(0); } },
     'What needs me today?': { reads: 'Read the attention list for my-app', text: needsText, next: ['Answer the TTL question', 'Explain the time zone question', 'What is planned for this week?'] },
     'What is blocked right now?': { reads: 'Read the blocked tasks and their last run', text: blockedText, next: ['Explain the time zone question', 'What needs me today?'] },
     'What is planned for this week?': { reads: 'Read the schedule for my-app', text: agendaText, next: ['Move the CSV export to Friday', 'What needs me today?'] },
@@ -375,7 +400,7 @@
       if (e.card) { m.card = e.card(); AS.opts = []; } else AS.opts = m.next.slice();
       renderAsst(true); render();
     }
-    if (WB.reduced) { m.x = text; complete(); return; }
+    if (WB.reduced || G.step === 'approve' || G.step === 'prompt') { m.x = text; complete(); return; }
     (function step() {
       i++; m.x = words.slice(0, i).join(' ');
       if (i < words.length) { AS.timer = setTimeout(step, 45); renderAsst(true); }
@@ -388,7 +413,7 @@
     var go = yes && c.ok();
     c.state = go ? 'yes' : yes ? 'gone' : 'no';
     if (go) c.run();
-    replyAsst({ text: go ? c.done : yes ? 'That changed before you confirmed, so nothing was sent.' : 'Nothing changed. The task stays as it was.', next: BACK });
+    replyAsst({ card: go && c.follow ? c.follow : null, text: go ? c.done : yes ? 'That changed before you confirmed, so nothing was sent.' : 'Nothing changed. The task stays as it was.', next: BACK });
   }
   function startOverAsst() {
     clearTimeout(AS.timer);
@@ -424,6 +449,7 @@
       if (chat && stick) chat.scrollTop = chat.scrollHeight;
       if (fk) { var n = o.querySelector(fk); if (n) n.focus({ preventScroll: true }); }
     });
+    guideRefresh();
   }
   function assistantHTML(phone) {
     var newBtn = AS.msgs.length ? '<button class="w-btn quiet sm" type="button" data-a="asst-new" aria-label="Start a new conversation">' + ic('plus', 14) + (phone ? '' : 'New') + '</button>' : '';
@@ -516,7 +542,7 @@
   function inCol(c) {
     return S.tasks.filter(function (t) { return t.state === c; }).sort(function (a, b) {
       if (c === 'done') return b.doneAt - a.doneAt;
-      return ORDER[a.prio] - ORDER[b.prio] || a.id - b.id;
+      return Number(!!b.guided) - Number(!!a.guided) || ORDER[a.prio] - ORDER[b.prio] || a.id - b.id;
     });
   }
   function emptyCol(c) {
@@ -777,6 +803,7 @@
     var o = overlayOf(root); if (!o) return;
     o.innerHTML = html;
     var f = focusSel && o.querySelector(focusSel); if (f) f.focus({ preventScroll: true });
+    guideRefresh();
   }
   function openOverlay(html, focusSel) { setOverlay(deskRoot, html, focusSel); }
   function closeOverlay() { D.sheet = null; D.pal = null; D.asst = false; setOverlay(deskRoot, ''); }
@@ -832,7 +859,7 @@
     if (fk) { var el = phoneRoot.querySelector(fk); if (el) el.focus({ preventScroll: true }); }
   }
 
-  function render() { renderDesk(); renderPhone(); S.tasks.forEach(function (t) { t.fresh = false; }); }
+  function render() { renderDesk(); renderPhone(); S.tasks.forEach(function (t) { t.fresh = false; }); guideRefresh(); }
 
   /* ---------- live, in place: elapsed times, the agent's last line, the clock ---------- */
   function updateLive() {
@@ -864,10 +891,11 @@
 
   /* ---------- the clock: one simulated minute a second ---------- */
   function tick() {
+    if (G.step !== 'running' && G.step !== 'finishing') return;
     var changed = false;
     S.now += 1;
     S.tasks.forEach(function (t) {
-      var r = t.run; if (!r) return;
+      var r = t.run; if (!r || t.id !== G.ids[0]) return;
       if (r.st === 'running') {
         r.el += 1;
         if (r.el % 2 === 0 && r.li < r.logs.length) { feed(t, 'out', r.logs[r.li]); r.li++; }
@@ -877,9 +905,6 @@
           feed(t, 'q', r.q); say(t.agent + ' asked a question on “' + t.title + '”');
         } else if (--r.left <= 0) { finish(t); changed = true; }
       }
-    });
-    S.tasks.forEach(function (t) {
-      if (t.state === 'backlog' && t.sched && !t.run && !waitingFor(t).length && t.sched.d * 1440 + t.sched.s <= TODAY * 1440 + S.now) { startTask(t.id, true); changed = true; }
     });
     if (changed) render(); else updateLive();
   }
@@ -937,6 +962,7 @@
   }
   function bind(root, where) {
     var V = where === 'desk' ? D : P;
+    guideBind(root, where);
     root.addEventListener('click', function (e) {
       var b = e.target.closest('[data-a]');
       if (!b || !root.contains(b)) {
@@ -990,6 +1016,7 @@
         case 'tz': toast('Each project keeps its own timezone, so a schedule means the same thing after travel or a clock change.'); break;
         case 'mode': toast('Day view shows one day in detail.'); break;
       }
+      guideAdvance(a);
     });
     root.addEventListener('submit', function (e) {
       var f = e.target; e.preventDefault();
@@ -1107,16 +1134,156 @@
     });
   }
 
+  /* ---------- guided example: one explicit action at a time ---------- */
+  var GUIDE = {
+    idea: [0, 'Start with an idea', 'Follow a scripted example: open the highlighted Assistant to turn “CSV export for reports” into scoped work.', 'asst-open'],
+    prompt: [0, 'Turn the idea into a plan', 'Choose “Plan CSV export for reports”. The assistant proposes the work before changing the board.', 'asst-ask'],
+    approve: [1, 'Approve the scoped tasks', 'Confirm each of the three tasks. Each gets a clear scope, acceptance criteria, and an assigned agent.', 'asst-ok'],
+    organize: [1, 'A plan becomes an organized board', 'The endpoint, export button, and tests now have their own cards. Backlog → Doing → Review → Done keeps progress visible.', null],
+    start: [2, 'Put the plan to work', 'Start the endpoint task. The agent works locally in its own Git worktree.', 'start'],
+    running: [2, 'The agent is working', 'This scripted run is accelerated. Watch the activity as the task moves from Backlog to Doing.', null],
+    answer: [3, 'Give direction when it matters', 'The agent paused for a separator choice. Pick a highlighted answer to keep the work moving. You can answer from either device.', 'answer'],
+    finishing: [3, 'Your answer keeps work moving', 'The agent continues with your decision, then runs the export tests. Nothing merges automatically.', null],
+    review: [4, 'Inspect the finished work', 'Open the endpoint task to read its activity, test result, and change summary before merging.', 'open'],
+    inspect: [4, 'Review before integration', 'Read the activity and change summary below. The endpoint is ready for your review; the other tasks remain in Backlog.', null],
+    merge: [5, 'You control what reaches main', 'Choose Merge to inspect the branch, commits, and conflict check before confirming.', 'merge'],
+    confirm: [5, 'Confirm the reviewed change', 'Merge into main in this demo. In Werkbord, this integrates locally; pushing is a separate action.', 'mergego'],
+    done: [6, 'From idea to reviewed work', 'You planned three tasks and merged the endpoint. The export button and integration tests stay in Backlog for the next pass.', null]
+  };
+  var guideSection = document.getElementById('demo');
+  var guideEl = document.querySelector('[data-guide]');
+  var guideLast = '';
+  function guideSelector() {
+    var step = GUIDE[G.step], a = step[3], id = G.ids[0];
+    if (!a) return null;
+    var sel = '[data-a="' + a + '"]';
+    if (G.step === 'prompt') sel += '[data-v="Plan CSV export for reports"]';
+    if (['start', 'answer', 'review', 'merge', 'confirm'].indexOf(G.step) >= 0) sel += '[data-id="' + id + '"]';
+    if (G.step === 'review') sel = '.w-task .title' + sel;
+    if (G.step === 'answer' || G.step === 'merge') sel = '.w-panel ' + sel + ', .w-mtask ' + sel;
+    return sel;
+  }
+  function guideSurface() {
+    return window.matchMedia('(max-width: 767px)').matches || guideSection.dataset.view === 'phone' ? phoneRoot : deskRoot;
+  }
+  function guideLayout() {
+    if (!guideEl || !guideSection) return;
+    var mobile = window.matchMedia('(max-width: 767px)').matches;
+    var host = mobile ? guideSection.querySelector('[data-panel="phone"]') : guideSection;
+    var before = mobile ? phoneMount : guideSection.querySelector('.demo-stage');
+    if (guideEl.parentNode !== host) host.insertBefore(guideEl, before);
+    guideRefresh();
+  }
+  function guideRefresh() {
+    if (!guideEl || !deskRoot || !phoneRoot) return;
+    var task = get(G.ids[0]);
+    if (G.step === 'running' && task && task.run.st === 'needs') { G.step = 'answer'; G.focus = true; }
+    if (G.step === 'finishing' && task && task.run.st === 'completed') {
+      toReview(task.id); G.step = 'review'; G.focus = true;
+      D.task = null; P.task = null; P.col = 'review'; renderDesk(); renderPhone();
+    }
+    var step = GUIDE[G.step], signature = G.step + ':' + G.ids.length;
+    if (guideLast !== signature) {
+      guideLast = signature;
+      var names = ['Idea', 'Organize', 'Run', 'Direct', 'Review', 'Merge'];
+      guideEl.querySelector('.guide-progress').innerHTML = names.map(function (name, i) {
+        return '<span' + (i === step[0] ? ' aria-current="step"' : '') + ' class="' + (i < step[0] ? 'is-done' : '') + '">' + '<b>' + (i + 1) + '</b>' + name + '</span>';
+      }).join('');
+      guideEl.querySelector('.guide-copy').innerHTML = '<h3>' + step[1] + '</h3><p>' + step[2] + (G.step === 'approve' ? ' ' + G.ids.length + ' of 3 added.' : '') + '</p>';
+      var next = guideEl.querySelector('[data-guide-next]');
+      next.hidden = ['organize', 'inspect', 'done'].indexOf(G.step) < 0;
+      next.textContent = G.step === 'organize' ? 'See the board' : G.step === 'inspect' ? 'Continue to merge' : 'Replay demo';
+    }
+    var sel = guideSelector(), surface = guideSurface();
+    [deskRoot, phoneRoot].forEach(function (root) {
+      root.querySelectorAll('.w-guide-target').forEach(function (el) { el.classList.remove('w-guide-target'); });
+      root.querySelectorAll('[data-a], button, input, select, textarea, summary, [draggable]').forEach(function (el) {
+        var allowed = sel && el.matches(sel);
+        el.inert = !allowed && !(sel && el.querySelector(sel));
+        if (el.hasAttribute('draggable')) el.draggable = false;
+        if (allowed) el.classList.add('w-guide-target');
+      });
+    });
+    // Reveal within app scroll containers without scrolling the surrounding landing page.
+    var target = sel && surface && surface.querySelector(sel);
+    if (target) {
+      var node = target.parentElement;
+      while (node && node !== surface) {
+        if (node.scrollHeight > node.clientHeight && /auto|scroll/.test(getComputedStyle(node).overflowY)) {
+          var r = target.getBoundingClientRect(), box = node.getBoundingClientRect();
+          if (r.bottom > box.bottom - 12 || r.top < box.top + 12) node.scrollTop += (r.top - box.top - node.clientHeight / 2) / (surface === deskRoot ? D.s : (window.innerWidth >= 768 ? P.s : 1));
+        }
+        node = node.parentElement;
+      }
+      target.setAttribute('aria-describedby', 'demo-guide-description');
+    }
+    guideEl.querySelector('.guide-copy').id = 'demo-guide-description';
+    if (G.focus) {
+      G.focus = false;
+      var focus = target || (!guideEl.querySelector('[data-guide-next]').hidden && guideEl.querySelector('[data-guide-next]'));
+      if (focus && guideEl.getClientRects().length) focus.focus({ preventScroll: true });
+    }
+  }
+  function guideAdvance(action) {
+    if (action === 'asst-open') { G.step = 'prompt'; D.asst = P.asst = true; renderAsst(false); }
+    else if (action === 'asst-ask') G.step = 'approve';
+    else if (action === 'asst-ok' && G.ids.length === 3) G.step = 'organize';
+    else if (action === 'start') { G.step = 'running'; P.col = 'doing'; D.task = P.task = G.ids[0]; }
+    else if (action === 'answer') G.step = 'finishing';
+    else if (action === 'open') { G.step = 'inspect'; D.task = P.task = G.ids[0]; D.ptab = P.ptab = 'activity'; }
+    else if (action === 'merge') { G.step = 'confirm'; D.sheet = P.sheet = { kind: 'merge', id: G.ids[0] }; setOverlay(deskRoot, sheetHTML(D.sheet, false)); setOverlay(phoneRoot, sheetHTML(P.sheet, true)); }
+    else if (action === 'mergego') { G.step = 'done'; closeOverlayFor('desk'); closeOverlayFor('phone'); D.task = P.task = null; P.col = 'done'; }
+    G.focus = true;
+    render();
+  }
+  function guideBind(root, where) {
+    root.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-a]'), sel = guideSelector();
+      if (!b || !sel || !b.matches(sel) || root !== guideSurface()) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      // The normal action handler advances the guide after committing its change.
+    }, true);
+    root.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab' || ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.w-guide-target'))) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+    }, true);
+    ['submit', 'dragstart', 'drop'].forEach(function (type) {
+      root.addEventListener(type, function (e) { e.preventDefault(); e.stopImmediatePropagation(); }, true);
+    });
+  }
+  function guideReset() {
+    halt(); clearTimeout(AS.timer); clearTimeout(toastTimer);
+    var fresh = JSON.parse(initialState);
+    Object.keys(S).forEach(function (k) { S[k] = fresh[k]; });
+    G.step = 'idea'; G.ids = []; G.focus = true;
+    AS.msgs = []; AS.opts = ROOT.slice(); AS.busy = false; AS.timer = null;
+    [D, P].forEach(function (v) { v.task = null; v.sheet = null; v.asst = false; v.scroll = {}; });
+    D.view = 'board'; D.pal = null; D.pick = null; P.tab = 'board'; P.col = 'backlog';
+    [deskRoot, phoneRoot].forEach(function (root) { setOverlay(root, ''); root.querySelector('.w-toast').classList.remove('show'); });
+    guideLast = ''; render(); go();
+  }
+  if (guideEl) {
+    guideEl.querySelector('[data-guide-restart]').addEventListener('click', guideReset);
+    guideEl.querySelector('[data-guide-next]').addEventListener('click', function () {
+      if (G.step === 'done') { guideReset(); return; }
+      if (G.step === 'organize') {
+        closeOverlayFor('desk'); closeOverlayFor('phone'); D.view = 'board'; P.tab = 'board'; P.col = 'backlog'; G.step = 'start';
+      } else if (G.step === 'inspect') G.step = 'merge';
+      G.focus = true; render();
+    });
+  }
+  window.matchMedia('(max-width: 767px)').addEventListener('change', guideLayout);
+
   /* ---------- start ---------- */
   if (deskMount) mountDesk();
   if (phoneMount) mountPhone();
   fit();
   render();
+  guideLayout();
   if ('ResizeObserver' in window) new ResizeObserver(fit).observe(document.body); else window.addEventListener('resize', fit);
   window.addEventListener('themechange', function () { render(); });
   /* Escape closes the assistant even when focus has fallen back to the page, as it does once a card's buttons are gone. */
   document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape') return;
+    if (guideEl || e.key !== 'Escape') return;
     if (D.asst) closeAsst('desk');
     else if (P.asst) closeAsst('phone');
   });
@@ -1132,6 +1299,7 @@
   /* The page's own controls drive the app the way a person would. where is 'phone' when the phone is the view on show. */
   window.WBApp = {
     state: S,
-    refit: fit
+    refit: function () { fit(); guideLayout(); },
+    guide: function () { guideLayout(); }
   };
 })();

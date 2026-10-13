@@ -106,8 +106,8 @@
   <section class="demo-section" id="demo" data-view="desktop" aria-labelledby="demo-title">
     <div class="demo-head">
       <h2 id="demo-title">Try the app in your browser</h2>
-      <p class="demo-sub">Three agents are mid-shift on a made-up repository. One has a question. One stopped rather than guess. Everything here works.</p>
-      <button class="btn pri demo-open" type="button" data-open-phone aria-haspopup="dialog">Try the demo</button>
+      <p class="demo-sub">Take an idea through a plan, an organized board, and a reviewed change. Follow the highlighted controls in this scripted demo.</p>
+      <button class="btn pri demo-open" type="button" data-open-phone aria-haspopup="dialog">Start the guided demo</button>
     </div>
 
     <div class="demo-switch" role="group" aria-label="Demo view">
@@ -115,6 +115,15 @@
       <button type="button" data-view-button="phone" aria-pressed="false">Phone</button>
     </div>
 
+    <div class="demo-guide" data-guide aria-label="Guided demo">
+      <div class="guide-progress" aria-label="Demo progress"></div>
+      <div class="guide-body">
+        <div class="guide-copy" role="status" aria-live="polite" aria-atomic="true"></div>
+        <div class="guide-actions"><button class="btn pri" type="button" data-guide-next hidden>See the board</button><button class="guide-restart" type="button" data-guide-restart>Restart</button></div>
+      </div>
+    </div>
+
+    <div class="demo-stage">
     <div class="demo-panel" data-panel="desktop">
       <div class="demo-desk">
         <div id="app-demo" class="app-demo"></div>
@@ -128,7 +137,8 @@
         <span class="demo-tag">Demo</span>
       </div>
       <div id="phone-demo" class="phone-demo" role="region" aria-label="Werkbord on a phone, sharing the controller with the desktop view"></div>
-      <p class="demo-cap">The same board as the desktop view, at phone width. Answer a question with one tap.</p>
+      <p class="demo-cap">The same guided workflow and task state, on your phone.</p>
+    </div>
     </div>
   </section>
 </main>

@@ -11,7 +11,7 @@
   var openBtn = section.querySelector('[data-open-phone]');
   var backBtn = section.querySelector('[data-close-phone]');
   var views = section.querySelectorAll('[data-view-button]');
-  var behind = document.querySelectorAll('.top, .hero, .wl-sec, .foot, #demo .demo-head, #demo .demo-switch, #demo [data-panel="desktop"]');
+  var behind = document.querySelectorAll('.skip, .top, .hero, .wl-sec, .foot, #demo .demo-head, #demo .demo-switch, #demo [data-panel="desktop"]');
   var full = false;
 
   /* Desktop or Phone: shows one simulator and refits it, since a hidden one has no size yet. */
@@ -53,9 +53,18 @@
   openBtn.addEventListener('click', openFull);
   backBtn.addEventListener('click', function () { closeFull(true); });
 
-  /* Escape closes the demo, unless the phone app has its own sheet or task open: that one closes first. */
+  /* The guide owns app navigation; Escape always returns to the launch page. */
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && full && !phone.querySelector('.w-asst, .w-mtask, .w-sheet, .w-pal')) closeFull(true);
+    if (!full) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeFull(true); return; }
+    if (e.key !== 'Tab') return;
+    var focusable = Array.from(phone.querySelectorAll('button, a[href], input, select, textarea, [tabindex="0"]')).filter(function (el) {
+      return !el.disabled && !el.closest('[inert]') && el.getClientRects().length;
+    });
+    var first = focusable[0], last = focusable[focusable.length - 1];
+    if (!first) return;
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }, true);
 
   /* Growing back to a wide screen leaves the full-screen phone; the switch takes over again. */

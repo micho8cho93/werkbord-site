@@ -491,3 +491,9 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 @media (prefers-reduced-motion: reduce) {
   .wbx *, .wbx *::before, .wbx *::after { animation: none !important; transition: none !important; }
 }
+
+/* Guided demo targets use a steady ring and arrow, including with reduced motion. */
+.wbx .w-guide-target { position: relative; outline: 3px solid var(--accent); outline-offset: 4px; cursor: pointer; }
+.wbx .w-guide-target::after { content: ''; position: absolute; right: -19px; top: 50%; margin-top: -5px; width: 0; height: 0; border-block: 5px solid transparent; border-right: 7px solid var(--accent); pointer-events: none; }
+.wbx [inert] { cursor: default; }
+.wbx .w-task:has(.w-guide-target) { border-color: var(--accent); }
