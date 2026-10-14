@@ -300,7 +300,7 @@
   var BACK = ['What needs me today?', 'What is planned for this week?'];
   var CARD_LEAD = 'Here is what I will do. Nothing changes until you confirm.';
   var NOT_OPEN = 'That is already settled, so nothing needs to change.';
-  var AS = { msgs: [], opts: ROOT.slice(), busy: false, timer: null };
+  var AS = { msgs: [], opts: ROOT.slice(), busy: false, timer: null, open: false };
   function waitingChanges() { return AS.msgs.filter(function (m) { return m.card && !m.card.state; }).length; }
   function isOpen(id) { var t = get(id); return !!(t && t.run && (t.run.st === 'needs' || t.run.st === 'blocked')); }
 
@@ -388,7 +388,11 @@
     if (e.ok && !e.ok()) { replyAsst({ text: e.gone, next: BACK }); return; }
     replyAsst(e);
   }
-  /* The reply streams in. Under reduced motion it appears at once. */
+  /* The reply streams in: a short pause while the assistant reads the board, then a word or two at a time, with a longer
+     pause at the end of a sentence. Under reduced motion it appears at once. Each step redraws only the reply's own text,
+     so the chat keeps its scroll and focus. */
+  var THINK = 700;
+  function pace(word) { return 46 + Math.random() * 34 + (/[.?!]$/.test(word) ? 260 : /[,;:]$/.test(word) ? 120 : 0); }
   function replyAsst(e) {
     var text = typeof e.text === 'function' ? e.text() : e.text;
     var m = { r: 'ai', x: '', reads: e.reads || '', done: false, card: null, next: e.next || BACK, open: false };
@@ -400,12 +404,26 @@
       if (e.card) { m.card = e.card(); AS.opts = []; } else AS.opts = m.next.slice();
       renderAsst(true); render();
     }
-    if (WB.reduced || G.step === 'approve' || G.step === 'prompt') { m.x = text; complete(); return; }
-    (function step() {
-      i++; m.x = words.slice(0, i).join(' ');
-      if (i < words.length) { AS.timer = setTimeout(step, 45); renderAsst(true); }
+    if (WB.reduced) { m.x = text; complete(); return; }
+    renderAsst(true);
+    AS.timer = setTimeout(function step() {
+      i = Math.min(words.length, i + 1 + (Math.random() < .4 ? 1 : 0));
+      m.x = words.slice(0, i).join(' ');
+      if (i < words.length) { paintReply(m); AS.timer = setTimeout(step, pace(words[i - 1])); }
       else complete();
-    })();
+    }, THINK);
+  }
+  /* Redraws the words of a reply that is still streaming, in each surface that shows the conversation. */
+  function paintReply(m) {
+    var at = AS.msgs.indexOf(m);
+    [deskRoot, phoneRoot].forEach(function (root) {
+      var o = root && root.querySelector('[data-overlay]'), chat = o && o.querySelector('.w-achat');
+      var node = chat && chat.querySelector('[data-m="' + at + '"] .w-atext');
+      if (!node) return;
+      var stick = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
+      node.innerHTML = esc(m.x) + '<span class="w-acur" aria-hidden="true"></span>';
+      if (stick) chat.scrollTop = chat.scrollHeight;
+    });
   }
   function decideAsst(i, yes) {
     var m = AS.msgs[i], c = m && m.card;
@@ -420,27 +438,28 @@
     AS.msgs = []; AS.opts = ROOT.slice(); AS.busy = false; AS.timer = null;
     renderAsst(false); render();
   }
+  /* One conversation, drawn on both surfaces. Opening it clears any sheet or the palette. */
   function openAsst(where) {
-    var V = where === 'desk' ? D : P, root = where === 'desk' ? deskRoot : phoneRoot;
-    V.sheet = null; if (where === 'desk') D.pal = null;
-    V.asst = true;
+    var root = where === 'desk' ? deskRoot : phoneRoot;
+    D.sheet = P.sheet = null; D.pal = null;
+    AS.open = true;
     renderAsst(false);
     var first = root && root.querySelector('.w-asst .w-apill, .w-asst [data-a="asst-x"]');
     if (first) first.focus({ preventScroll: true });
   }
   function closeAsst(where) {
-    var V = where === 'desk' ? D : P, root = where === 'desk' ? deskRoot : phoneRoot;
-    V.asst = false;
+    var root = where === 'desk' ? deskRoot : phoneRoot;
+    AS.open = false;
     renderAsst(false);
     var opener = root && root.querySelector('[data-a="asst-open"]');
     if (opener) opener.focus({ preventScroll: true });
   }
-  /* Both surfaces show the same conversation; each keeps its own open flag and scroll. */
+  /* Both surfaces draw the conversation while it is open. Each keeps its own scroll. */
   function renderAsst(stick) {
     [[deskRoot, D], [phoneRoot, P]].forEach(function (pair) {
       var root = pair[0], V = pair[1], o = root && root.querySelector('[data-overlay]');
       if (!o) return;
-      if (!V.asst) { if (o.querySelector('.w-asst')) setOverlay(root, ''); return; }
+      if (!AS.open) { if (o.querySelector('.w-asst')) setOverlay(root, ''); return; }
       var store = V === P ? P.scroll : D.scroll, fk = focusKey(o);
       keepScroll(o, store);
       o.innerHTML = assistantHTML(V === P);
@@ -463,7 +482,9 @@
     if (!AS.msgs.length) return '<div class="w-aempty">' + mark(40) + '<h2>What can I help with?</h2><p>Pick a message below. I will ask you before I change anything.</p></div>';
     return AS.msgs.map(function (m, i) {
       if (m.r === 'me') return '<div class="w-ame"><p>' + esc(m.x) + '</p></div>';
-      return '<div class="w-aai"><p class="w-atext">' + esc(m.x) + (m.done ? '' : '<span class="w-acur" aria-hidden="true"></span>') + '</p>' +
+      var cursor = m.done ? '' : '<span class="w-acur" aria-hidden="true"></span>';
+      var words = m.x ? esc(m.x) + cursor : '<span class="w-dots" role="img" aria-label="Working on it"><i></i><i></i><i></i></span>';
+      return '<div class="w-aai" data-m="' + i + '"><p class="w-atext">' + words + '</p>' +
         (m.reads ? '<details class="w-reads" data-i="' + i + '"' + (m.open ? ' open' : '') + '><summary>What I looked at</summary><p>' + esc(m.reads) + '</p></details>' : '') +
         '<p class="w-astat">' + (m.done ? 'Reply finished.' : 'Working on it') + '</p>' +
         (m.done && m.card ? assistCardHTML(m.card, i) : '') + '</div>';
@@ -778,7 +799,7 @@
   function focusKey(root) {
     var a = document.activeElement; if (!root || !a || !root.contains(a)) return null;
     if (a.matches('input,textarea,select')) return null;
-    return a.dataset && a.dataset.a ? '[data-a="' + a.dataset.a + '"][data-id="' + (a.dataset.id || '') + '"]' + (a.dataset.v ? '[data-v="' + CSS.escape(a.dataset.v) + '"]' : '') : null;
+    return a.dataset && a.dataset.a ? '[data-a="' + a.dataset.a + '"]' + (a.dataset.id != null ? '[data-id="' + a.dataset.id + '"]' : '') + (a.dataset.v ? '[data-v="' + CSS.escape(a.dataset.v) + '"]' : '') : null;
   }
   function renderDesk() {
     if (!deskRoot) return;
@@ -806,7 +827,15 @@
     guideRefresh();
   }
   function openOverlay(html, focusSel) { setOverlay(deskRoot, html, focusSel); }
-  function closeOverlay() { D.sheet = null; D.pal = null; D.asst = false; setOverlay(deskRoot, ''); }
+  /* Clears whatever sits over either simulator: a sheet, the palette or the assistant. Only one surface is on screen at a
+     time, so this closes the one the visitor sees. */
+  function dropOverlay() {
+    D.sheet = P.sheet = null; D.pal = null;
+    AS.open = false;
+    renderAsst(false);
+    setOverlay(deskRoot, ''); setOverlay(phoneRoot, '');
+  }
+  function closeOverlay() { dropOverlay(); }
 
   /* ================= phone ================= */
   function phoneHeader(title, sub, global) {
@@ -962,7 +991,7 @@
   }
   function bind(root, where) {
     var V = where === 'desk' ? D : P;
-    guideBind(root, where);
+    guideBind(root);
     root.addEventListener('click', function (e) {
       var b = e.target.closest('[data-a]');
       if (!b || !root.contains(b)) {
@@ -973,16 +1002,16 @@
       var a = b.dataset.a, id = b.dataset.id, v = b.dataset.v;
       if (b.tagName === 'A') e.preventDefault();
       switch (a) {
-        case 'view': nav(where, id); closeOverlayFor(where); render(); break;
-        case 'open': openTask(where, id); closeOverlayFor(where); render(); break;
+        case 'view': nav(where, id); dropOverlay(); render(); break;
+        case 'open': openTask(where, id); dropOverlay(); render(); break;
         case 'close': V.task = null; render(); break;
         case 'ptab': V.ptab = id; render(); break;
         case 'start': startTask(+id); render(); break;
         case 'answer': answer(+id, v); render(); break;
         case 'toreview': toReview(+id); render(); break;
         case 'merge': V.sheet = { kind: 'merge', id: +id }; setOverlay(root, sheetHTML(V.sheet, where === 'phone'), '[data-a="mergego"]'); break;
-        case 'mergego': mergeTask(+id); closeOverlayFor(where); render(); break;
-        case 'sheetx': closeOverlayFor(where); break;
+        case 'mergego': mergeTask(+id); dropOverlay(); render(); break;
+        case 'sheetx': dropOverlay(); break;
         case 'palx': closeOverlay(); break;
         case 'pal': D.pal = ''; openOverlay(palHTML(), '[data-pal]'); break;
         case 'new': V.sheet = { kind: 'new' }; setOverlay(root, sheetHTML(V.sheet, where === 'phone'), 'input[name=title]'); break;
@@ -1026,7 +1055,7 @@
         var t = newTask(title, el.agent.value, el.prio.value, false);
         t.desc = el.desc.value.trim(); t.interaction = el.inter.value;
         V.sheet = null;
-        closeOverlayFor(where);
+        dropOverlay();
         if (where === 'desk') { if (D.view === 'control') D.view = 'board'; } else { P.tab = 'board'; P.task = null; P.col = startNow ? 'doing' : 'backlog'; }
         if (startNow) startTask(t.id); else toast('“' + title + '” is in Backlog. Start it now, or drag it onto the Calendar.');
         render();
@@ -1048,21 +1077,12 @@
     }, true);
     root.addEventListener('keydown', function (e) {
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); return; }
-      if (e.key === 'Escape') {
-        if (V.asst) { e.stopPropagation(); closeAsst(where); return; }
-        if (V.sheet || (where === 'desk' && D.pal !== null)) { closeOverlayFor(where); return; }
-        if (V.task) { V.task = null; render(); return; }
-      }
-      if (where === 'desk' && !D.asst && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); D.pal = ''; openOverlay(palHTML(), '[data-pal]'); }
+      if (where === 'desk' && !AS.open && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); D.pal = ''; openOverlay(palHTML(), '[data-pal]'); }
       if (e.target.matches('[data-pal]') && e.key === 'Enter') { var first = root.querySelector('[data-pallist] button'); if (first) first.click(); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && e.target.closest('form[data-form="new"]')) { e.preventDefault(); var sb = e.target.closest('form').querySelector('[value="start"]'); if (sb) sb.click(); }
-      if (where === 'desk' && e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey && !e.target.matches('input,textarea,select') && !D.sheet && !D.asst) { e.preventDefault(); D.sheet = { kind: 'new' }; openOverlay(sheetHTML(D.sheet), 'input[name=title]'); }
+      if (where === 'desk' && e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey && !e.target.matches('input,textarea,select') && !D.sheet && !AS.open) { e.preventDefault(); D.sheet = { kind: 'new' }; openOverlay(sheetHTML(D.sheet), 'input[name=title]'); }
     });
     if (where === 'desk') bindDrag(root);
-  }
-  function closeOverlayFor(where) {
-    if (where === 'desk') closeOverlay();
-    else { P.sheet = null; P.asst = false; setOverlay(phoneRoot, ''); }
   }
 
   /* drag and drop: board columns follow the work; the calendar takes any task */
@@ -1134,45 +1154,58 @@
     });
   }
 
-  /* ---------- guided example: one explicit action at a time ---------- */
+  /* ---------- guided example: one explicit action at a time ----------
+     The visitor presses the highlighted control, or Escape to close the assistant or a sheet. NEXT says which step an action
+     leads to. What is highlighted follows the surface on screen (guideTarget), so an overlay closed with Escape brings back
+     the control that opened it. Nothing outside the simulator moves the example on. */
   var GUIDE = {
-    idea: [0, 'Start with an idea', 'Follow a scripted example: open the highlighted Assistant to turn “CSV export for reports” into scoped work.', 'asst-open'],
-    prompt: [0, 'Turn the idea into a plan', 'Choose “Plan CSV export for reports”. The assistant proposes the work before changing the board.', 'asst-ask'],
-    approve: [1, 'Approve the scoped tasks', 'Confirm each of the three tasks. Each gets a clear scope, acceptance criteria, and an assigned agent.', 'asst-ok'],
-    organize: [1, 'A plan becomes an organized board', 'The endpoint, export button, and tests now have their own cards. Backlog → Doing → Review → Done keeps progress visible.', null],
-    start: [2, 'Put the plan to work', 'Start the endpoint task. The agent works locally in its own Git worktree.', 'start'],
-    running: [2, 'The agent is working', 'This scripted run is accelerated. Watch the activity as the task moves from Backlog to Doing.', null],
-    answer: [3, 'Give direction when it matters', 'The agent paused for a separator choice. Pick a highlighted answer to keep the work moving. You can answer from either device.', 'answer'],
-    finishing: [3, 'Your answer keeps work moving', 'The agent continues with your decision, then runs the export tests. Nothing merges automatically.', null],
-    review: [4, 'Inspect the finished work', 'Open the endpoint task to read its activity, test result, and change summary before merging.', 'open'],
-    inspect: [4, 'Review before integration', 'Read the activity and change summary below. The endpoint is ready for your review; the other tasks remain in Backlog.', null],
-    merge: [5, 'You control what reaches main', 'Choose Merge to inspect the branch, commits, and conflict check before confirming.', 'merge'],
-    confirm: [5, 'Confirm the reviewed change', 'Merge into main in this demo. In Werkbord, this integrates locally; pushing is a separate action.', 'mergego'],
-    done: [6, 'From idea to reviewed work', 'You planned three tasks and merged the endpoint. The export button and integration tests stay in Backlog for the next pass.', null]
+    idea: [0, 'Start with an idea', 'Follow a scripted example: open the highlighted Assistant to turn “CSV export for reports” into scoped work.'],
+    prompt: [0, 'Turn the idea into a plan', 'Choose “Plan CSV export for reports”. The assistant proposes the work before changing the board.'],
+    approve: [1, 'Approve the scoped tasks', 'Confirm each of the three tasks. Each gets a clear scope, acceptance criteria, and an assigned agent.'],
+    organize: [1, 'A plan becomes an organized board', 'The endpoint, export button, and tests now have their own cards. Backlog → Doing → Review → Done keeps progress visible. Press Esc, or close the assistant, to see the board.'],
+    start: [2, 'Put the plan to work', 'Start the endpoint task. The agent works locally in its own Git worktree.'],
+    running: [2, 'The agent is working', 'This scripted run is accelerated. Watch the activity as the task moves from Backlog to Doing.'],
+    answer: [3, 'Give direction when it matters', 'The agent paused for a separator choice. Pick a highlighted answer to keep the work moving. You can answer from either device.'],
+    finishing: [3, 'Your answer keeps work moving', 'The agent continues with your decision, then runs the export tests. Nothing merges automatically.'],
+    review: [4, 'Inspect the finished work', 'Open the endpoint task to read its activity, test result, and change summary before merging.'],
+    merge: [5, 'You control what reaches main', 'Read the activity and change summary. Then choose Merge to check the branch, its commits, and conflicts before confirming.'],
+    confirm: [5, 'Confirm the reviewed change', 'Merge into main in this demo. In Werkbord, this integrates locally; pushing is a separate action.'],
+    done: [6, 'From idea to reviewed work', 'You planned three tasks and merged the endpoint. The export button and integration tests stay in Backlog for the next pass.']
+  };
+  /* The step each action leads to. An action with no entry leaves the step where it is. */
+  var NEXT = {
+    idea: { 'asst-open': 'prompt' },
+    prompt: { 'asst-ask': 'approve' },
+    approve: { 'asst-ok': function () { return G.ids.length === 3 ? 'organize' : 'approve'; } },
+    organize: { 'asst-x': 'start' },
+    start: { start: 'running' },
+    answer: { answer: 'finishing', open: 'answer' },
+    review: { open: 'merge' },
+    merge: { merge: 'confirm', open: 'merge' },
+    confirm: { mergego: 'done' }
   };
   var guideSection = document.getElementById('demo');
   var guideEl = document.querySelector('[data-guide]');
   var guideLast = '';
-  function guideSelector() {
-    var step = GUIDE[G.step], a = step[3], id = G.ids[0];
-    if (!a) return null;
-    var sel = '[data-a="' + a + '"]';
-    if (G.step === 'prompt') sel += '[data-v="Plan CSV export for reports"]';
-    if (['start', 'answer', 'review', 'merge', 'confirm'].indexOf(G.step) >= 0) sel += '[data-id="' + id + '"]';
-    if (G.step === 'review') sel = '.w-task .title' + sel;
-    if (G.step === 'answer' || G.step === 'merge') sel = '.w-panel ' + sel + ', .w-mtask ' + sel;
-    return sel;
-  }
-  function guideSurface() {
-    return window.matchMedia('(max-width: 767px)').matches || guideSection.dataset.view === 'phone' ? phoneRoot : deskRoot;
-  }
-  function guideLayout() {
-    if (!guideEl || !guideSection) return;
-    var mobile = window.matchMedia('(max-width: 767px)').matches;
-    var host = mobile ? guideSection.querySelector('[data-panel="phone"]') : guideSection;
-    var before = mobile ? phoneMount : guideSection.querySelector('.demo-stage');
-    if (guideEl.parentNode !== host) host.insertBefore(guideEl, before);
-    guideRefresh();
+  function guideWhere() { return window.matchMedia('(max-width: 767px)').matches || guideSection.dataset.view === 'phone' ? 'phone' : 'desk'; }
+  function guideSurface() { return guideWhere() === 'phone' ? phoneRoot : deskRoot; }
+  /* The one control to press now. An open assistant or sheet comes first, since its control is the next thing to use. */
+  function guideTarget() {
+    var id = G.ids[0], phone = guideWhere() === 'phone', V = phone ? P : D;
+    var card = '.w-task .title[data-a="open"][data-id="' + id + '"]', inPanel = phone ? '.w-mtask ' : '.w-panel ';
+    var panel = V.task === id, sheet = !!(V.sheet && V.sheet.kind === 'merge');
+    switch (G.step) {
+      case 'idea': return '[data-a="asst-open"]';
+      case 'prompt': return AS.open ? '[data-a="asst-ask"][data-v="Plan CSV export for reports"]' : '[data-a="asst-open"]';
+      case 'approve': return AS.open ? '[data-a="asst-ok"]' : '[data-a="asst-open"]';
+      case 'organize': return AS.open ? '[data-a="asst-x"]' : '[data-a="asst-open"]';
+      case 'start': return '[data-a="start"][data-id="' + id + '"]';
+      case 'answer': return panel ? inPanel + '[data-a="answer"][data-id="' + id + '"]' : card;
+      case 'review': return card;
+      case 'merge': return panel ? inPanel + '[data-a="merge"][data-id="' + id + '"]' : card;
+      case 'confirm': return sheet ? '[data-a="mergego"][data-id="' + id + '"]' : null;
+      default: return null;
+    }
   }
   function guideRefresh() {
     if (!guideEl || !deskRoot || !phoneRoot) return;
@@ -1190,14 +1223,11 @@
         return '<span' + (i === step[0] ? ' aria-current="step"' : '') + ' class="' + (i < step[0] ? 'is-done' : '') + '">' + '<b>' + (i + 1) + '</b>' + name + '</span>';
       }).join('');
       guideEl.querySelector('.guide-copy').innerHTML = '<h3>' + step[1] + '</h3><p>' + step[2] + (G.step === 'approve' ? ' ' + G.ids.length + ' of 3 added.' : '') + '</p>';
-      var next = guideEl.querySelector('[data-guide-next]');
-      next.hidden = ['organize', 'inspect', 'done'].indexOf(G.step) < 0;
-      next.textContent = G.step === 'organize' ? 'See the board' : G.step === 'inspect' ? 'Continue to merge' : 'Replay demo';
     }
-    var sel = guideSelector(), surface = guideSurface();
+    var sel = guideTarget(), surface = guideSurface();
     [deskRoot, phoneRoot].forEach(function (root) {
       root.querySelectorAll('.w-guide-target').forEach(function (el) { el.classList.remove('w-guide-target'); });
-      root.querySelectorAll('[data-a], button, input, select, textarea, summary, [draggable]').forEach(function (el) {
+      root.querySelectorAll('[data-a], button, input, select, textarea, [draggable]').forEach(function (el) {
         var allowed = sel && el.matches(sel);
         el.inert = !allowed && !(sel && el.querySelector(sel));
         if (el.hasAttribute('draggable')) el.draggable = false;
@@ -1218,32 +1248,46 @@
       target.setAttribute('aria-describedby', 'demo-guide-description');
     }
     guideEl.querySelector('.guide-copy').id = 'demo-guide-description';
-    if (G.focus) {
-      G.focus = false;
-      var focus = target || (!guideEl.querySelector('[data-guide-next]').hidden && guideEl.querySelector('[data-guide-next]'));
-      if (focus && guideEl.getClientRects().length) focus.focus({ preventScroll: true });
-    }
+    // Focus goes to the control as soon as it exists, which can be after a reply has streamed in, and back to it if a redraw lost it.
+    var at = document.activeElement, lost = !at || at === document.body || !at.isConnected;
+    if ((G.focus || lost) && target && guideEl.getClientRects().length) { G.focus = false; target.focus({ preventScroll: true }); }
   }
+  function guideLayout() {
+    if (!guideEl || !guideSection) return;
+    var mobile = window.matchMedia('(max-width: 767px)').matches;
+    var host = mobile ? guideSection.querySelector('[data-panel="phone"]') : guideSection;
+    var before = mobile ? phoneMount : guideSection.querySelector('.demo-stage');
+    if (guideEl.parentNode !== host) host.insertBefore(guideEl, before);
+    guideRefresh();
+  }
+  /* Moves the example on after an action, and brings the other surface along, so the next control is there on either. */
   function guideAdvance(action) {
-    if (action === 'asst-open') { G.step = 'prompt'; D.asst = P.asst = true; renderAsst(false); }
-    else if (action === 'asst-ask') G.step = 'approve';
-    else if (action === 'asst-ok' && G.ids.length === 3) G.step = 'organize';
-    else if (action === 'start') { G.step = 'running'; P.col = 'doing'; D.task = P.task = G.ids[0]; }
-    else if (action === 'answer') G.step = 'finishing';
-    else if (action === 'open') { G.step = 'inspect'; D.task = P.task = G.ids[0]; D.ptab = P.ptab = 'activity'; }
-    else if (action === 'merge') { G.step = 'confirm'; D.sheet = P.sheet = { kind: 'merge', id: G.ids[0] }; setOverlay(deskRoot, sheetHTML(D.sheet, false)); setOverlay(phoneRoot, sheetHTML(P.sheet, true)); }
-    else if (action === 'mergego') { G.step = 'done'; closeOverlayFor('desk'); closeOverlayFor('phone'); D.task = P.task = null; P.col = 'done'; }
+    var to = NEXT[G.step] && NEXT[G.step][action];
+    if (typeof to === 'function') to = to();
+    if (to) {
+      G.step = to;
+      if (to === 'start') { D.view = 'board'; P.tab = 'board'; P.col = 'backlog'; }
+      if (to === 'running') { P.col = 'doing'; D.task = P.task = G.ids[0]; }
+      if (to === 'answer' || to === 'merge') { D.task = P.task = G.ids[0]; D.ptab = P.ptab = 'activity'; }
+      if (to === 'confirm') {
+        D.sheet = P.sheet = { kind: 'merge', id: G.ids[0] };
+        setOverlay(deskRoot, sheetHTML(D.sheet, false)); setOverlay(phoneRoot, sheetHTML(P.sheet, true));
+      }
+      if (to === 'done') { dropOverlay(); D.task = P.task = null; P.col = 'done'; }
+    }
     G.focus = true;
     render();
   }
-  function guideBind(root, where) {
+  /* Only the highlighted control reacts to a click, a key or a drop. The reads panel and Escape always work. */
+  function guideBind(root) {
     root.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-a]'), sel = guideSelector();
-      if (!b || !sel || !b.matches(sel) || root !== guideSurface()) { e.preventDefault(); e.stopImmediatePropagation(); return; }
-      // The normal action handler advances the guide after committing its change.
+      if (e.target.closest('summary')) return;
+      var b = e.target.closest('[data-a]'), sel = guideTarget();
+      if (!b || !sel || !b.matches(sel) || root !== guideSurface()) { e.preventDefault(); e.stopImmediatePropagation(); }
     }, true);
     root.addEventListener('keydown', function (e) {
-      if (e.key === 'Tab' || ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.w-guide-target'))) return;
+      if (e.key === 'Tab' || e.key === 'Escape' || /^(Arrow|Page|Home|End)/.test(e.key)) return;
+      if ((e.key === 'Enter' || e.key === ' ') && (e.target.matches('.w-guide-target') || e.target.closest('summary'))) return;
       e.preventDefault(); e.stopImmediatePropagation();
     }, true);
     ['submit', 'dragstart', 'drop'].forEach(function (type) {
@@ -1255,23 +1299,38 @@
     var fresh = JSON.parse(initialState);
     Object.keys(S).forEach(function (k) { S[k] = fresh[k]; });
     G.step = 'idea'; G.ids = []; G.focus = true;
-    AS.msgs = []; AS.opts = ROOT.slice(); AS.busy = false; AS.timer = null;
-    [D, P].forEach(function (v) { v.task = null; v.sheet = null; v.asst = false; v.scroll = {}; });
+    AS.msgs = []; AS.opts = ROOT.slice(); AS.busy = false; AS.timer = null; AS.open = false;
+    [D, P].forEach(function (v) { v.task = null; v.sheet = null; v.scroll = {}; });
     D.view = 'board'; D.pal = null; D.pick = null; P.tab = 'board'; P.col = 'backlog';
     [deskRoot, phoneRoot].forEach(function (root) { setOverlay(root, ''); root.querySelector('.w-toast').classList.remove('show'); });
     guideLast = ''; render(); go();
   }
-  if (guideEl) {
-    guideEl.querySelector('[data-guide-restart]').addEventListener('click', guideReset);
-    guideEl.querySelector('[data-guide-next]').addEventListener('click', function () {
-      if (G.step === 'done') { guideReset(); return; }
-      if (G.step === 'organize') {
-        closeOverlayFor('desk'); closeOverlayFor('phone'); D.view = 'board'; P.tab = 'board'; P.col = 'backlog'; G.step = 'start';
-      } else if (G.step === 'inspect') G.step = 'merge';
-      G.focus = true; render();
-    });
+  /* Escape closes the top layer of the surface on screen: a sheet or the palette, then the assistant, then the task panel.
+     Returns false when there was nothing to close. */
+  function closeTop(where) {
+    var root = where === 'desk' ? deskRoot : phoneRoot, V = where === 'desk' ? D : P;
+    if (!root || !root.getClientRects().length) return false;
+    // Focus leaves the closing layer first, so the redraw does not hand it to a look-alike control elsewhere on the board.
+    if (root.contains(document.activeElement)) document.activeElement.blur();
+    if (V.sheet || (where === 'desk' && D.pal !== null)) {
+      dropOverlay();
+      // Escape on the merge sheet: the Merge control is the one to use again.
+      if (G.step === 'confirm') { G.step = 'merge'; G.focus = true; render(); }
+      return true;
+    }
+    if (AS.open) { closeAsst(where); guideAdvance('asst-x'); return true; }
+    if (V.task) { V.task = null; render(); return true; }
+    return false;
   }
+  if (guideEl) guideEl.querySelector('[data-guide-restart]').addEventListener('click', guideReset);
   window.matchMedia('(max-width: 767px)').addEventListener('change', guideLayout);
+  /* Escape works while focus is in the demo, or has fallen back to the page. It leaves the waitlist's keys alone. */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var at = document.activeElement;
+    if (at && at !== document.body && !guideSection.contains(at)) return;
+    if (closeTop(guideWhere())) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
 
   /* ---------- start ---------- */
   if (deskMount) mountDesk();
@@ -1281,12 +1340,6 @@
   guideLayout();
   if ('ResizeObserver' in window) new ResizeObserver(fit).observe(document.body); else window.addEventListener('resize', fit);
   window.addEventListener('themechange', function () { render(); });
-  /* Escape closes the assistant even when focus has fallen back to the page, as it does once a card's buttons are gone. */
-  document.addEventListener('keydown', function (e) {
-    if (guideEl || e.key !== 'Escape') return;
-    if (D.asst) closeAsst('desk');
-    else if (P.asst) closeAsst('phone');
-  });
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (es) {
       es.forEach(function (en) { if (en.isIntersecting) seen.add(en.target); else seen.delete(en.target); });

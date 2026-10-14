@@ -53,7 +53,7 @@
   openBtn.addEventListener('click', openFull);
   backBtn.addEventListener('click', function () { closeFull(true); });
 
-  /* The guide owns app navigation; Escape always returns to the launch page. */
+  /* Escape closes the open layer of the demo first (app-demo.js does that and stops the key there). With nothing open, it returns to the launch page. */
   document.addEventListener('keydown', function (e) {
     if (!full) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeFull(true); return; }
