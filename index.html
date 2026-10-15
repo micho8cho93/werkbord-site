@@ -106,7 +106,7 @@
   <section class="demo-section" id="demo" data-view="desktop" aria-labelledby="demo-title">
     <div class="demo-head">
       <h2 id="demo-title">Try the app in your browser</h2>
-      <p class="demo-sub">Take an idea through a plan, an organized board, and a reviewed change. Follow the highlighted controls in this scripted demo.</p>
+      <p class="demo-sub">A scripted walk through Werkbord: your work in one place, the assistant, agents in parallel, review and merge, then your team. Follow the notes, or click around.</p>
       <button class="btn pri demo-open" type="button" data-open-phone aria-haspopup="dialog">Start the guided demo</button>
     </div>
 
@@ -116,11 +116,9 @@
     </div>
 
     <div class="demo-guide" data-guide aria-label="Guided demo">
-      <div class="guide-progress" aria-label="Demo progress"></div>
-      <div class="guide-body">
-        <div class="guide-copy" role="status" aria-live="polite" aria-atomic="true"></div>
-        <div class="guide-actions"><button class="guide-restart" type="button" data-guide-restart>Restart</button></div>
-      </div>
+      <ol class="guide-chapters" aria-label="Chapters of the guided demo"></ol>
+      <button class="guide-restart" type="button" data-guide-tip hidden>Show tip</button>
+      <button class="guide-restart" type="button" data-guide-restart>Restart</button>
     </div>
 
     <div class="demo-stage">
@@ -137,7 +135,7 @@
         <span class="demo-tag">Demo</span>
       </div>
       <div id="phone-demo" class="phone-demo" role="region" aria-label="Werkbord on a phone, sharing the controller with the desktop view"></div>
-      <p class="demo-cap">The same guided workflow and task state, on your phone.</p>
+      <p class="demo-cap">The same tasks and agents, on your phone.</p>
     </div>
     </div>
   </section>
@@ -150,6 +148,7 @@
 </footer>
 
 <script src="assets/js/common.js"></script>
+<script src="assets/js/demo-guide.js"></script>
 <script src="assets/js/app-demo.js"></script>
 <script src="assets/js/waitlist.js"></script>
 <script src="assets/js/demo-view.js"></script>

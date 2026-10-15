@@ -4,7 +4,7 @@
 
 ## Page
 
-- [Werkbord](https://micho8cho93.github.io/werkbord-site/): the headline, a beta waitlist with a live count of the first 50 places, and a working demo of the app at desktop and phone width.
+- [Werkbord](https://micho8cho93.github.io/werkbord-site/): the headline, a beta waitlist with a live count of the first 50 places, and a guided demo of the app at desktop and phone width: your work across workspaces in Universal, the assistant, agents running in parallel, review and merge, and a Team.
 
 ## Facts on the page
 
@@ -13,7 +13,7 @@
 - Nothing merges without a person. Agents do not merge their own work.
 - Beta: the first 50 people to sign up get beta access. It covers individual and team apps.
 - The waitlist asks for an email address and, optionally, the team size: 2, 3, 4, 5 or 6 or more.
-- The demo runs in the page on a made-up repository. It needs no install.
+- The demo runs in the page on a made-up repository and a made-up team. It needs no install. The Team part is early access.
 
 ## Planned, not available today
 

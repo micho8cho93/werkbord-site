@@ -1,7 +1,7 @@
-/* A working replica of individual Werkbord: the Mac app and the phone, sharing one controller.
-   The markup, wording and states follow the product's Svelte components (web/src) so the
-   simulator looks and behaves like the app. Start an agent on the desktop and it shows up on
-   the phone; answer on the phone and the desktop moves on. Nothing leaves the page. */
+/* A working replica of Werkbord: the Mac app (Universal, Individual and a Team) and the phone, sharing one controller.
+   The markup, wording and states follow the product's Svelte components (web/src) so the simulator looks and behaves
+   like the app. Start an agent on the desktop and it shows up on the phone; answer on the phone and the desktop moves on.
+   The guided story walks through it with quiet notes (demo-guide.js), and nothing is locked. Nothing leaves the page. */
 (function () {
   'use strict';
   var esc = WB.esc;
@@ -34,6 +34,8 @@
     pr: '<circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="12.5" r="1.5"/><path d="M4.5 5v6M11.5 11V7.5a2 2 0 0 0-2-2H7"/>',
     changes: '<path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/>',
     assistant: '<path d="M6 2.5l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/><path d="M12 9.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/>',
+    people: '<circle cx="6" cy="5.5" r="2.3"/><path d="M1.8 13c0-2.3 1.9-3.8 4.2-3.8s4.2 1.5 4.2 3.8M10.6 3.6a2.2 2.2 0 0 1 0 3.8M12.4 9.5c1.2.5 1.8 1.6 1.8 3.5"/>',
+    analytics: '<path d="M2 2v12h12M5 11V8M8 11V5M11 11V3"/>',
     help: '<circle cx="8" cy="8" r="5.8"/><path d="M6.3 6.4a1.8 1.8 0 1 1 2.5 1.6c-.5.3-.8.6-.8 1.1v.3"/><path d="M8 11.7v.1"/>'
   };
   function ic(n, size) { size = size || 16; return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>'; }
@@ -56,6 +58,28 @@
   var S = {
     now: 10 * 60 + 42, nextId: 13, seq: 0x4f2a,
     finding: true,
+    // The rest of Individual and a Team: a backdrop that Universal reads beside my-app. See "the other workspaces" below.
+    ext: {
+      run: { title: 'Rate-limit the webhook endpoint', project: 'api-server', agent: 'Codex', el: 31 },
+      ask: { id: 'x2', title: 'Fix flaky auth test', project: 'api-server', agent: 'Claude Code', prio: 'high', st: 'needs', asked: 9 * 60 + 52,
+        q: 'The session test passes alone and fails in the full suite. Fix the shared clock, or skip the test for now?', choices: ['Fix the shared clock', 'Skip it for now'] },
+      cal: [
+        { title: 'Audit dependencies for advisories', project: 'api-server', tag: 'Individual', d: 2, s: 15 * 60, dur: 90 },
+        { title: 'WB-44 Rate-limit login attempts', project: 'storefront', tag: 'Northwind', d: 3, s: 10 * 60, dur: 120 }
+      ]
+    },
+    team: {
+      name: 'Northwind', project: 'storefront', role: 'Admin', nextN: 47,
+      members: [['Sam Okafor', 'Owner', 'Runner online'], ['You', 'Admin', 'This computer'], ['Maya Chen', 'Member', 'Runner online'], ['Jonas Weber', 'Member', 'Runner online'], ['Priya Nair', 'Member', 'Writes tickets from the browser']],
+      tickets: [
+        { n: 36, title: 'Upgrade the payments client', st: 'done', who: 'Jonas Weber', branch: 'wb-36-upgrade-the-payments-client', ahead: 2, pr: { n: 205, state: 'merged' } },
+        { n: 40, title: 'Add audit log filters', st: 'progress', who: 'You', branch: 'wb-40-add-audit-log-filters', ahead: 2, pr: { n: 212, state: 'open' }, exec: 'running' },
+        { n: 42, title: 'Show cart total with tax', st: 'review', who: 'Maya Chen', reviewer: 'You', branch: 'wb-42-show-cart-total-with-tax', ahead: 4, pr: { n: 216, state: 'merged' } },
+        { n: 44, title: 'Rate-limit login attempts', st: 'progress', who: 'Jonas Weber', branch: 'wb-44-rate-limit-login-attempts', ahead: 3, pr: { n: 219, state: 'draft' } },
+        { n: 45, title: 'Landing page copy for reports', st: 'available', by: 'Priya Nair' },
+        { n: 46, title: 'Pick a date range on reports', st: 'backlog', by: 'Priya Nair' }
+      ]
+    },
     tasks: [
       T(1, 'Fix flaky auth test', 'doing', 'Claude Code', 'high', {
         desc: 'The session test fails about one run in ten. Find the race, fix it, and keep the test.',
@@ -129,13 +153,13 @@
   });
 
   /* ---------- views: each surface has its own navigation ---------- */
-  var D = { view: 'board', task: null, ptab: 'activity', sheet: null, pal: null, week: 0, mode: 'week', pick: null, cc: 'all', drag: null, scroll: {} };
+  var D = { ws: 'universal', uv: 'mywork', tv: 'board', view: 'control', sw: false, task: null, ptab: 'activity', sheet: null, pal: null, week: 0, mode: 'week', pick: null, cc: 'all', drag: null, scroll: {} };
   var P = { tab: 'board', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', scroll: {} };
 
   // Start with a clean project so the visitor sees an idea become a working board.
   S.tasks = []; S.log = []; S.finding = false;
   var initialState = JSON.stringify(S);
-  var G = { step: 'idea', ids: [], focus: false };
+  var G = { f: {}, s: {}, floor: 0, cur: null, where: null, hide: null };
 
   function get(id) { for (var i = 0; i < S.tasks.length; i++) if (S.tasks[i].id == id) return S.tasks[i]; }
   function isActive(t) { return t.run && ['running', 'needs', 'blocked', 'idle'].indexOf(t.run.st) > -1; }
@@ -206,8 +230,8 @@
         '<button class="w-btn sm" type="button" data-a="' + (t.state === 'review' ? 'merge' : 'toreview') + '" data-id="' + t.id + '">' + (t.state === 'review' ? 'Merge…' : 'Move to Review') + '</button></li>';
     }
     var label = it.kind === 'question' ? 'Needs input' : 'Blocked', tone = it.kind === 'question' ? 'ask' : 'block';
-    return '<li class="w-card w-item" data-kind="' + it.kind + '"><p class="w-kind">' + dot(tone) + '<b>' + label + '</b><span>' + (showProject ? 'my-app · ' : '') + '<span data-wait="' + t.id + '">' + dur(S.now - r.asked).toUpperCase() + '</span></span><span class="agent">' + t.agent + '</span></p>' +
-      '<button class="ititle" type="button" data-a="open" data-id="' + t.id + '">' + esc(t.title) + '</button>' +
+    return '<li class="w-card w-item" data-kind="' + it.kind + '"><p class="w-kind">' + dot(tone) + '<b>' + label + '</b><span>' + (showProject ? (it.project || 'my-app') + ' · ' : '') + '<span data-wait="' + t.id + '">' + dur(S.now - r.asked).toUpperCase() + '</span></span><span class="agent">' + t.agent + '</span></p>' +
+      '<button class="ititle" type="button" data-a="' + (t.project && t.project !== 'my-app' ? 'other' : 'open') + '" data-id="' + t.id + '">' + esc(t.title) + '</button>' +
       (it.kind === 'question' ? '<p class="w-q">' + esc(r.q) + '</p>' : '<p class="w-well">Stopped rather than guess.<br>' + esc(r.q) + '</p>') +
       '<div class="acts">' + r.choices.map(function (c) { return '<button class="w-btn sm" type="button" data-a="answer" data-id="' + t.id + '" data-v="' + esc(c) + '">' + esc(c) + '</button>'; }).join('') +
       (it.kind === 'blocked' ? '<button class="w-btn sm" type="button" data-a="open" data-id="' + t.id + '">' + ic('reply', 14) + 'Reply</button>' : '') + '</div></li>';
@@ -237,6 +261,7 @@
     S.tasks.forEach(function (t) { if (t.run && t.run.st === 'queued' && active() < LIMIT) begin(t); });
   }
   function answer(id, v) {
+    if (id === S.ext.ask.id) { answerExt(v); return; }
     var t = get(id); if (!t || !t.run) return;
     var was = t.run.st;
     if (was !== 'needs' && was !== 'blocked') return;
@@ -254,6 +279,7 @@
     if (t.agent === 'Claude Code') { r.tokens = (20 + (t.id * 13) % 50) + '.' + (t.id % 9) + 'k'; r.cost = '$0.' + pad(18 + (t.id * 7) % 60); }
     feed(t, 'out', 'Committed: ' + r.commit); feed(t, 'sys', 'Session finished');
     say('“' + t.title + '” finished');
+    if (t.story) { t.state = 'review'; say('“' + t.title + '” is ready for review'); }
     pump();
   }
   function toReview(id) {
@@ -293,99 +319,167 @@
   }
 
   /* ---------- the assistant: predefined messages, scripted replies ----------
-     The person picks one of the messages on offer; there is no text box. Each message has a reply written in advance,
-     which streams in word by word, and the next messages on offer follow from it. A reply that would change the board
-     ends in a card: nothing changes until the person confirms it. The replies read the demo's current state. */
-  var ROOT = ['Plan CSV export for reports', 'What needs me today?', 'What is blocked right now?', 'What is planned for this week?'];
-  var BACK = ['What needs me today?', 'What is planned for this week?'];
+     The person picks one of the messages on offer; there is no text box. Each message has a reply written in advance, which
+     streams in word by word, and the next messages on offer follow from it. A reply can carry generated interface (the
+     OpenUI blocks the product draws inline: figures, a chart, a table that sorts and filters here, all read only) and
+     changes to confirm. Nothing changes until the person confirms it, one card at a time or all at once. Each surface keeps
+     its own conversation, as in the product: the desktop assistant reaches the Team workspaces connected to the window, and
+     a phone sees Individual only. The replies read the demo's current state. */
   var CARD_LEAD = 'Here is what I will do. Nothing changes until you confirm.';
   var NOT_OPEN = 'That is already settled, so nothing needs to change.';
-  var AS = { msgs: [], opts: ROOT.slice(), busy: false, timer: null, open: false };
-  function waitingChanges() { return AS.msgs.filter(function (m) { return m.card && !m.card.state; }).length; }
-  function isOpen(id) { var t = get(id); return !!(t && t.run && (t.run.st === 'needs' || t.run.st === 'blocked')); }
-
-  function needsText() {
-    var all = attention(), need = all.filter(function (i) { return i.kind !== 'review'; }), review = all.length - need.length;
-    var out = !need.length ? 'Nothing needs you right now.' :
-      (need.length === 1 ? 'One thing needs you. ' : need.length + ' things need you. ') +
-      need.map(function (i) { return '“' + i.t.title + '” ' + (i.kind === 'question' ? 'has a question for you: ' : 'stopped rather than guess: ') + i.t.run.q; }).join(' ');
-    if (review) out += ' ' + review + (review === 1 ? ' finished task is' : ' finished tasks are') + ' ready for review.';
-    return out;
+  var AS = { msgs: [], opts: null, busy: false, timer: null, open: false };
+  function asstFresh() { clearTimeout(AS.timer); AS.msgs = []; AS.opts = null; AS.busy = false; AS.timer = null; }
+  function waitingChanges() {
+    var n = 0;
+    AS.msgs.forEach(function (m) { (m.cards || []).forEach(function (c) { if (!c.state) n++; }); });
+    return n;
   }
-  function blockedText() {
-    var b = S.tasks.filter(function (t) { return t.run && t.run.st === 'blocked'; });
-    if (!b.length) return 'Nothing is blocked right now.';
-    return b.map(function (t) { return '“' + t.title + '” is blocked. ' + t.agent + ' stopped rather than guess: ' + t.run.q; }).join(' ');
+  function rootOpts() {
+    return guideWhere() === 'phone' ? ['Plan CSV export for reports', 'What needs me today?', 'What is planned for this week?']
+      : ['What is on my plate this week?', 'Plan CSV export for reports', 'What needs me today?'];
+  }
+  function backOpts(extra) {
+    var o = (extra || []).concat(guideWhere() === 'phone' ? ['What needs me today?', 'What is planned for this week?'] : ['What is on my plate this week?', 'What needs me today?']);
+    if (!planned()) o.unshift('Plan CSV export for reports');
+    return o.filter(function (l, i) { return o.indexOf(l) === i; }).slice(0, 3);
+  }
+  function optsNow() { return AS.opts || rootOpts(); }
+
+  function rowSentence(r) {
+    if (r.kind === 'question') return '“' + r.t.title + '” (' + r.project + ') has a question for you: ' + r.t.run.q;
+    if (r.kind === 'blocked') return '“' + r.t.title + '” (' + r.project + ') stopped rather than guess: ' + r.t.run.q;
+    if (r.ws === 'team') return r.k.who + ' asked for your review of “WB-' + r.k.n + ' ' + r.k.title + '” in ' + S.team.name + '.';
+    return '“' + r.t.title + '” (' + r.project + ') is finished and ready for review.';
+  }
+  function needsText() {
+    var rows = guideWhere() === 'phone' ? rowsInd() : rowsAll();
+    if (!rows.length) return 'Nothing needs you right now.';
+    return (rows.length === 1 ? 'One thing needs you. ' : rows.length + ' things need you. ') + rows.map(rowSentence).join(' ');
   }
   function agendaText() {
-    var rows = S.tasks.filter(function (t) { return t.sched && t.state !== 'done'; }).sort(function (a, b) { return schedAbs(a) - schedAbs(b); });
-    if (!rows.length) return 'Nothing is scheduled in my-app yet.';
-    return 'Here is the schedule for my-app, in order. ' + rows.map(function (t) {
-      return dayLabel(t.sched.d) + ' at ' + clock(t.sched.s) + ': ' + t.title + (waitingFor(t).length ? ', after ' + waitingFor(t)[0].title : '');
-    }).join('. ') + '.';
+    var rows = S.tasks.filter(function (t) { return t.sched && t.state !== 'done'; }).map(function (t) { return { at: schedAbs(t), d: t.sched.d, s: t.sched.s, title: t.title }; });
+    S.ext.cal.forEach(function (e) { if (e.tag === 'Individual') rows.push({ at: e.d * 1440 + e.s, d: e.d, s: e.s, title: e.title }); });
+    rows.sort(function (a, b) { return a.at - b.at; });
+    if (!rows.length) return 'Nothing is scheduled in Individual yet.';
+    return 'Here is the schedule across your projects, in order. ' + rows.map(function (r) { return dayLabel(r.d) + ' at ' + clock(r.s) + ': ' + r.title; }).join('. ') + '.';
   }
-  function answerCard(id, v) {
-    var t = get(id);
-    return { tag: 'ANSWER', line: 'Answer “' + t.title + '” with “' + v + '”', done: 'Sent. ' + t.agent + ' carries on with “' + v + '”.',
-      ok: function () { return isOpen(id); }, run: function () { answer(id, v); } };
+  function plateText() {
+    var n = rowsAll().length;
+    return 'Here is your week across Individual and ' + S.team.name + '. ' + (n ? n + (n === 1 ? ' thing is' : ' things are') + ' waiting on you, and the rest is moving.' : 'Nothing is waiting on you, and the rest is moving.');
   }
-  function scheduleCard(id, d, m) {
-    var t = get(id), when = dayLabel(d) + ', ' + clock(m);
-    return { tag: 'SCHEDULE', line: 'Move “' + t.title + '” to ' + when, done: 'Moved. “' + t.title + '” now starts ' + when + '.',
-      ok: function () { return t.state === 'backlog' && !t.run; }, run: function () { schedule(id, d, m); } };
+
+  /* The generated interface for "What is on my plate this week?": what the registry's blocks make from the same rows My Work
+     and the calendar read. It is a snapshot, stamped with the time it was read. */
+  function execWord(x) { return ({ running: 'Running', needs_input: 'Needs you', blocked: 'Blocked', queued: 'Queued', completed: 'Ready for review' })[x] || ''; }
+  function plateRows() {
+    var rows = [];
+    myWorkRows().forEach(function (r) { rows.push([r.title, r.wsName, r.project, execWord(r.exec) || (r.status === 'review' ? 'In review' : 'In progress')]); });
+    S.team.tickets.forEach(function (k) { if (k.st === 'review' && k.who !== ME) rows.push(['WB-' + k.n + ' ' + k.title, S.team.name, S.team.project, 'Needs you']); });
+    S.tasks.forEach(function (t) { if (t.sched && t.state === 'backlog') rows.push([t.title, 'Individual', 'my-app', 'Planned ' + dayLabel(t.sched.d).split(' ')[0] + ' ' + clock(t.sched.s)]); });
+    S.ext.cal.forEach(function (e) { if (e.tag === 'Individual') rows.push([e.title, 'Individual', e.project, 'Planned ' + dayLabel(e.d).split(' ')[0] + ' ' + clock(e.s)]); });
+    return rows;
+  }
+  function plateUI() {
+    var rows = plateRows(), by = {};
+    rows.forEach(function (r) { by[r[2]] = (by[r[2]] || 0) + 1; });
+    var count = function (w) { return rows.filter(function (r) { return r[3] === w; }).length; };
+    return { at: clock(S.now), cols: ['Item', 'Workspace', 'Project', 'Status'], rows: rows, sort: -1, dir: 1, q: '',
+      metrics: [['Needs you', String(rowsAll().length), 'in 2 workspaces'], ['Running', String(count('Running')), 'on your runners'], ['In review', String(count('In review') + count('Ready for review')), 'waiting for a person'], ['Planned', String(rows.filter(function (r) { return /^Planned/.test(r[3]); }).length), 'this week']],
+      bars: Object.keys(by).map(function (k) { return [k, by[k]]; }).sort(function (a, b) { return b[1] - a[1]; }) };
+  }
+  function uiRows(u) {
+    var q = u.q.trim().toLowerCase(), c = u.sort;
+    var rows = u.rows.filter(function (r) { return !q || r.some(function (x) { return x.toLowerCase().indexOf(q) > -1; }); });
+    if (c >= 0) rows = rows.slice().sort(function (a, b) { return a[c].localeCompare(b[c], undefined, { numeric: true, sensitivity: 'base' }) * u.dir; });
+    return rows;
+  }
+  function uiBodyHTML(u) {
+    var rows = uiRows(u);
+    return rows.length ? rows.map(function (r) { return '<tr>' + r.map(function (x, j) { return '<td' + (j === 3 && x === 'Needs you' ? ' class="hot"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') : '<tr><td colspan="4" class="none">No rows match the filter.</td></tr>';
+  }
+  function uiHTML(u, i) {
+    var peak = Math.max.apply(null, u.bars.map(function (b) { return b[1]; }).concat(1));
+    return '<section class="w-ui" aria-label="Interface generated by the assistant">' +
+      '<div class="w-uimetrics">' + u.metrics.map(function (m) { return '<div class="w-metric"><p class="l">' + esc(m[0]) + '</p><p class="v">' + esc(m[1]) + '</p><p class="d">' + esc(m[2]) + '</p></div>'; }).join('') + '</div>' +
+      '<div class="w-uichart"><h3>Open work by project</h3>' + u.bars.map(function (b) { return '<div class="bar"><span class="c">' + esc(b[0]) + '</span><span class="track"><span style="width:' + Math.round(b[1] / peak * 100) + '%"></span></span><span class="n">' + b[1] + '</span></div>'; }).join('') + '</div>' +
+      '<div class="w-uitable"><div class="hd"><h3>Everything open</h3><label class="f"><span>Filter rows</span><input type="search" data-ui-q="' + i + '" value="' + esc(u.q) + '" aria-label="Filter everything open"></label></div>' +
+      '<div class="scroll"><table><thead><tr>' + u.cols.map(function (c, j) {
+        return '<th scope="col" aria-sort="' + (u.sort === j ? (u.dir > 0 ? 'ascending' : 'descending') : 'none') + '"><button type="button" data-a="ui-sort" data-id="' + i + '" data-v="' + j + '" aria-label="Sort by ' + esc(c) + '">' + esc(c) + '<i class="sort' + (u.sort === j ? ' on ' + (u.dir > 0 ? 'asc' : 'desc') : '') + '" aria-hidden="true"></i></button></th>';
+      }).join('') + '</tr></thead><tbody data-uitbody="' + i + '">' + uiBodyHTML(u) + '</tbody></table></div></div>' +
+      '<p class="stamp">Read at ' + u.at + ' · a snapshot, not live</p></section>';
+  }
+
+  /* Changes the assistant proposes: each is a card with its own Confirm, and several at once can be confirmed together. */
+  var PLAN = [
+    { title: 'Build the reports CSV endpoint', agent: 'Claude Code', desc: 'Add a CSV endpoint for filtered reports. Include headers, quote values safely, and keep the active filters.' },
+    { title: 'Add the CSV export button', agent: 'Codex', desc: 'Add Export CSV to the reports toolbar. Call the endpoint, show progress, and show a useful error message.' },
+    { title: 'Test the CSV export workflow', agent: 'Claude Code', desc: 'After the endpoint and the button are merged, test the whole export: filters, quoting, empty reports and spreadsheet compatibility.' }
+  ];
+  var DOC = { title: 'Document the CSV export in the API reference', desc: 'Describe the endpoint, its filters and the separator option for API users.' };
+  function makeTask(i) {
+    var item = PLAN[i], t = newTask(item.title, item.agent, 'high');
+    t.desc = item.desc; t.guided = true; t.story = i + 1;
+    if (i === 0) t.script = { work: 9, ask: { at: 3, q: 'Some customers open reports in European spreadsheets. Which separator should the export use?', choices: ['Use semicolons', 'Keep commas'] },
+      logs: ['Reading the reports API and filter logic', 'Adding a CSV writer with quoted values', 'Testing filtered reports and empty results', 'Running the reports export tests', '18 tests passed. CSV endpoint ready for review.'] };
+    if (i === 1) t.script = { work: 11, logs: ['Reading the reports toolbar', 'Adding Export CSV beside the filters', 'Showing progress and an error message', 'Running the web tests', '24 tests passed. Export button ready for review.'] };
+    if (i === 2) {
+      t.script = { work: 8, logs: ['Reading the export endpoint and the button', 'Writing tests for filters and quoting', 'Opening a sample in a spreadsheet', 'Running the full report tests', '31 tests passed.'] };
+      t.deps = [story(1), story(2)].filter(Boolean).map(function (x) { return x.id; });
+    } else { var last = story(3); if (last) last.deps.push(t.id); }
+    return t;
+  }
+  function makeTicket() {
+    var k = { n: S.team.nextN++, title: DOC.title, st: 'backlog', by: ME, story: true, desc: DOC.desc };
+    S.team.tickets.push(k); return k;
+  }
+  function taskCard(i) {
+    return { op: 'task', i: i, title: PLAN[i].title, dest: 'my-app · Backlog', detail: PLAN[i].agent + '. ' + PLAN[i].desc, done: 'Added to Backlog.',
+      ok: function () { return !story(i + 1); }, run: function () { makeTask(i); } };
+  }
+  function ticketCard() {
+    return { op: 'ticket', title: DOC.title, dest: S.team.name + ' · ' + S.team.project + ' · Backlog', detail: DOC.desc, done: 'Added to Backlog.',
+      ok: function () { return !storyTicket(); }, run: makeTicket };
+  }
+  function planCards() { var c = [0, 1, 2].map(taskCard); if (guideWhere() !== 'phone') c.push(ticketCard()); return c; }
+  /* The chapter skip and the phone may need the plan without the conversation: this makes what confirming all would. */
+  function seedPlan() {
+    if (!story(1)) makeTask(0); if (!story(2)) makeTask(1); if (!story(3)) makeTask(2);
+    if (!storyTicket()) makeTicket();
+  }
+  function answerCard(v) {
+    var a = S.ext.ask;
+    return { op: 'answer', title: 'Answer “' + a.title + '” with “' + v + '”', dest: a.project, detail: '', done: 'Sent. ' + a.agent + ' carries on with “' + v + '”.',
+      ok: function () { return S.ext.ask.st === 'needs'; }, run: function () { answerExt(v); } };
   }
 
   /* Each key is a message the person can pick. text: the scripted reply (a string, or a function that reads the state).
-     next: the messages offered after it. ok and gone: the message is only open while ok() holds. card: a change to confirm. */
-  var PLAN = [
-    { title: 'Build the reports CSV endpoint', agent: 'Claude Code', desc: 'Add a CSV endpoint for filtered reports. Include headers, quote values safely, and preserve the active filters.' },
-    { title: 'Add the CSV export button', agent: 'Codex', desc: 'Add Export CSV to the reports toolbar. Use the endpoint after it is reviewed and merged. Show progress and a useful error message.' },
-    { title: 'Test the CSV export workflow', agent: 'Claude Code', desc: 'Verify the integrated export after the endpoint and button are merged. Cover filters, quoting, empty reports, and spreadsheet compatibility.' }
-  ];
-  function planCard(i) {
-    var item = PLAN[i];
-    return { tag: 'Create task ' + (i + 1) + ' of 3', line: item.title + ' · ' + item.agent + '. ' + item.desc,
-      done: i < 2 ? 'Added to Backlog. Here is the next task.' : 'All three tasks are in Backlog. You choose when an agent starts.',
-      ok: function () { return G.ids.length === i; },
-      run: function () {
-        var t = newTask(item.title, item.agent, 'high');
-        t.desc = item.desc; t.guided = true; G.ids.push(t.id);
-        if (!i) t.script = { work: 9, ask: { at: 3, q: 'Some customers open reports in European spreadsheets. Which separator should the export use?', choices: ['Use semicolons', 'Keep commas'] },
-          logs: ['Reading the reports API and filter logic', 'Adding a CSV writer with quoted values', 'Testing filtered reports and empty results', 'Running the reports export tests', '18 tests passed. CSV endpoint ready for review.'] };
-      }, follow: i < 2 ? function () { return planCard(i + 1); } : null };
-  }
+     next: the messages offered after it. ok and gone: the message is only open while ok() holds. ui: generated interface.
+     cards: changes to confirm. */
   var REPLY = {
+    'What is on my plate this week?': { reads: 'Read My Work, the schedules and Needs you in Individual and Northwind', text: plateText, ui: plateUI,
+      next: function () { return backOpts(); } },
     'Plan CSV export for reports': { reads: 'Read the reports tasks and project context',
-      text: 'Let’s split this into three scoped tasks: the CSV endpoint, an export button, and integration tests. Each has an agent and clear acceptance criteria. Review and merge the endpoint before building the button, then test the integrated flow. Confirm each task to add it to Backlog.',
-      card: function () { return planCard(0); } },
-    'What needs me today?': { reads: 'Read the attention list for my-app', text: needsText, next: ['Answer the TTL question', 'Explain the time zone question', 'What is planned for this week?'] },
-    'What is blocked right now?': { reads: 'Read the blocked tasks and their last run', text: blockedText, next: ['Explain the time zone question', 'What needs me today?'] },
-    'What is planned for this week?': { reads: 'Read the schedule for my-app', text: agendaText, next: ['Move the CSV export to Friday', 'What needs me today?'] },
-    'Answer the TTL question': { reads: 'Read “Migrate runs table to WAL” and its question',
-      text: 'There are two options. Keep the 24-hour TTL for the two callers that still read it, or move both to the new 12-hour default. Which one should the agent use?',
-      ok: function () { return isOpen(2); }, gone: NOT_OPEN, next: ['Keep 24 hours', 'Move both to 12 hours', 'What needs me today?'] },
-    'Keep 24 hours': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return isOpen(2); }, gone: NOT_OPEN,
-      card: function () { return answerCard(2, 'Keep 24 hours'); } },
-    'Move both to 12 hours': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return isOpen(2); }, gone: NOT_OPEN,
-      card: function () { return answerCard(2, 'Move both to 12 hours'); } },
-    'Explain the time zone question': { reads: 'Read the scheduler settings and config.json',
-      text: 'config.json says UTC, but this project is set to Europe/Amsterdam. A run missed during sleep would start an hour apart depending on which setting wins. Use the project’s zone to keep missed runs on the calendar’s clock, or UTC to match config.json.',
-      next: ['Use the project’s zone', 'Use UTC', 'What needs me today?'] },
-    'Use the project’s zone': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return isOpen(3); }, gone: NOT_OPEN,
-      card: function () { return answerCard(3, 'Use the project’s zone'); } },
-    'Use UTC': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return isOpen(3); }, gone: NOT_OPEN,
-      card: function () { return answerCard(3, 'Use UTC'); } },
-    'Move the CSV export to Friday': { reads: 'Read the task and the calendar', text: CARD_LEAD,
-      ok: function () { var t = get(6); return !!t && t.state === 'backlog' && !t.run; }, gone: 'That task has already started, so its time is not changed.',
-      card: function () { return scheduleCard(6, 4, 540); } }
+      ok: function () { return !story(1); }, gone: 'The CSV export is already planned. You will find it in Backlog.',
+      text: function () { return 'Let’s split this into three scoped tasks for my-app: the endpoint, an export button and tests. ' + (guideWhere() === 'phone' ? '' : 'The API reference needs a page too, so I will add a ticket for ' + S.team.name + '. ') + 'Each task has an agent and clear acceptance criteria, and the tests wait for the other two.'; },
+      cards: planCards },
+    'What needs me today?': { reads: 'Read the attention lists', text: needsText,
+      next: function () { return backOpts(S.ext.ask.st === 'needs' ? ['Answer the auth test question'] : []); } },
+    'What is planned for this week?': { reads: 'Read the schedules in Individual', text: agendaText, next: function () { return backOpts(); } },
+    'Answer the auth test question': { reads: 'Read “Fix flaky auth test” and its question',
+      text: 'There are two options. Fix the shared clock so the test passes in the full suite, or skip the test for now. Which one should the agent use?',
+      ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, next: function () { return ['Fix the shared clock', 'Skip it for now', 'What needs me today?']; } },
+    'Fix the shared clock': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, cards: function () { return [answerCard('Fix the shared clock')]; } },
+    'Skip it for now': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, cards: function () { return [answerCard('Skip it for now')]; } }
   };
 
   function askAsst(label) {
     var e = REPLY[label];
     if (!e || AS.busy) return;
+    if (label === 'What is on my plate this week?') G.f.plate = true;
+    if (label === 'Plan CSV export for reports') G.f.planAsk = true;
     AS.msgs.push({ r: 'me', x: label });
     AS.opts = [];
-    if (e.ok && !e.ok()) { replyAsst({ text: e.gone, next: BACK }); return; }
+    if (e.ok && !e.ok()) { replyAsst({ text: e.gone, next: backOpts }); return; }
     replyAsst(e);
   }
   /* The reply streams in: a short pause while the assistant reads the board, then a word or two at a time, with a longer
@@ -394,22 +488,24 @@
   var THINK = 700;
   function pace(word) { return 46 + Math.random() * 34 + (/[.?!]$/.test(word) ? 260 : /[,;:]$/.test(word) ? 120 : 0); }
   function replyAsst(e) {
-    var text = typeof e.text === 'function' ? e.text() : e.text;
-    var m = { r: 'ai', x: '', reads: e.reads || '', done: false, card: null, next: e.next || BACK, open: false };
+    var as = AS, text = typeof e.text === 'function' ? e.text() : e.text;
+    var m = { r: 'ai', x: '', reads: e.reads || '', done: false, cards: null, ui: null, open: false };
     var words = text.split(' '), i = 0;
-    AS.msgs.push(m);
-    AS.busy = true;
+    as.msgs.push(m);
+    as.busy = true;
     function complete() {
-      AS.busy = false; AS.timer = null; m.done = true;
-      if (e.card) { m.card = e.card(); AS.opts = []; } else AS.opts = m.next.slice();
-      renderAsst(true); render();
+      as.busy = false; as.timer = null; m.done = true;
+      if (e.ui) m.ui = e.ui();
+      if (e.cards) { m.cards = e.cards(); as.opts = []; }
+      else as.opts = typeof e.next === 'function' ? e.next() : (e.next || backOpts());
+      if (as === AS) { renderAsst(true); render(); }
     }
     if (WB.reduced) { m.x = text; complete(); return; }
     renderAsst(true);
-    AS.timer = setTimeout(function step() {
+    as.timer = setTimeout(function step() {
       i = Math.min(words.length, i + 1 + (Math.random() < .4 ? 1 : 0));
       m.x = words.slice(0, i).join(' ');
-      if (i < words.length) { paintReply(m); AS.timer = setTimeout(step, pace(words[i - 1])); }
+      if (i < words.length) { if (as === AS) paintReply(m); as.timer = setTimeout(step, pace(words[i - 1])); }
       else complete();
     }, THINK);
   }
@@ -425,23 +521,29 @@
       if (stick) chat.scrollTop = chat.scrollHeight;
     });
   }
-  function decideAsst(i, yes) {
-    var m = AS.msgs[i], c = m && m.card;
+  function settle() { if (!waitingChanges()) AS.opts = backOpts(); }
+  function decideCard(mi, ci, yes) {
+    var m = AS.msgs[mi], c = m && m.cards && m.cards[ci];
     if (!c || c.state || AS.busy) return;
-    var go = yes && c.ok();
-    c.state = go ? 'yes' : yes ? 'gone' : 'no';
-    if (go) c.run();
-    replyAsst({ card: go && c.follow ? c.follow : null, text: go ? c.done : yes ? 'That changed before you confirmed, so nothing was sent.' : 'Nothing changed. The task stays as it was.', next: BACK });
+    if (yes && c.ok()) { c.run(); c.state = 'yes'; } else c.state = yes ? 'gone' : 'no';
+    settle(); renderAsst(false); render();
   }
-  function startOverAsst() {
-    clearTimeout(AS.timer);
-    AS.msgs = []; AS.opts = ROOT.slice(); AS.busy = false; AS.timer = null;
-    renderAsst(false); render();
+  /* Confirm all, or Not now, takes the changes that were waiting when it was pressed. Each is still its own change. */
+  function decideAll(mi, yes) {
+    var m = AS.msgs[mi]; if (!m || !m.cards || AS.busy) return;
+    var added = 0, failed = 0;
+    m.cards.forEach(function (c) {
+      if (c.state) return;
+      if (yes && c.ok()) { c.run(); c.state = 'yes'; added++; } else { c.state = yes ? 'gone' : 'no'; if (yes) failed++; }
+    });
+    m.result = yes ? [added ? added + ' added' : '', failed ? failed + ' not sent' : ''].filter(Boolean).join(' · ') : 'Not now. Nothing changed.';
+    settle(); renderAsst(false); render();
   }
-  /* One conversation, drawn on both surfaces. Opening it clears any sheet or the palette. */
+  function startOverAsst() { asstFresh(); renderAsst(false); render(); }
+  /* One conversation per surface, drawn over its window. Opening it clears any sheet, menu or the palette. */
   function openAsst(where) {
     var root = where === 'desk' ? deskRoot : phoneRoot;
-    D.sheet = P.sheet = null; D.pal = null;
+    D.sheet = P.sheet = null; D.pal = null; D.sw = false;
     AS.open = true;
     renderAsst(false);
     var first = root && root.querySelector('.w-asst .w-apill, .w-asst [data-a="asst-x"]');
@@ -453,6 +555,15 @@
     renderAsst(false);
     var opener = root && root.querySelector('[data-a="asst-open"]');
     if (opener) opener.focus({ preventScroll: true });
+  }
+  /* "Open task" on a confirmed card leaves the assistant for the place the change landed in. */
+  function openFromAssistant(where, mi, ci) {
+    var m = AS.msgs[mi], c = m && m.cards && m.cards[ci];
+    AS.open = false; renderAsst(false);
+    if (where === 'desk') {
+      if (c && c.op === 'ticket') { D.ws = 'team'; D.tv = 'board'; } else { D.ws = 'individual'; D.view = 'board'; D.task = null; }
+    } else { P.tab = 'board'; P.task = null; P.col = 'backlog'; }
+    render();
   }
   /* Both surfaces draw the conversation while it is open. Each keeps its own scroll. */
   function renderAsst(stick) {
@@ -484,21 +595,27 @@
       if (m.r === 'me') return '<div class="w-ame"><p>' + esc(m.x) + '</p></div>';
       var cursor = m.done ? '' : '<span class="w-acur" aria-hidden="true"></span>';
       var words = m.x ? esc(m.x) + cursor : '<span class="w-dots" role="img" aria-label="Working on it"><i></i><i></i><i></i></span>';
-      return '<div class="w-aai" data-m="' + i + '"><p class="w-atext">' + words + '</p>' +
+      var cards = m.done && m.cards ? m.cards.map(function (c, ci) { return assistCardHTML(c, i, ci); }).join('') : '';
+      var left = m.done && m.cards ? m.cards.filter(function (c) { return !c.state; }).length : 0;
+      var bar = left >= 2 ? '<div class="w-aall" role="group" aria-label="All the changes waiting"><span>' + left + ' changes are waiting for you.</span><button class="w-btn pri sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="yes">Confirm all ' + left + '</button><button class="w-btn sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="no">Not now</button></div>' : '';
+      return '<div class="w-aai" data-m="' + i + '"><p class="w-atext">' + words + '</p>' + (m.ui ? uiHTML(m.ui, i) : '') +
         (m.reads ? '<details class="w-reads" data-i="' + i + '"' + (m.open ? ' open' : '') + '><summary>What I looked at</summary><p>' + esc(m.reads) + '</p></details>' : '') +
-        '<p class="w-astat">' + (m.done ? 'Reply finished.' : 'Working on it') + '</p>' +
-        (m.done && m.card ? assistCardHTML(m.card, i) : '') + '</div>';
+        '<p class="w-astat">' + (m.done ? 'Reply finished.' : 'Working on it') + '</p>' + cards + bar + (m.result ? '<p class="w-aresult" role="status">' + esc(m.result) + '</p>' : '') + '</div>';
     }).join('');
   }
-  function assistCardHTML(c, i) {
-    var body = !c.state
-      ? '<div class="acts"><button class="w-btn pri sm" type="button" data-a="asst-ok" data-id="' + i + '">Confirm</button><button class="w-btn sm" type="button" data-a="asst-no" data-id="' + i + '">Not now</button></div><p class="w-muted">Nothing changes until you confirm.</p>'
-      : '<p class="w-muted">' + ({ yes: 'Confirmed.', no: 'Not now.', gone: 'No longer open. Nothing was sent.' })[c.state] + '</p>';
-    return '<div class="w-acard"><p class="w-lab">' + c.tag + '</p><p class="w-acl">' + esc(c.line) + '</p>' + body + '</div>';
+  function assistCardHTML(c, mi, ci) {
+    var label = ({ task: 'Create task', ticket: 'Create ticket', answer: 'Answer a question' })[c.op];
+    var st = !c.state ? 'Needs you' : c.state === 'yes' ? 'Done' : c.state === 'no' ? 'Declined' : 'Not sent';
+    var body;
+    if (!c.state) body = '<div class="acts"><button class="w-btn pri sm" type="button" data-a="asst-ok" data-id="' + mi + '" data-v="' + ci + '">Confirm</button><button class="w-btn sm" type="button" data-a="asst-no" data-id="' + mi + '" data-v="' + ci + '">Not now</button></div><p class="w-muted fine">Nothing changes until you confirm. Open until ' + clock(S.now + 15) + '.</p>';
+    else if (c.state === 'yes') body = '<p class="res ok">' + ic('check', 14) + c.done + (c.op === 'answer' ? '' : ' <button class="link" type="button" data-a="asst-opentask" data-id="' + mi + '" data-v="' + ci + '">Open task</button>') + '</p>';
+    else body = '<p class="res">' + (c.state === 'no' ? 'Not done. You said no.' : 'This changed before you confirmed, so nothing was sent.') + '</p>';
+    return '<section class="w-acard" data-state="' + (c.state || 'wait') + '" aria-label="' + label + ': ' + st + '"><p class="w-lab">' + label + '<span class="st"><i></i>' + st + '</span></p><h3>' + esc(c.title) + '</h3>' +
+      '<p class="dest">' + esc(c.dest) + '</p>' + (c.detail ? '<p class="detail">' + esc(c.detail) + '</p>' : '') + body + '</section>';
   }
   function dockHTML() {
-    var pills = AS.opts.map(function (o) { return '<button class="w-apill" type="button" data-a="asst-ask" data-id="" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('');
-    var note = waitingChanges() ? 'Confirm or decline the change above to continue.' : AS.busy ? 'Working on it.' : 'Pick a message. Replies are scripted in this demo, and nothing is sent to a model.';
+    var pills = (waitingChanges() ? [] : optsNow()).map(function (o) { return '<button class="w-apill" type="button" data-a="asst-ask" data-id="" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('');
+    var note = waitingChanges() ? 'Confirm or decline the changes above to continue.' : AS.busy ? 'Working on it.' : 'Pick a message. Replies are scripted in this demo, and nothing is sent to a model.';
     return '<div class="w-acol w-adock">' + (pills ? '<div class="w-apills" role="group" aria-label="Predefined messages">' + pills + '</div>' : '') + '<p class="w-anote">' + note + '</p></div>';
   }
 
@@ -514,23 +631,220 @@
     toastTimer = setTimeout(function () { document.querySelectorAll('.w-toast').forEach(function (el) { el.classList.remove('show'); }); }, 3600);
   }
 
-  /* ================= desktop ================= */
-  function railHTML() {
-    var n = needsYou(), act = active();
-    return '<aside class="w-rail" aria-label="Werkbord">' +
-      '<button class="w-brand" type="button" data-a="view" data-id="control" aria-label="Werkbord, Needs you">' + mark(20) + '<span class="w-wm">werkbord</span></button>' +
-      '<div class="w-ask"><button class="w-askbtn" type="button" data-a="asst-open" aria-haspopup="dialog">' + ic('assistant') + '<span class="w-askl">Assistant</span>' + (waitingChanges() ? '<span class="w-num pend">' + waitingChanges() + '</span>' : '') + '</button></div>' +
-      '<button class="w-nav" type="button" data-a="view" data-id="control"' + (D.view === 'control' ? ' aria-current="page"' : '') + '>' + ic('control') + 'Needs you' + (n ? '<span class="w-num">' + n + '</span>' : '') + '</button>' +
-      '<div class="w-sec"><span>' + ic('folder') + 'Projects</span><button class="add" type="button" data-a="other" aria-label="Add a project">' + ic('plus', 14) + '</button></div>' +
-      '<button class="w-nav" type="button" data-a="other"><span class="sq"></span><span class="name">api-server</span><span class="n">1</span></button>' +
-      '<button class="w-nav" type="button" data-a="other"><span class="sq"></span><span class="name">marketing-site</span></button>' +
-      '<button class="w-nav" type="button" data-a="view" data-id="board"' + (D.view !== 'control' ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">my-app</span>' + (n ? '<span class="w-num pend">' + n + '</span>' : act ? '<span class="n">' + act + '</span>' : '') + '</button>' +
-      '<div class="w-sec"><span>' + ic('runner') + 'Runners</span></div>' +
-      '<div class="w-nav">' + dot('ok') + '<span class="name">this computer</span><span class="n" data-conc>' + (act + 1) + '/' + (LIMIT + 1) + '</span></div>' +
-      '<div class="w-rfoot"><button class="w-nav" type="button" data-a="help">' + ic('help') + 'Help</button>' +
-      '<div class="w-rrow"><button class="w-nav" type="button" data-a="settings">' + ic('settings') + 'Settings</button>' +
-      '<button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div></aside>';
+  /* ---------- the other workspaces: the story's backdrop ----------
+     The window holds three places to be: Universal (your work from every workspace), Individual (this computer) and a Team.
+     The guided story is about my-app, so the rest of Individual (api-server) and the Team are a fixed backdrop that Universal
+     reads beside it. What the story creates, and what the visitor answers, claims or signs off, shows up there too. */
+  var ME = 'You';
+  function story(i) { for (var j = 0; j < S.tasks.length; j++) if (S.tasks[j].story === i) return S.tasks[j]; return null; }
+  function storyTicket() { for (var j = 0; j < S.team.tickets.length; j++) if (S.team.tickets[j].story) return S.team.tickets[j]; return null; }
+  function planned() { return !!(story(1) || story(2) || story(3)); }
+  function lead() { return story(1) || story(2); }
+  function tix(n) { for (var j = 0; j < S.team.tickets.length; j++) if (S.team.tickets[j].n == n) return S.team.tickets[j]; return null; }
+  function initials(n) { return n.split(' ').map(function (w) { return w.charAt(0); }).join('').slice(0, 2).toUpperCase(); }
+  function execOf(r) { return !r ? null : ({ running: 'running', needs: 'needs_input', blocked: 'blocked', queued: 'queued', completed: 'completed' })[r.st] || null; }
+
+  /* api-server has two agents beside my-app. The question is answered from Needs you, from Universal or by the assistant. */
+  function extTask() {
+    var a = S.ext.ask;
+    return { id: a.id, title: a.title, agent: a.agent, project: a.project, prio: a.prio, state: 'doing', run: { st: a.st, q: a.q, choices: a.choices, asked: a.asked, el: S.now - a.asked } };
   }
+  function answerExt(v) {
+    var a = S.ext.ask; if (a.st !== 'needs') return;
+    a.st = 'running'; a.answer = v;
+    toast('Sent. ' + a.agent + ' carries on with “' + v + '”.');
+  }
+  function needsInd() { return needsYou() + (S.ext.ask.st === 'needs' ? 1 : 0); }
+  /* What waits for the person, as the shell lists it: Individual's (every project), a Team's reviews, then both together. */
+  function rowsInd() {
+    var out = [];
+    if (S.ext.ask.st === 'needs') out.push({ ws: 'individual', project: S.ext.ask.project, kind: 'question', t: extTask() });
+    attention().forEach(function (it) { out.push({ ws: 'individual', project: 'my-app', kind: it.kind, t: it.t }); });
+    return out;
+  }
+  function rowsTeam() {
+    return S.team.tickets.filter(function (k) { return k.st === 'review' && k.reviewer === ME && k.who !== ME; }).map(function (k) { return { ws: 'team', project: S.team.project, kind: 'review', k: k }; });
+  }
+  function rowsAll() { return rowsInd().concat(rowsTeam()); }
+  function needsAll() { return rowsAll().length; }
+  /* The person's own work: the agents' tasks in Individual and the tickets they hold in the Team. */
+  function myWorkRows() {
+    var rows = [], a = S.ext.ask, r = S.ext.run;
+    rows.push({ ws: 'individual', wsName: 'Individual', project: r.project, title: r.title, status: 'doing', exec: 'running', go: 'other' });
+    rows.push({ ws: 'individual', wsName: 'Individual', project: a.project, title: a.title, status: 'doing', exec: a.st === 'needs' ? 'needs_input' : 'running', go: 'other' });
+    S.tasks.forEach(function (t) {
+      if ((t.state === 'doing' || t.state === 'review') && t.run && t.run.st !== 'stopped') rows.push({ ws: 'individual', wsName: 'Individual', project: 'my-app', title: t.title, status: t.state, exec: execOf(t.run), go: 'ind:' + t.id });
+    });
+    S.team.tickets.forEach(function (k) {
+      if (k.who === ME && (k.st === 'progress' || k.st === 'review')) rows.push({ ws: 'team', wsName: S.team.name, project: S.team.project, title: 'WB-' + k.n + ' ' + k.title, status: k.st === 'progress' ? 'doing' : 'review', exec: k.exec || null, go: 'team' });
+    });
+    return rows;
+  }
+
+  /* Team actions. Claiming is one guarded step; a reviewer cannot sign off their own work; Done waits for a merged pull request. */
+  function claim(n) {
+    var k = tix(n); if (!k || (k.st !== 'backlog' && k.st !== 'available')) return;
+    k.st = 'progress'; k.who = ME; k.fresh = true; k.branch = 'wb-' + k.n + '-' + slug(k.title);
+    toast('Claimed. Your branch will be ' + k.branch + '. Open it in your runner to start.');
+  }
+  function signoff(n) {
+    var k = tix(n); if (!k || k.st !== 'review' || !k.pr || k.pr.state !== 'merged') return;
+    k.st = 'done'; k.fresh = true;
+    toast('WB-' + k.n + ' is done. Its pull request was already merged on the Git host.');
+  }
+
+  /* ================= the window's sidebar and the workspace switcher ================= */
+  function wsName() { return D.ws === 'universal' ? 'Universal' : D.ws === 'individual' ? 'Individual' : S.team.name; }
+  function navBtn(attrs, icon, label, cur, badge) {
+    return '<button class="w-nav" type="button" ' + attrs + (cur ? ' aria-current="page"' : '') + '>' + ic(icon) + label + (badge ? '<span class="w-num pend">' + badge + '</span>' : '') + '</button>';
+  }
+  function railHTML() {
+    var n = needsYou(), act = active(), ni = needsInd(), name = wsName();
+    var head = '<button class="w-switch" type="button" data-a="sw" aria-haspopup="menu" aria-expanded="' + !!D.sw + '" aria-label="Switch workspace. Showing ' + esc(name) + '"><span class="brand">' + mark(20) + '<span class="w-wm">werkbord</span></span><span class="mode"><span class="mn">' + esc(name) + '</span>' + ic('down', 14) + '</span></button>' +
+      '<div class="w-ask"><button class="w-askbtn" type="button" data-a="asst-open" aria-haspopup="dialog">' + ic('assistant') + '<span class="w-askl">Assistant</span>' + (waitingChanges() ? '<span class="w-num pend">' + waitingChanges() + '</span>' : '') + '</button></div>';
+    var body = '';
+    if (D.ws === 'universal') {
+      body = [['mywork', 'My Work', 'check', 0], ['calendar', 'Calendar', 'calendar', 0], ['inbox', 'Needs you', 'control', needsAll()]].map(function (p) {
+        return navBtn('data-a="uv" data-id="' + p[0] + '"', p[2], p[1], D.uv === p[0], p[3]);
+      }).join('');
+    } else if (D.ws === 'individual') {
+      var ask = S.ext.ask.st === 'needs';
+      body = '<div class="w-sec"><span>Individual</span></div>' +
+        navBtn('data-a="view" data-id="control"', 'control', 'Needs you', D.view === 'control', ni) +
+        '<div class="w-sec"><span>' + ic('folder') + 'Projects</span><button class="add" type="button" data-a="other" aria-label="Add a project">' + ic('plus', 14) + '</button></div>' +
+        '<button class="w-nav" type="button" data-a="other"><span class="sq"></span><span class="name">api-server</span>' + (ask ? '<span class="w-num pend">1</span>' : '<span class="n">2</span>') + '</button>' +
+        '<button class="w-nav" type="button" data-a="other"><span class="sq"></span><span class="name">marketing-site</span></button>' +
+        '<button class="w-nav" type="button" data-a="view" data-id="board"' + (D.view !== 'control' ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">my-app</span>' + (n ? '<span class="w-num pend">' + n + '</span>' : act ? '<span class="n">' + act + '</span>' : '') + '</button>';
+    } else {
+      var reviews = rowsTeam().length;
+      body = '<div class="w-sec"><span>' + esc(S.team.name) + '</span></div>' +
+        navBtn('data-a="tv" data-id="home"', 'control', 'Needs you', D.tv === 'home', reviews) +
+        '<div class="w-sec"><span>' + ic('folder') + 'Projects</span></div>' +
+        '<button class="w-nav" type="button" data-a="tv" data-id="board"' + (D.tv === 'board' ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">' + esc(S.team.project) + '</span></button>' +
+        navBtn('data-a="tv" data-id="reviews"', 'merge', 'Reviews', D.tv === 'reviews', reviews) +
+        navBtn('data-a="tv" data-id="members"', 'people', 'Members', D.tv === 'members', 0) +
+        navBtn('data-a="toast" data-v="Analytics shows how work moves through the Team. It is not part of this demo."', 'analytics', 'Analytics', false, 0);
+    }
+    var foot = '<div class="w-rfoot"><button class="w-nav" type="button" data-a="toast" data-v="Workspaces and devices lists each workspace, this computer and the runners you have paired."><span class="w-ic">' + ic('runner') + '</span>Workspaces and devices</button>' +
+      '<div class="w-rrow">' + (D.ws !== 'universal' ? '<button class="w-nav" type="button" data-a="settings">' + ic('settings') + 'Settings</button>' : '<span class="w-nav w-spacer"></span>') +
+      '<button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div>';
+    return '<aside class="w-rail" aria-label="Werkbord">' + head + body + foot + '</aside>';
+  }
+  /* The switcher opens under the product name, as in the app: Universal first, Individual, then each Team, then adding one. */
+  function switcherHTML() {
+    function item(id, name, sub, on, live) {
+      return '<button class="w-mi" type="button" role="menuitem" data-a="ws" data-id="' + id + '"' + (on ? ' aria-current="true"' : '') + '><span class="ck">' + (on ? ic('check', 14) : '') + '</span><span class="tx"><b>' + esc(name) + '</b><span>' + esc(sub) + '</span></span>' + (live ? '<i class="w-dot" data-tone="ok"></i>' : '') + '</button>';
+    }
+    return '<div class="w-scrim clear" data-a="swx"></div><div class="w-menu" role="menu" aria-label="Switch workspace">' +
+      item('universal', 'Universal', 'All your workspaces', D.ws === 'universal', false) + item('individual', 'Individual', 'This computer', D.ws === 'individual', true) +
+      '<div class="rule" role="separator"></div>' + item('team', S.team.name, 'Team · ' + S.team.role + ' · early access', D.ws === 'team', true) +
+      '<div class="rule" role="separator"></div><button class="w-mi add" type="button" role="menuitem" data-a="addteam"><span class="ck">' + ic('plus', 14) + '</span><span class="tx"><b>Add a Team…</b></span></button></div>';
+  }
+  function goWs(id) {
+    dropOverlay();
+    D.ws = id; D.task = null; D.pick = null;
+    render();
+  }
+  /* Where a row of Universal opens: the place it lives in. */
+  function jump(dest) {
+    dropOverlay();
+    if (dest === 'other') { toast('This demo opens one project. In the app, every repository you add gets its own board, calendar and Git view.'); return; }
+    if (dest.indexOf('ind:') === 0) { D.ws = 'individual'; D.view = 'board'; D.task = +dest.slice(4); D.ptab = 'activity'; }
+    else if (dest === 'team:reviews') { D.ws = 'team'; D.tv = 'reviews'; }
+    else if (dest === 'team') { D.ws = 'team'; D.tv = 'board'; }
+    render();
+  }
+
+  /* ================= Universal: My Work, Calendar and Needs you across workspaces ================= */
+  function wsTag(kind, name) { return '<span class="w-ws" data-kind="' + kind + '" title="' + (kind === 'team' ? 'A Team workspace' : 'Your own Werkbord on this computer') + '">' + esc(name) + '</span>'; }
+  function upage(h, lede, body, head) {
+    return '<header class="w-ghead"><div class="w-uh"><h1>' + h + '</h1><p class="w-lede">' + lede + '</p></div>' + (head || '') + '</header><main class="w-main" data-keep="main-u-' + D.uv + '"><div class="w-upage">' + body + '</div></main>';
+  }
+  var EXECWORD = { running: 'Running', needs_input: 'Waiting for an answer', blocked: 'Blocked', queued: 'Queued', completed: 'Session finished' };
+  var EXECTONE = { running: 'work', needs_input: 'ask', blocked: 'block', queued: 'idle', completed: 'ok' };
+  function myWorkHTML() {
+    var rows = myWorkRows(), n = function (x) { return rows.filter(function (r) { return r.exec === x; }).length; };
+    var lede = n('running') + ' reported running · ' + n('queued') + ' queued · across 2 workspaces';
+    var status = { doing: 'In progress', review: 'In review' };
+    var groups = [['individual', 'Individual'], ['team', S.team.name]].map(function (g) {
+      var rs = rows.filter(function (r) { return r.ws === g[0]; });
+      if (!rs.length) return '';
+      return '<section class="w-ugroup" aria-label="' + esc(g[1]) + '"><h2>' + wsTag(g[0], g[1]) + '<span class="count">' + rs.length + '</span></h2><ul class="w-ulist">' + rs.map(function (w) {
+        var badge = w.exec ? '<span class="w-xb" data-tone="' + EXECTONE[w.exec] + '"><i class="w-dot" data-tone="' + EXECTONE[w.exec] + '"></i>Reported: ' + EXECWORD[w.exec] + '</span>' : '<span></span>';
+        return '<li><button class="w-wrow" type="button" data-a="go" data-v="' + w.go + '"><span class="ti">' + esc(w.title) + '</span><span class="pj">' + esc(w.project) + '</span><span class="stt">' + status[w.status] + '</span>' + badge + '</button></li>';
+      }).join('') + '</ul></section>';
+    }).join('');
+    return upage('My Work', lede, groups);
+  }
+  function inboxRowHTML(r) {
+    if (r.ws === 'team') {
+      var k = r.k;
+      return '<li><div class="w-irow"><i class="w-dot" data-tone="ok"></i><span class="tx"><span class="ti">WB-' + k.n + ' ' + esc(k.title) + '</span><span class="cx">' + wsTag('team', S.team.name) + '<span>' + esc(S.team.project) + '</span></span><span class="dt">' + esc(k.who) + ' asked for your review. Pull request #' + k.pr.n + ' is merged.</span></span><span class="ac"><button class="w-btn sm pri" type="button" data-a="go" data-v="team:reviews">Review changes</button></span></div></li>';
+    }
+    var t = r.t, q = r.kind === 'question';
+    return '<li><div class="w-irow"><i class="w-dot" data-tone="' + (q ? 'ask' : 'ok') + '"></i><span class="tx"><span class="ti">' + esc(t.title) + '</span><span class="cx">' + wsTag('individual', 'Individual') + '<span>' + esc(r.project) + '</span></span><span class="dt">' +
+      (q ? (t.prio === 'high' ? 'High priority. ' : '') + esc(t.agent) + ' asks: ' + esc(t.run.q) : r.kind === 'blocked' ? 'Stopped rather than guess. ' + esc(t.run.q) : 'Finished and ready for review.') + '</span></span><span class="ac">' +
+      (q || r.kind === 'blocked' ? t.run.choices.map(function (c) { return '<button class="w-btn sm" type="button" data-a="answer" data-id="' + t.id + '" data-v="' + esc(c) + '">' + esc(c) + '</button>'; }).join('')
+        : '<button class="w-btn sm pri" type="button" data-a="go" data-v="ind:' + t.id + '">Review changes</button>') + '</span></div></li>';
+  }
+  function inboxHTML() {
+    var rows = rowsAll();
+    return upage('Needs you', 'Questions, blockers and reviews from all your workspaces',
+      rows.length ? '<section class="w-ugroup" aria-label="Action needed"><h2>Action needed<span class="count">' + rows.length + '</span></h2><ul class="w-ulist">' + rows.map(inboxRowHTML).join('') + '</ul></section>' : '<p class="w-uempty">Nothing needs you.</p>');
+  }
+  function ucalHTML() {
+    var seg = '<div class="w-seg" role="group" aria-label="Calendar presentation"><button type="button" aria-pressed="true">Calendar</button><button type="button" data-a="toast" data-v="Timeline shows planned dates, milestones and dependencies, and warns about conflicts. It never reschedules anything.">Timeline</button></div>';
+    return '<header class="w-ghead"><div class="w-uh"><h1>Calendar</h1><p class="w-lede">Scheduled and planned work across all projects</p></div>' + seg + '</header><main class="w-main" style="overflow:hidden">' + calMainHTML(true) + '</main>';
+  }
+
+  /* ================= a Team: board, reviews, members ================= */
+  var TCOLS = [['backlog', 'Backlog'], ['available', 'Available'], ['progress', 'In Progress'], ['review', 'Review'], ['done', 'Done']];
+  function tcardHTML(k) {
+    var mine = k.who === ME, acts = '';
+    if (k.st === 'backlog' || k.st === 'available') acts = '<button class="w-btn sm' + (k.story ? ' pri' : '') + '" type="button" data-a="claim" data-id="' + k.n + '" aria-label="Claim WB-' + k.n + ' ' + esc(k.title) + '">Claim</button>';
+    else if (mine && k.st === 'progress') acts = '<button class="w-btn sm" type="button" data-a="runner" data-id="' + k.n + '">' + ic('runner', 14) + 'Open in my runner</button>';
+    var who = k.who ? '<span class="w-av' + (mine ? ' me' : '') + '" aria-hidden="true">' + initials(k.who) + '</span>' + esc(k.who) : '<span class="w-muted">Unclaimed · ' + esc(k.by) + ' wrote it</span>';
+    var git = k.branch ? '<p class="w-tbranch">' + esc(k.branch) + '</p><p class="w-tchips">' + (k.ahead ? '<span class="w-chip">' + k.ahead + ' commits</span>' : '<span class="w-chip">no commits yet</span>') + (k.pr ? '<span class="w-chip">' + ic('pr', 12) + '#' + k.pr.n + ' ' + k.pr.state + '</span>' : '') + '</p>' : '';
+    var tone = k.st === 'review' ? 'ask' : k.st === 'progress' ? 'work' : k.st === 'done' ? 'ok' : 'neutral';
+    return '<li class="w-card w-task w-tix' + (k.st === 'done' ? ' settled' : '') + (k.fresh ? ' fresh' : '') + '" data-tone="' + tone + '" data-ticket="' + k.n + '"><p class="w-tid">WB-' + k.n + '</p><p class="w-ttitle">' + esc(k.title) + '</p><p class="w-st">' + who + '</p>' + git + (acts ? '<div class="acts">' + acts + '</div>' : '') + '</li>';
+  }
+  function teamHeadHTML() {
+    return '<header class="w-head"><div class="w-where"><span class="w-pname"><h1>' + esc(S.team.project) + '</h1></span><p class="w-path">' + esc(S.team.name) + ' · Team workspace · early access</p></div>' +
+      '<div class="w-acts"><button class="w-btn" type="button" data-a="toast" data-v="Jump to searches projects, sections and tickets.">' + ic('search') + 'Jump to</button><button class="w-btn pri" type="button" data-a="toast" data-v="New ticket adds work to Backlog. Anyone on the Team can claim it.">' + ic('plus') + 'New ticket</button></div></header>' +
+      '<nav class="w-tabs" aria-label="' + esc(S.team.project) + ' sections">' + navTab('data-a="tv" data-id="board"', 'Board', true) + navTab('data-a="toast" data-v="Git shows the branches and pull requests each member\'s Werkbord reports."', 'Git') + navTab('data-a="toast" data-v="Activity lists who changed what on the board."', 'Activity') + '</nav>';
+  }
+  function navTab(attrs, label, cur) { return '<button class="w-tab" type="button" ' + attrs + (cur ? ' aria-current="page"' : '') + '>' + label + '</button>'; }
+  function teamBoardHTML() {
+    var tk = S.team.tickets, n = function (s) { return tk.filter(function (k) { return k.st === s; }).length; };
+    var legend = '<ul class="w-legend" aria-label="The team at a glance"><li>' + dot('work') + n('progress') + ' in progress</li><li>' + dot('ask') + n('review') + ' in review</li><li>' + dot('ok') + n('done') + ' done</li></ul>';
+    return teamHeadHTML() + '<main class="w-main" style="overflow:hidden"><div class="w-bview"><div class="w-bar"><div class="w-filters"><label class="w-pick"><span>Owner</span><select aria-label="Filter by owner"><option>anyone</option><option>You</option></select></label></div>' + legend + '</div><div class="w-cols five">' + TCOLS.map(function (c) {
+      var ts = tk.filter(function (k) { return k.st === c[0]; }).sort(function (a, b) { return Number(!!b.story) - Number(!!a.story) || b.n - a.n; });
+      return '<section class="w-col w-tray" data-col="' + c[0] + '" aria-label="' + c[1] + '"><header class="w-ch"><h2>' + c[1] + '</h2><span class="w-chip">' + ts.length + '</span></header><ul class="w-list" data-keep="tcol-' + c[0] + '">' + (ts.length ? ts.map(tcardHTML).join('') : '<li class="w-none">Nothing here.</li>') + '</ul></section>';
+    }).join('') + '</div></div></main>';
+  }
+  function teamReviewsHTML() {
+    var rs = S.team.tickets.filter(function (k) { return k.st === 'review'; }).sort(function (a, b) { return Number(b.reviewer === ME) - Number(a.reviewer === ME); });
+    var list = rs.length ? '<ul class="w-ulist">' + rs.map(function (k) {
+      var asked = k.reviewer === ME && k.who !== ME;
+      return '<li class="w-rv"><div class="tx"><p class="w-tid">WB-' + k.n + '</p><p class="w-ttitle">' + esc(k.title) + '</p><p class="w-mm">' + esc(k.who) + ' · ' + esc(k.branch) + ' · ' + k.ahead + ' commits</p><p class="w-mm">' + ic('pr', 12) + 'Pull request #' + k.pr.n + ' · ' + k.pr.state + ' on the Git host · no conflicts</p></div><div class="acts">' +
+        (asked ? '<button class="w-btn sm" type="button" data-a="toast" data-v="Request changes sends the ticket back to its author with your note.">Request changes</button><button class="w-btn sm pri" type="button" data-a="signoff" data-id="' + k.n + '">Mark done</button>' : '<span class="w-mm">Waiting for ' + esc(k.reviewer || 'a reviewer') + '</span>') + '</div></li>';
+    }).join('') + '</ul>' : '<p class="w-uempty">Nothing is waiting for review.</p>';
+    return '<header class="w-ghead"><div class="w-uh"><h1>Reviews</h1><p class="w-lede">Tickets in review, those asked of you first. The diff itself is on your Git host.</p></div></header><main class="w-main" data-keep="main-t-reviews"><div class="w-upage">' + list + '</div></main>';
+  }
+  function teamHomeHTML() {
+    var rs = rowsTeam();
+    return '<header class="w-ghead"><div class="w-uh"><h1>Needs you</h1><p class="w-lede">' + esc(S.team.name) + ' · what is waiting for you in this Team</p></div></header><main class="w-main" data-keep="main-t-home"><div class="w-upage">' +
+      (rs.length ? '<section class="w-ugroup"><h2>Action needed<span class="count">' + rs.length + '</span></h2><ul class="w-ulist">' + rs.map(inboxRowHTML).join('') + '</ul></section>' : '<p class="w-uempty">Nothing needs you in ' + esc(S.team.name) + '.</p>') + '</div></main>';
+  }
+  function teamMembersHTML() {
+    return '<header class="w-ghead"><div class="w-uh"><h1>Members</h1><p class="w-lede">One Owner, any number of Admins, and Members. Each person keeps their own computer, runner and credentials.</p></div></header><main class="w-main" data-keep="main-t-members"><div class="w-upage"><ul class="w-ulist">' +
+      S.team.members.map(function (m) { return '<li><div class="w-irow"><span class="w-av' + (m[0] === ME ? ' me' : '') + '" aria-hidden="true">' + initials(m[0]) + '</span><span class="tx"><span class="ti">' + esc(m[0]) + (m[0] === ME ? ' <span class="w-mm">(you)</span>' : '') + '</span><span class="dt">' + esc(m[2]) + '</span></span><span class="ac"><span class="w-chip">' + m[1] + '</span></span></div></li>'; }).join('') + '</ul></div></main>';
+  }
+  function teamMain() {
+    return ({ board: teamBoardHTML, reviews: teamReviewsHTML, home: teamHomeHTML, members: teamMembersHTML })[D.tv]();
+  }
+
+  /* ================= desktop ================= */
   function bannerHTML() {
     var q = questions(); if (!q.length) return '';
     var t = q[0];
@@ -579,7 +893,7 @@
   }
 
   function controlHTML(phone) {
-    var items = attention(), qs = items.filter(function (i) { return i.kind === 'question'; }), bl = items.filter(function (i) { return i.kind === 'blocked'; });
+    var items = rowsInd(), qs = items.filter(function (i) { return i.kind === 'question'; }), bl = items.filter(function (i) { return i.kind === 'blocked'; });
     var cur = phone ? P.cc : D.cc;
     var shown = items.filter(function (i) { return cur === 'all' || i.kind === cur; });
     var seg = '<div class="w-seg" role="group" aria-label="Show">' + [['all', 'All', items.length], ['question', 'Needs input', qs.length], ['blocked', 'Blocked', bl.length]].filter(function (s) { return s[0] === 'all' || s[2]; }).map(function (s) {
@@ -589,7 +903,7 @@
     var running = S.tasks.filter(function (t) { return t.run && t.run.st === 'running'; });
     var queued = S.tasks.filter(function (t) { return (t.state === 'backlog' && t.sched) || (t.run && t.run.st === 'queued'); }).sort(function (a, b) { return schedAbs(a) - schedAbs(b); });
     var side = '<section class="w-pn" aria-label="Projects"><div class="w-ph">Projects <span class="w-chip">3</span></div><ul>' +
-      '<li class="w-line"><div class="top"><span class="sq" style="width:7px;height:7px;background:var(--text)"></span><b style="font-weight:500">api-server</b><span class="w-mm">1 running</span></div></li>' +
+      '<li class="w-line"><div class="top"><span class="sq" style="width:7px;height:7px;background:var(--text)"></span><b style="font-weight:500">api-server</b><span class="w-mm">' + (S.ext.ask.st === 'needs' ? '1 running · 1 needs input' : '2 running') + '</span></div></li>' +
       '<li class="w-line"><div class="top"><span class="sq" style="width:7px;height:7px;background:var(--text)"></span><b style="font-weight:500">marketing-site</b><span class="w-mm">quiet</span></div></li>' +
       '<li class="w-line"><div class="top"><span class="sq" style="width:7px;height:7px;background:var(--text)"></span><b style="font-weight:500">my-app</b><span class="w-mm">' + [qs.length ? qs.length + ' needs input' : '', bl.length ? bl.length + ' blocked' : '', running.length ? running.length + ' running' : ''].filter(Boolean).join(' · ') + '</span>' + (qs.length + bl.length ? '<span class="w-num pend" style="margin-left:auto">' + (qs.length + bl.length) + '</span>' : '') + '</div></li></ul></section>' +
       '<section class="w-pn" aria-label="Running now"><div class="w-ph">Running now <span class="w-chip">' + (running.length + 1) + '</span></div><ul>' +
@@ -683,26 +997,44 @@
   function evHTML(o) {
     var t = o.t, w = 100 / o.n, r = t.run, cls = r && r.st === 'running' ? ' run' : r && (r.st === 'needs' || r.st === 'blocked') ? ' ask' : waitingFor(t).length ? ' dep' : '';
     var top = (t.sched.s - H0 * 60) / 60 * HOUR, h = Math.max(22, t.sched.dur / 60 * HOUR - 3);
+    var pos = 'top:' + (top + 1) + 'px;height:' + h + 'px;left:calc(' + (o.lane * w) + '% + 3px);right:auto;width:calc(' + w + '% - 6px)';
+    // Another project's or workspace's event, in Universal: shown, not draggable.
+    if (t.ext) return '<div class="w-ev" role="button" tabindex="0" data-a="other" style="' + pos + '"><b>' + esc(t.title) + '</b><span>' + clock(t.sched.s) + ' · ' + esc(t.agent) + '</span></div>';
     var state = r && r.st === 'running' ? 'running' : r && r.st === 'needs' ? 'needs you' : r && r.st === 'blocked' ? 'blocked' : r && r.st === 'completed' ? 'finished' : waitingFor(t).length ? 'after ' + waitingFor(t)[0].title : t.agent;
-    return '<div class="w-ev' + cls + '" role="button" tabindex="0" draggable="true" data-ev="' + t.id + '" data-a="open" data-id="' + t.id + '" style="top:' + (top + 1) + 'px;height:' + h + 'px;left:calc(' + (o.lane * w) + '% + 3px);right:auto;width:calc(' + w + '% - 6px)"><b>' + esc(t.title) + '</b><span>' + clock(t.sched.s) + ' · ' + esc(state) + '</span></div>';
+    return '<div class="w-ev' + cls + '" role="button" tabindex="0" draggable="true" data-ev="' + t.id + '" data-a="open" data-id="' + t.id + '" style="' + pos + '"><b>' + esc(t.title) + '</b><span>' + clock(t.sched.s) + ' · ' + esc(state) + '</span></div>';
   }
-  function dayColHTML(d, extra) {
+  /* A day's events: my-app's, and in Universal the other projects' and the Team's too. */
+  function calEvents(d, uni) {
     var evs = S.tasks.filter(function (t) { return t.sched && t.sched.d === d && t.state !== 'done'; });
+    if (uni) S.ext.cal.forEach(function (e, i) {
+      if (e.d === d) evs.push({ id: 'e' + i, ext: true, title: e.title, sched: { d: e.d, s: e.s, dur: e.dur }, agent: e.tag, deps: [], state: 'backlog', run: null });
+    });
+    return evs;
+  }
+  function dayColHTML(d, extra, uni) {
     var now = d === TODAY && S.now >= H0 * 60 && S.now <= H1 * 60 ? '<div class="w-now" data-now style="top:' + ((S.now - H0 * 60) / 60 * HOUR) + 'px"></div>' : '';
-    return '<div class="w-dcol' + ((d % 7 + 7) % 7 > 4 ? ' weekend' : '') + (D.pick ? ' pickable' : '') + (extra || '') + '" data-day="' + d + '" style="height:' + ((H1 - H0) * HOUR) + 'px">' + lanes(evs).map(evHTML).join('') + now + '</div>';
+    // With the test task picked, tomorrow at 09:00 is offered as a slot, so a click is enough to plan it.
+    var t3 = story(3), slot = !uni && D.pick && t3 && D.pick === t3.id && !t3.sched && d === TODAY + 1 ?
+      '<button class="w-slot" type="button" data-a="slot" data-day="' + d + '" data-m="540" style="top:' + ((540 - H0 * 60) / 60 * HOUR + 1) + 'px;height:' + (HOUR - 3) + 'px">' + ic('calendar', 14) + 'Tomorrow, 09:00</button>' : '';
+    return '<div class="w-dcol' + ((d % 7 + 7) % 7 > 4 ? ' weekend' : '') + (D.pick ? ' pickable' : '') + (extra || '') + '" data-day="' + d + '" style="height:' + ((H1 - H0) * HOUR) + 'px">' + lanes(calEvents(d, uni)).map(evHTML).join('') + slot + now + '</div>';
   }
   function hoursHTML() { var h = ''; for (var i = H0; i < H1; i++) h += '<span style="top:' + ((i - H0) * HOUR + (i === H0 ? 8 : 0)) + 'px">' + pad(i) + ':00</span>'; return '<div class="w-hours">' + h + '</div>'; }
   function weekTitle(w) { var a = dateOf(7 * w), b = dateOf(7 * w + 6); return MONTHS[a.getMonth()] + ' ' + a.getDate() + ' – ' + (a.getMonth() === b.getMonth() ? '' : MONTHS[b.getMonth()] + ' ') + b.getDate() + ', ' + b.getFullYear(); }
-  function calendarHTML() {
+  function calGridHTML(uni) {
     var base = 7 * D.week, days = [];
     for (var i = 0; i < 7; i++) days.push(base + i);
+    return '<div class="w-calmain"><div class="w-calbar"><div class="l"><button class="w-btn" type="button" data-a="today">Today</button><button class="w-btn ic" type="button" data-a="wk" data-id="-1" aria-label="Previous week">' + ic('left') + '</button><button class="w-btn ic" type="button" data-a="wk" data-id="1" aria-label="Next week">' + ic('right') + '</button><span class="w-caltitle">' + weekTitle(D.week) + '</span></div>' +
+      '<div class="r"><button class="w-btn" type="button" data-a="tz"><span class="w-mm" style="color:var(--text);font-size:12px">Europe/Amsterdam</span></button><div class="w-seg"><button type="button" data-a="mode" data-id="day" aria-pressed="false">Day</button><button type="button" aria-pressed="true">Week</button></div></div></div>' +
+      '<div class="w-calhead"><div></div>' + days.map(function (d) { return '<div class="w-dh">' + DAYS[(d % 7 + 7) % 7].toUpperCase() + '<b' + (d === TODAY ? ' class="today"' : '') + '>' + dateOf(d).getDate() + '</b></div>'; }).join('') + '</div>' +
+      '<div class="w-calscroll" data-keep="cal' + (uni ? '-u' : '') + '"><div class="w-calgrid">' + hoursHTML() + days.map(function (d) { return dayColHTML(d, '', uni); }).join('') + '</div></div></div>';
+  }
+  /* Universal's calendar: every project of every workspace on one week, read only. */
+  function calMainHTML() { return '<div class="w-cal single">' + calGridHTML(true) + '</div>'; }
+  function calendarHTML() {
     var unsched = S.tasks.filter(function (t) { return !t.sched && t.state !== 'done'; });
     var queue = S.tasks.filter(function (t) { return t.sched && t.state === 'backlog'; }).sort(function (a, b) { return schedAbs(a) - schedAbs(b); });
     var waiting = S.tasks.filter(function (t) { return t.state === 'backlog' && waitingFor(t).length; });
-    return '<div class="w-cal"><div class="w-calmain"><div class="w-calbar"><div class="l"><button class="w-btn" type="button" data-a="today">Today</button><button class="w-btn ic" type="button" data-a="wk" data-id="-1" aria-label="Previous week">' + ic('left') + '</button><button class="w-btn ic" type="button" data-a="wk" data-id="1" aria-label="Next week">' + ic('right') + '</button><span class="w-caltitle">' + weekTitle(D.week) + '</span></div>' +
-      '<div class="r"><button class="w-btn" type="button" data-a="tz"><span class="w-mm" style="color:var(--text);font-size:12px">Europe/Amsterdam</span></button><div class="w-seg"><button type="button" data-a="mode" data-id="day" aria-pressed="false">Day</button><button type="button" aria-pressed="true">Week</button></div></div></div>' +
-      '<div class="w-calhead"><div></div>' + days.map(function (d) { return '<div class="w-dh">' + DAYS[(d % 7 + 7) % 7].toUpperCase() + '<b' + (d === TODAY ? ' class="today"' : '') + '>' + dateOf(d).getDate() + '</b></div>'; }).join('') + '</div>' +
-      '<div class="w-calscroll" data-keep="cal"><div class="w-calgrid">' + hoursHTML() + days.map(function (d) { return dayColHTML(d); }).join('') + '</div></div></div>' +
+    return '<div class="w-cal">' + calGridHTML(false) +
       '<aside class="w-calside" data-keep="calside" aria-label="Unscheduled and queue"><h3>Unscheduled <span class="w-chip">' + unsched.length + '</span></h3>' +
       unsched.map(function (t) { return '<div class="w-card w-unit" role="button" tabindex="0" draggable="true" data-un="' + t.id + '" data-a="pick" data-id="' + t.id + '" aria-pressed="' + (D.pick == t.id) + '"><span class="grip">' + ic('grip') + '</span><span><span class="t">' + esc(t.title) + '</span><span class="w-mm">' + ({ backlog: 'Backlog', doing: 'Doing', review: 'Review' })[t.state] + (t.prio !== 'normal' ? ' · ' + t.prio : '') + '</span></span></div>'; }).join('') +
       '<p class="w-mm" style="line-height:1.6">' + (D.pick ? 'Now click a time in the week.' : 'Drag onto the week, or pick one and click a time.') + '</p>' +
@@ -806,14 +1138,19 @@
     if (D.drag) { D.dirty = true; return; }
     keepScroll(deskRoot, D.scroll);
     var fk = focusKey(deskRoot);
-    var main;
-    if (D.view === 'control') main = '<header class="w-ghead"><h1>Needs you</h1><button class="w-btn" type="button" data-a="pal">' + ic('search') + 'Jump to</button></header><main class="w-main" data-keep="main-cc">' + controlHTML(false) + '</main>';
-    else main = headHTML() + bannerHTML() + '<main class="w-main" data-keep="main-' + D.view + '"' + (D.view === 'runs' ? '' : ' style="overflow:hidden"') + '>' + ({ board: boardHTML, overview: overviewHTML, calendar: calendarHTML, git: gitHTML, runs: runsHTML })[D.view]() + '</main>';
-    var panel = D.task && get(D.task) && D.view !== 'control' ? '<section class="w-panel" role="dialog" aria-label="Task">' + panelInner(get(D.task), D.ptab, false) + '</section>' : '';
+    var main, panel = '';
+    if (D.ws === 'universal') main = ({ mywork: myWorkHTML, calendar: ucalHTML, inbox: inboxHTML })[D.uv]();
+    else if (D.ws === 'team') main = teamMain();
+    else {
+      if (D.view === 'control') main = '<header class="w-ghead"><h1>Needs you</h1><button class="w-btn" type="button" data-a="pal">' + ic('search') + 'Jump to</button></header><main class="w-main" data-keep="main-cc">' + controlHTML(false) + '</main>';
+      else main = headHTML() + bannerHTML() + '<main class="w-main" data-keep="main-' + D.view + '"' + (D.view === 'runs' ? '' : ' style="overflow:hidden"') + '>' + ({ board: boardHTML, overview: overviewHTML, calendar: calendarHTML, git: gitHTML, runs: runsHTML })[D.view]() + '</main>';
+      panel = D.task && get(D.task) && D.view !== 'control' ? '<section class="w-panel" role="dialog" aria-label="Task">' + panelInner(get(D.task), D.ptab, false) + '</section>' : '';
+    }
     // Sheets, the switcher and toasts live outside this part, so an open form keeps what was typed.
     deskRoot.querySelector('[data-app]').innerHTML = '<div class="w-shell">' + railHTML() + '<div class="w-mainarea">' + main + panel + '</div></div>';
     restoreScroll(deskRoot, D.scroll);
     S.tasks.forEach(function (t) { t.fresh = false; });
+    S.team.tickets.forEach(function (k) { k.fresh = false; });
     if (fk) { var n = deskRoot.querySelector(fk); if (n) n.focus({ preventScroll: true }); }
   }
   function palHTML() {
@@ -830,7 +1167,7 @@
   /* Clears whatever sits over either simulator: a sheet, the palette or the assistant. Only one surface is on screen at a
      time, so this closes the one the visitor sees. */
   function dropOverlay() {
-    D.sheet = P.sheet = null; D.pal = null;
+    D.sheet = P.sheet = null; D.pal = null; D.sw = false;
     AS.open = false;
     renderAsst(false);
     setOverlay(deskRoot, ''); setOverlay(phoneRoot, '');
@@ -852,7 +1189,7 @@
   }
   function phoneControl() {
     var c = controlHTML(true);
-    return '<p class="w-mm" style="padding:2px 16px 0">' + needsYou() + ' needs you · ' + c.running + ' running · all projects</p><div class="w-mpage">' + c.seg + '<div class="w-filters"><label class="w-pick"><span>Project</span><select><option>all</option></select></label><label class="w-pick"><span>Agent</span><select><option>all</option></select></label></div>' + c.list + c.side + '</div>';
+    return '<p class="w-mm" style="padding:2px 16px 0">' + needsInd() + ' needs you · ' + c.running + ' running · all projects</p><div class="w-mpage">' + c.seg + '<div class="w-filters"><label class="w-pick"><span>Project</span><select><option>all</option></select></label><label class="w-pick"><span>Agent</span><select><option>all</option></select></label></div>' + c.list + c.side + '</div>';
   }
   function phoneCalendar() {
     var d = P.day, x = dateOf(d);
@@ -878,7 +1215,7 @@
     var page, g = P.tab === 'control';
     if (g) page = phoneHeader('Needs you', '', true) + phoneControl();
     else page = phoneHeader() + bannerHTML() + ({ board: phoneBoard, calendar: phoneCalendar, git: phoneGit, runs: phoneRuns })[P.tab]();
-    var n = needsYou();
+    var n = needsInd();
     var tabbar = '<nav class="w-tabbar" aria-label="Primary">' + [['control', 'control', 'Needs you'], ['board', 'board', 'Board'], ['calendar', 'calendar', 'Calendar'], ['git', 'git', 'Git'], ['runs', 'runs', 'Runs']].map(function (x) {
       return '<button type="button" data-a="ptabbar" data-id="' + x[0] + '"' + (P.tab === x[0] && !P.task ? ' aria-current="page"' : '') + '><span class="icon">' + ic(x[1], 20) + (x[0] === 'control' && n ? '<span class="w-num">' + n + '</span>' : '') + '</span><span>' + x[2] + '</span></button>';
     }).join('') + '</nav>';
@@ -920,11 +1257,11 @@
 
   /* ---------- the clock: one simulated minute a second ---------- */
   function tick() {
-    if (G.step !== 'running' && G.step !== 'finishing') return;
+    if (!S.tasks.some(function (t) { return t.run && t.run.st === 'running'; })) return;
     var changed = false;
     S.now += 1;
     S.tasks.forEach(function (t) {
-      var r = t.run; if (!r || t.id !== G.ids[0]) return;
+      var r = t.run; if (!r) return;
       if (r.st === 'running') {
         r.el += 1;
         if (r.el % 2 === 0 && r.li < r.logs.length) { feed(t, 'out', r.logs[r.li]); r.li++; }
@@ -991,7 +1328,6 @@
   }
   function bind(root, where) {
     var V = where === 'desk' ? D : P;
-    guideBind(root);
     root.addEventListener('click', function (e) {
       var b = e.target.closest('[data-a]');
       if (!b || !root.contains(b)) {
@@ -1002,12 +1338,12 @@
       var a = b.dataset.a, id = b.dataset.id, v = b.dataset.v;
       if (b.tagName === 'A') e.preventDefault();
       switch (a) {
-        case 'view': nav(where, id); dropOverlay(); render(); break;
+        case 'view': nav(where, id); D.ws = where === 'desk' ? 'individual' : D.ws; dropOverlay(); render(); break;
         case 'open': openTask(where, id); dropOverlay(); render(); break;
         case 'close': V.task = null; render(); break;
         case 'ptab': V.ptab = id; render(); break;
         case 'start': startTask(+id); render(); break;
-        case 'answer': answer(+id, v); render(); break;
+        case 'answer': answer(isNaN(+id) ? id : +id, v); render(); break;
         case 'toreview': toReview(+id); render(); break;
         case 'merge': V.sheet = { kind: 'merge', id: +id }; setOverlay(root, sheetHTML(V.sheet, where === 'phone'), '[data-a="mergego"]'); break;
         case 'mergego': mergeTask(+id); dropOverlay(); render(); break;
@@ -1029,8 +1365,22 @@
         case 'asst-x': closeAsst(where); break;
         case 'asst-new': startOverAsst(); break;
         case 'asst-ask': askAsst(v); break;
-        case 'asst-ok': decideAsst(+id, true); break;
-        case 'asst-no': decideAsst(+id, false); break;
+        case 'asst-ok': decideCard(+id, +v, true); break;
+        case 'asst-no': decideCard(+id, +v, false); break;
+        case 'asst-all': decideAll(+id, v === 'yes'); break;
+        case 'asst-opentask': openFromAssistant(where, +id, +v); break;
+        case 'ui-sort': var u = AS.msgs[+id].ui, c = +v; if (u.sort === c) u.dir = -u.dir; else { u.sort = c; u.dir = 1; } renderAsst(false); break;
+        case 'sw': var was = D.sw; dropOverlay(); if (!was) { D.sw = true; setOverlay(root, switcherHTML(), '.w-menu [aria-current="true"]'); } render(); break;
+        case 'swx': dropOverlay(); render(); break;
+        case 'ws': goWs(id); break;
+        case 'uv': D.uv = id; render(); break;
+        case 'tv': D.tv = id; render(); break;
+        case 'go': jump(v); break;
+        case 'claim': claim(+id); G.f.claimed = true; render(); break;
+        case 'signoff': signoff(+id); render(); break;
+        case 'runner': toast('Open in my runner hands the ticket to your own Werkbord. Team never runs anything.'); break;
+        case 'addteam': toast('Adding a Team installs a small background service, after you approve it. It is not part of this demo.'); break;
+        case 'slot': schedule(D.pick, +b.dataset.day, +b.dataset.m); render(); break;
         case 'asst-model': toast('Replies are scripted here, so the model is fixed in this demo.'); break;
         case 'help': toast('Help opens the product docs in the app. They are not part of this demo.'); break;
         case 'toast': toast(v); break;
@@ -1045,7 +1395,6 @@
         case 'tz': toast('Each project keeps its own timezone, so a schedule means the same thing after travel or a clock change.'); break;
         case 'mode': toast('Day view shows one day in detail.'); break;
       }
-      guideAdvance(a);
     });
     root.addEventListener('submit', function (e) {
       var f = e.target; e.preventDefault();
@@ -1068,6 +1417,11 @@
       }
     });
     root.addEventListener('input', function (e) {
+      if (e.target.matches('[data-ui-q]')) {
+        var mi = +e.target.getAttribute('data-ui-q'), ui = AS.msgs[mi] && AS.msgs[mi].ui, body = root.querySelector('[data-uitbody="' + mi + '"]');
+        if (ui && body) { ui.q = e.target.value; body.innerHTML = uiBodyHTML(ui); }
+        return;
+      }
       if (e.target.matches('[data-pal]')) { var l = root.querySelector('[data-pallist]'); if (l) l.innerHTML = palListHTML(e.target.value); }
     });
     /* A "What I looked at" panel stays open or shut across the re-renders of a streaming reply. */
@@ -1077,10 +1431,10 @@
     }, true);
     root.addEventListener('keydown', function (e) {
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); return; }
-      if (where === 'desk' && !AS.open && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); D.pal = ''; openOverlay(palHTML(), '[data-pal]'); }
+      if (where === 'desk' && D.ws === 'individual' && !AS.open && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); D.pal = ''; openOverlay(palHTML(), '[data-pal]'); }
       if (e.target.matches('[data-pal]') && e.key === 'Enter') { var first = root.querySelector('[data-pallist] button'); if (first) first.click(); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && e.target.closest('form[data-form="new"]')) { e.preventDefault(); var sb = e.target.closest('form').querySelector('[value="start"]'); if (sb) sb.click(); }
-      if (where === 'desk' && e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey && !e.target.matches('input,textarea,select') && !D.sheet && !AS.open) { e.preventDefault(); D.sheet = { kind: 'new' }; openOverlay(sheetHTML(D.sheet), 'input[name=title]'); }
+      if (where === 'desk' && D.ws === 'individual' && e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey && !e.target.matches('input,textarea,select') && !D.sheet && !AS.open) { e.preventDefault(); D.sheet = { kind: 'new' }; openOverlay(sheetHTML(D.sheet), 'input[name=title]'); }
     });
     if (where === 'desk') bindDrag(root);
   }
@@ -1154,176 +1508,337 @@
     });
   }
 
-  /* ---------- guided example: one explicit action at a time ----------
-     The visitor presses the highlighted control, or Escape to close the assistant or a sheet. NEXT says which step an action
-     leads to. What is highlighted follows the surface on screen (guideTarget), so an overlay closed with Escape brings back
-     the control that opened it. Nothing outside the simulator moves the example on. */
-  var GUIDE = {
-    idea: [0, 'Start with an idea', 'Follow a scripted example: open the highlighted Assistant to turn “CSV export for reports” into scoped work.'],
-    prompt: [0, 'Turn the idea into a plan', 'Choose “Plan CSV export for reports”. The assistant proposes the work before changing the board.'],
-    approve: [1, 'Approve the scoped tasks', 'Confirm each of the three tasks. Each gets a clear scope, acceptance criteria, and an assigned agent.'],
-    organize: [1, 'A plan becomes an organized board', 'The endpoint, export button, and tests now have their own cards. Backlog → Doing → Review → Done keeps progress visible. Press Esc, or close the assistant, to see the board.'],
-    start: [2, 'Put the plan to work', 'Start the endpoint task. The agent works locally in its own Git worktree.'],
-    running: [2, 'The agent is working', 'This scripted run is accelerated. Watch the activity as the task moves from Backlog to Doing.'],
-    answer: [3, 'Give direction when it matters', 'The agent paused for a separator choice. Pick a highlighted answer to keep the work moving. You can answer from either device.'],
-    finishing: [3, 'Your answer keeps work moving', 'The agent continues with your decision, then runs the export tests. Nothing merges automatically.'],
-    review: [4, 'Inspect the finished work', 'Open the endpoint task to read its activity, test result, and change summary before merging.'],
-    merge: [5, 'You control what reaches main', 'Read the activity and change summary. Then choose Merge to check the branch, its commits, and conflicts before confirming.'],
-    confirm: [5, 'Confirm the reviewed change', 'Merge into main in this demo. In Werkbord, this integrates locally; pushing is a separate action.'],
-    done: [6, 'From idea to reviewed work', 'You planned three tasks and merged the endpoint. The export button and integration tests stay in Backlog for the next pass.']
-  };
-  /* The step each action leads to. An action with no entry leaves the step where it is. */
-  var NEXT = {
-    idea: { 'asst-open': 'prompt' },
-    prompt: { 'asst-ask': 'approve' },
-    approve: { 'asst-ok': function () { return G.ids.length === 3 ? 'organize' : 'approve'; } },
-    organize: { 'asst-x': 'start' },
-    start: { start: 'running' },
-    answer: { answer: 'finishing', open: 'answer' },
-    review: { open: 'merge' },
-    merge: { merge: 'confirm', open: 'merge' },
-    confirm: { mergego: 'done' }
-  };
+  /* ---------- the guided story ----------
+     Nothing is locked: the visitor can click anywhere, and the story follows. Each step says what it is about, where the
+     visitor has to be, what to press and how to tell it is done. The note shows the first step that is not done, so doing
+     things in another order, or elsewhere, only moves the note. When the visitor is not where the step needs them, the note
+     points at the next control on the way there (the switcher, a tab, a layer to close). A chapter can be skipped from the
+     bar: it then makes what the skipped part would have made. The phone has its own shorter story: Individual only, as in the
+     product. demo-guide.js draws the ring, the line and the note. */
+  var CHAPTERS = ['Universal', 'Individual', 'Team'];
   var guideSection = document.getElementById('demo');
   var guideEl = document.querySelector('[data-guide]');
-  var guideLast = '';
-  function guideWhere() { return window.matchMedia('(max-width: 767px)').matches || guideSection.dataset.view === 'phone' ? 'phone' : 'desk'; }
+  var small = window.matchMedia('(max-width: 767px)');
+  function guideWhere() { return small.matches || guideSection.dataset.view === 'phone' ? 'phone' : 'desk'; }
   function guideSurface() { return guideWhere() === 'phone' ? phoneRoot : deskRoot; }
-  /* The one control to press now. An open assistant or sheet comes first, since its control is the next thing to use. */
-  function guideTarget() {
-    var id = G.ids[0], phone = guideWhere() === 'phone', V = phone ? P : D;
-    var card = '.w-task .title[data-a="open"][data-id="' + id + '"]', inPanel = phone ? '.w-mtask ' : '.w-panel ';
-    var panel = V.task === id, sheet = !!(V.sheet && V.sheet.kind === 'merge');
-    switch (G.step) {
-      case 'idea': return '[data-a="asst-open"]';
-      case 'prompt': return AS.open ? '[data-a="asst-ask"][data-v="Plan CSV export for reports"]' : '[data-a="asst-open"]';
-      case 'approve': return AS.open ? '[data-a="asst-ok"]' : '[data-a="asst-open"]';
-      case 'organize': return AS.open ? '[data-a="asst-x"]' : '[data-a="asst-open"]';
-      case 'start': return '[data-a="start"][data-id="' + id + '"]';
-      case 'answer': return panel ? inPanel + '[data-a="answer"][data-id="' + id + '"]' : card;
-      case 'review': return card;
-      case 'merge': return panel ? inPanel + '[data-a="merge"][data-id="' + id + '"]' : card;
-      case 'confirm': return sheet ? '[data-a="mergego"][data-id="' + id + '"]' : null;
-      default: return null;
+  function sheetOpen(w) { var s = w === 'phone' ? P.sheet : D.sheet; return !!(s && s.kind === 'merge'); }
+  function started(t) { return !!t && t.state !== 'backlog'; }
+  function claimTarget() { return storyTicket() || tix(45); }
+
+  /* Where each step needs the visitor (need), what to press there (aim: selectors; an array inside the array means the first
+     one present), and when it is done. kind 'area' outlines a region and has no control to press; wait steps show their note
+     even with nothing to point at. sticky steps stay done once they have been. */
+  function boardNeed(w, col) { return w === 'phone' ? { tab: 'board', col: col || 'backlog' } : { ws: 'individual', view: 'board' }; }
+  var STORY = [
+    { id: 'look', ch: 0, desk: true, kind: 'area', next: true, sticky: true,
+      need: function () { return { ws: 'universal', uv: 'mywork' }; }, aim: function () { return ['.w-uh']; },
+      text: 'Start in Universal: your work from every workspace in one list, and what is waiting on you.',
+      done: function () { return D.ws !== 'universal' || D.uv !== 'mywork' || AS.open || G.f.plate || planned(); } },
+    { id: 'ask', ch: 0, kind: 'press', kick: 'Assistant', sticky: true,
+      need: function () { return {}; }, aim: function () { return ['[data-a="asst-open"]']; },
+      text: function (h, w) { return w === 'phone' ? 'Start with an idea. Ask the assistant to turn it into scoped work.' : 'Ask the assistant. It works across your workspaces, from this one interface.'; },
+      done: function () { return AS.open || G.f.plate || G.f.planAsk || planned(); } },
+    { id: 'plate', ch: 0, desk: true, kind: 'press', kick: 'Assistant',
+      need: function () { return { asst: true }; }, aim: function () { return ['.w-apill[data-v="What is on my plate this week?"]']; },
+      text: 'Ask about your whole week, across Individual and your team.',
+      done: function () { return G.f.plate || G.f.planAsk || planned(); } },
+    { id: 'ui', ch: 0, desk: true, kind: 'area', next: true, kick: 'Generated interface', sticky: true,
+      need: function () { return { asst: true }; }, aim: function () { return [{ last: '.w-ui' }]; },
+      text: 'The assistant can answer with interface, not only text (OpenUI). Sort it, filter it. It is read only, and stamped with when it was read.',
+      done: function () { return G.f.planAsk || planned() || !AS.open; } },
+    { id: 'plan', ch: 0, kind: 'press', kick: 'Assistant',
+      need: function () { return { asst: true }; }, aim: function () { return ['.w-apill[data-v="Plan CSV export for reports"]']; },
+      text: 'Now turn an idea into work, in one request.',
+      done: function () { return planned() || (G.f.planAsk && waitingChanges() > 0); } },
+    { id: 'confirm', ch: 0, kind: 'press', kick: 'Assistant',
+      need: function () { return { asst: true }; }, aim: function () { return [['.w-aall', '[data-a="asst-ok"]']]; },
+      text: function (h, w) { return (w === 'phone' ? 'Three tasks for my-app.' : 'Three tasks for my-app and a ticket for your team.') + ' Nothing is created until you confirm.'; },
+      done: function () { return planned() && waitingChanges() === 0; } },
+    { id: 'open', ch: 0, kind: 'press', kick: 'Assistant', sticky: true,
+      need: function () { return { asst: true }; }, aim: function () { return ['.w-acard [data-a="asst-opentask"]']; },
+      text: 'Added. Open the first task where it lives.',
+      done: function () { return !AS.open; } },
+
+    { id: 'board', ch: 1, kind: 'press', sticky: true, hops: true,
+      need: function (w) { return boardNeed(w); }, aim: function () { return []; },
+      text: function (h) {
+        if (!h) return 'Your board.';
+        return h.kind === 'sw' ? 'Now Individual: your own computer and your own repositories. Open the switcher.' : h.kind === 'project' ? 'Open my-app, the project you just planned.' : '';
+      },
+      done: function (w) { return w === 'phone' ? P.tab === 'board' && !P.task : D.ws === 'individual' && D.view !== 'control'; } },
+    { id: 'start', ch: 1, kind: 'press',
+      need: function (w) { return boardNeed(w); },
+      aim: function () { return [story(1), story(2)].filter(function (t) { return t && !started(t); }).map(function (t) { return '[data-a="start"][data-id="' + t.id + '"]'; }); },
+      text: 'Start two agents. Each works in its own Git worktree, so they do not collide.',
+      done: function () { return !!lead() && [story(1), story(2)].every(function (t) { return !t || started(t); }); } },
+    { id: 'running', ch: 1, kind: 'area', wait: true,
+      need: function (w) { var n = boardNeed(w, 'doing'); n.task = true; return n; },
+      aim: function (w) { return w === 'phone' ? ['.w-pills [data-id="doing"]'] : ['.w-col[data-col="doing"]']; },
+      hops: true, text: function (h) { return !h ? 'Both agents are working on your machine, side by side.' : h.kind === 'col' ? 'Both agents are working. Open Doing to watch them.' : ''; },
+      done: function () { var t = lead(); return !t || !t.run || !!t.run.asked2 || t.run.st === 'completed' || t.state !== 'doing'; } },
+    { id: 'answer', ch: 1, kind: 'press',
+      need: function (w) { var n = boardNeed(w, 'doing'); n.task = lead() ? lead().id : true; return n; },
+      aim: function (w) { var t = lead(); return t ? [[(w === 'phone' ? '.w-mtask ' : '.w-panel ') + '[data-a="answer"][data-id="' + t.id + '"]', '.w-task [data-a="answer"][data-id="' + t.id + '"]']] : []; },
+      text: function (h, w) { return w === 'phone' ? 'An agent needs a decision. Answer from your phone, and the desktop window moves on too.' : 'An agent needs a decision. Answer, and it carries on. You can answer from your phone too.'; },
+      done: function () { var t = lead(); return !t || !t.run || !(t.run.st === 'needs' || t.run.st === 'blocked'); } },
+    { id: 'cal', ch: 1, desk: true, kind: 'press', sticky: true, hops: true,
+      need: function () { return { ws: 'individual', view: 'calendar' }; }, aim: function () { return []; },
+      text: function (h) { return h && h.kind === 'tab' ? 'While the agents work, plan the third task. Open Calendar.' : ''; },
+      done: function () { var t = story(3); return !t || !!t.sched || D.view === 'calendar'; } },
+    { id: 'pick', ch: 1, desk: true, kind: 'press',
+      need: function () { return { ws: 'individual', view: 'calendar' }; }, aim: function () { var t = story(3); return t ? ['.w-unit[data-id="' + t.id + '"]'] : []; },
+      text: 'Pick the test task. It waits until the other two are merged.',
+      done: function () { var t = story(3); return !t || !!t.sched || D.pick === t.id; } },
+    { id: 'slot', ch: 1, desk: true, kind: 'press',
+      need: function () { return { ws: 'individual', view: 'calendar' }; }, aim: function () { return ['[data-a="slot"]']; },
+      text: 'Choose tomorrow at 09:00. It starts by itself, even with this window closed.',
+      done: function () { var t = story(3); return !t || !!t.sched; } },
+    { id: 'finishing', ch: 1, kind: 'area', wait: true,
+      need: function (w) { var n = boardNeed(w, 'doing'); n.task = true; return n; },
+      aim: function (w) { return w === 'phone' ? ['.w-task'] : ['.w-col[data-col="doing"]']; },
+      hops: true, text: function (h) { return !h ? 'The agent is wrapping up. Nothing merges on its own.' : h.kind === 'col' || h.kind === 'tab' || h.kind === 'project' ? 'Back to the board, to watch the agent finish.' : ''; },
+      done: function () { var t = lead(); return !t || t.state === 'review' || t.state === 'done'; } },
+    { id: 'review', ch: 1, kind: 'press',
+      need: function (w) { return boardNeed(w, 'review'); },
+      aim: function () { var t = lead(); return t ? ['.w-task[data-card="' + t.id + '"]'] : []; },
+      text: 'The endpoint is ready. Open it and read what the agent did before anything merges.',
+      done: function (w) { var t = lead(); return !t || t.state === 'done' || (w === 'phone' ? P.task : D.task) === t.id || sheetOpen(w); } },
+    { id: 'merge', ch: 1, kind: 'press',
+      need: function (w) { var n = boardNeed(w, 'review'); n.task = lead() ? lead().id : true; return n; },
+      aim: function (w) { var t = lead(); return t ? [[(w === 'phone' ? '.w-mtask ' : '.w-panel ') + '[data-a="merge"][data-id="' + t.id + '"]', '.w-task [data-a="merge"][data-id="' + t.id + '"]']] : []; },
+      text: 'You decide what reaches main. Choose Merge to check the branch first.',
+      done: function (w) { var t = lead(); return !t || t.state === 'done' || sheetOpen(w); } },
+    { id: 'merged', ch: 1, kind: 'press',
+      need: function () { return { sheet: true }; }, aim: function () { return ['.w-sheet [data-a="mergego"]']; },
+      text: 'Checked now, and again when you confirm. The merge is local; nothing is pushed.',
+      done: function () { var t = lead(); return !t || t.state === 'done'; } },
+
+    { id: 'team', ch: 2, desk: true, kind: 'press', sticky: true, hops: true,
+      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { return []; },
+      text: function (h) { return h.kind === 'ws' ? 'Choose ' + S.team.name + ': a shared workspace, in the same window.' : h.kind === 'sw' ? 'Now your team. Open the switcher.' : ''; },
+      done: function () { return !!G.f.team; } },
+    { id: 'see', ch: 2, desk: true, kind: 'area', next: true, sticky: true,
+      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { return ['.w-col[data-col="progress"]', '.w-col[data-col="review"]']; },
+      text: 'Your team’s board: who owns what, with the branch and pull request each person’s own computer reports.',
+      done: function () { return !!G.f.claimed; } },
+    { id: 'claim', ch: 2, desk: true, kind: 'press',
+      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { var k = claimTarget(); return k ? ['[data-a="claim"][data-id="' + k.n + '"]'] : []; },
+      text: function () { return (storyTicket() ? 'Claim the ticket the assistant created.' : 'Claim a ticket.') + ' Claiming is one guarded step, so only one person gets it.'; },
+      done: function () { return !!G.f.claimed; } },
+    { id: 'reviews', ch: 2, desk: true, kind: 'press', sticky: true, hops: true,
+      need: function () { return { ws: 'team', tv: 'reviews' }; }, aim: function () { return []; },
+      text: function (h) { return h.kind === 'nav' ? 'Maya finished a change, and it is waiting for you. Open Reviews.' : ''; },
+      done: function () { return !!G.f.reviews || tix(42).st === 'done'; } },
+    { id: 'signoff', ch: 2, desk: true, kind: 'press',
+      need: function () { return { ws: 'team', tv: 'reviews' }; }, aim: function () { return ['[data-a="signoff"]']; },
+      text: 'Sign off. Team never marks work done while its pull request is open. This one is already merged.',
+      done: function () { return tix(42).st === 'done'; } },
+    { id: 'home', ch: 2, desk: true, kind: 'press', sticky: true, hops: true,
+      need: function () { return { ws: 'universal', uv: 'mywork' }; }, aim: function () { return []; },
+      text: function (h) { return h.kind === 'sw' ? 'Last stop: back to Universal. Open the switcher.' : ''; },
+      done: function () { return D.ws === 'universal'; } }
+  ];
+
+  function applies(s, w) { return !(s.desk && w !== 'desk'); }
+  function isDone(s, w) {
+    var key = s.id + ':' + w;
+    if (s.ch < G.floor || G.s[key] || (s.next && G.f[s.id])) return true;
+    var d = !!s.done(w);
+    if (d && s.sticky) G.s[key] = true;
+    return d;
+  }
+  function currentStep(w) {
+    for (var i = 0; i < STORY.length; i++) if (applies(STORY[i], w) && !isDone(STORY[i], w)) return STORY[i];
+    return null;
+  }
+
+  /* The next control on the way to where a step needs the visitor, or null when they are there. */
+  function route(need, w) {
+    var phone = w === 'phone', V = phone ? P : D;
+    // need.task: true allows any open task; an id allows that task only.
+    function taskOk(open) { return !open || need.task === true || need.task === open; }
+    if (AS.open && !need.asst) return { sel: '[data-a="asst-x"]', kind: 'close-asst' };
+    if (!AS.open && need.asst) return { sel: '[data-a="asst-open"]', kind: 'open-asst' };
+    if (need.sheet && V.sheet) return null;
+    if (V.sheet && !need.sheet) return { sel: '.w-sheet [data-a="sheetx"].ic', kind: 'close-sheet' };
+    if (phone) {
+      if (P.task && !taskOk(P.task)) return { sel: '.w-mtask [data-a="close"]', kind: 'back' };
+      if (need.tab && !P.task) {
+        if (P.tab !== need.tab) return { sel: '.w-tabbar [data-a="ptabbar"][data-id="' + need.tab + '"]', kind: 'tab', to: need.tab };
+        if (need.col && P.col !== need.col) return { sel: '.w-pills [data-a="col"][data-id="' + need.col + '"]', kind: 'col', to: need.col };
+      }
+      return null;
     }
+    if (D.pal !== null) return null;
+    if (need.ws && D.ws !== need.ws) return D.sw ? { sel: '.w-menu [data-a="ws"][data-id="' + need.ws + '"]', kind: 'ws', to: need.ws } : { sel: '.w-rail [data-a="sw"]', kind: 'sw', to: need.ws };
+    if (D.sw) return null;
+    if (need.ws === 'universal' && need.uv && D.uv !== need.uv) return { sel: '.w-rail [data-a="uv"][data-id="' + need.uv + '"]', kind: 'nav', to: need.uv };
+    if (need.ws === 'team' && need.tv && D.tv !== need.tv) return { sel: '.w-rail [data-a="tv"][data-id="' + need.tv + '"]', kind: 'nav', to: need.tv };
+    if (need.ws === 'individual' && need.view) {
+      if (D.view !== need.view) return D.view === 'control' ? { sel: '.w-rail [data-a="view"][data-id="board"]', kind: 'project' } : { sel: '.w-tabs [data-a="view"][data-id="' + need.view + '"]', kind: 'tab', to: need.view };
+      if (D.task && !taskOk(D.task)) return { sel: '.w-panel [data-a="close"]', kind: 'close-task' };
+    }
+    return null;
+  }
+  var WSNAME = { universal: 'Universal', individual: 'Individual' }, VIEWNAME = { board: 'Board', calendar: 'Calendar', mywork: 'My Work', inbox: 'Needs you', reviews: 'Reviews', home: 'Needs you', review: 'Review', doing: 'Doing', backlog: 'Backlog' };
+  var HOP = { 'close-asst': 'Close the assistant to continue.', 'open-asst': 'Open the assistant.', 'close-sheet': 'Close this to continue.', back: 'Go back to the board.', 'close-task': 'Close the task to see the board.',
+    sw: function (h) { return 'Open the switcher to get to ' + (WSNAME[h.to] || S.team.name) + '.'; },
+    ws: function (h) { return 'Choose ' + (WSNAME[h.to] || S.team.name) + '.'; },
+    project: 'Open my-app.',
+    nav: function (h) { return 'Open ' + (VIEWNAME[h.to] || 'the page') + '.'; },
+    tab: function (h) { return 'Open ' + (VIEWNAME[h.to] || 'the page') + '.'; },
+    col: function (h) { return 'Open ' + (VIEWNAME[h.to] || 'the column') + '.'; } };
+  var GENERIC = { 'close-asst': 1, 'open-asst': 1, 'close-sheet': 1, back: 1, 'close-task': 1 };
+  function hopText(h) { var f = HOP[h.kind]; return typeof f === 'function' ? f(h) : f; }
+  /* A step's own words show when the visitor is where the step needs them. On the way there the note names the next control,
+     except for steps that word their own way in (hops: true). */
+  function stepText(s, h, w) {
+    if (!h) return typeof s.text === 'function' ? s.text(null, w) : s.text;
+    if (s.hops && !GENERIC[h.kind]) { var t = s.text(h, w); if (t) return t; }
+    return hopText(h);
+  }
+
+  function pick(root, spec) {
+    if (typeof spec === 'string') return root.querySelector(spec);
+    if (Array.isArray(spec)) { for (var i = 0; i < spec.length; i++) { var n = root.querySelector(spec[i]); if (n) return n; } return null; }
+    var all = root.querySelectorAll(spec.last); return all.length ? all[all.length - 1] : null;
+  }
+  /* Scrolls the app's own containers so the whole target is in view. A new target is always brought in; after that only a target
+     that has become half hidden is nudged back, such as when the note above a phone grows and shrinks the list. A visitor who
+     has scrolled the target out of sight altogether is left where they are. */
+  var revealed = '';
+  function reveal(target, surface, sig) {
+    var first = revealed !== sig;
+    revealed = sig;
+    var scale = (surface === deskRoot ? D.s : (window.innerWidth >= 768 ? P.s : 1)) || 1;
+    var node = target.parentElement;
+    while (node && node !== surface) {
+      if (node.scrollHeight > node.clientHeight && /auto|scroll/.test(getComputedStyle(node).overflowY)) {
+        var r = target.getBoundingClientRect(), box = node.getBoundingClientRect(), pad = 14;
+        var none = r.bottom <= box.top || r.top >= box.bottom, whole = r.top >= box.top && r.bottom <= box.bottom;
+        if (!whole && (first || !none)) {
+          if (r.height + 2 * pad > box.height || r.top < box.top + pad) node.scrollTop += (r.top - box.top - pad) / scale;
+          else node.scrollTop += (r.bottom - box.bottom + pad) / scale;
+        }
+      }
+      node = node.parentElement;
+    }
+  }
+  function mobileNow() { return small.matches; }
+  function guideHost(w) {
+    if (w === 'desk') return deskMount.closest('.demo-desk');
+    return small.matches ? guideSection.querySelector('[data-panel="phone"]') : guideSection.querySelector('.demo-stage');
+  }
+  function stepSpec(s, w, surface) {
+    var h = route(s.need ? s.need(w) : {}, w), els = [], kind = s.kind;
+    if (h) { var n = surface.querySelector(h.sel); els = n ? [n] : []; kind = 'press'; }
+    else els = (s.aim ? s.aim(w) : []).map(function (a) { return pick(surface, a); }).filter(Boolean);
+    if (!els.length && !s.wait) return null;
+    var sig = s.id + (h ? ':' + h.kind : '');
+    // Once per target, and again when the same control turns up in another place, such as a task's panel after its card.
+    if (els[0]) { var at = els[0].closest('.w-panel, .w-mtask, .w-asst, .w-sheet, .w-menu'); reveal(els[0], surface, sig + ':' + (els[0].getAttribute('data-id') || '') + ':' + (at ? at.className : '')); }
+    return { id: sig, kicker: s.kick || CHAPTERS[s.ch], text: stepText(s, h, w), els: els, kind: kind, wait: !!s.wait && !h,
+      actions: s.next && !h ? [{ key: 'next', label: 'Next', primary: true }] : [] };
+  }
+  function endSpec(w) {
+    var acts = [{ key: 'restart', label: 'Restart' }];
+    if (!small.matches) acts.push({ key: 'join', label: 'Join the waitlist', primary: true, href: '#waitlist' });
+    return { id: 'end', kicker: 'Done', text: w === 'phone' ? 'That was the loop on your phone. Universal and your Team live in the desktop app.' : 'That was the loop: plan, run and review, together. Restart the tour, or join the waitlist.', els: [], kind: 'area', actions: acts };
+  }
+  function paintChapters(w, step) {
+    var list = guideEl.querySelector('.guide-chapters');
+    if (w === 'phone') { list.hidden = true; return; }
+    list.hidden = false;
+    var cur = step ? step.ch : -1;
+    var html = CHAPTERS.map(function (name, i) {
+      var done = i < G.floor || STORY.every(function (s) { return s.ch !== i || !applies(s, w) || isDone(s, w); });
+      return '<li' + (done && i !== cur ? ' class="is-done"' : '') + '><button type="button" data-chapter="' + i + '"' + (i === cur ? ' aria-current="step"' : '') + ' title="' + (i === cur ? name : 'Go to ' + name) + '">' + name + '</button></li>';
+    }).join('');
+    if (list.dataset.sig !== html) { list.dataset.sig = html; list.innerHTML = html; }
   }
   function guideRefresh() {
     if (!guideEl || !deskRoot || !phoneRoot) return;
-    var task = get(G.ids[0]);
-    if (G.step === 'running' && task && task.run.st === 'needs') { G.step = 'answer'; G.focus = true; }
-    if (G.step === 'finishing' && task && task.run.st === 'completed') {
-      toReview(task.id); G.step = 'review'; G.focus = true;
-      D.task = null; P.task = null; P.col = 'review'; renderDesk(); renderPhone();
-    }
-    var step = GUIDE[G.step], signature = G.step + ':' + G.ids.length;
-    if (guideLast !== signature) {
-      guideLast = signature;
-      var names = ['Idea', 'Organize', 'Run', 'Direct', 'Review', 'Merge'];
-      guideEl.querySelector('.guide-progress').innerHTML = names.map(function (name, i) {
-        return '<span' + (i === step[0] ? ' aria-current="step"' : '') + ' class="' + (i < step[0] ? 'is-done' : '') + '">' + '<b>' + (i + 1) + '</b>' + name + '</span>';
-      }).join('');
-      guideEl.querySelector('.guide-copy').innerHTML = '<h3>' + step[1] + '</h3><p>' + step[2] + (G.step === 'approve' ? ' ' + G.ids.length + ' of 3 added.' : '') + '</p>';
-    }
-    var sel = guideTarget(), surface = guideSurface();
-    [deskRoot, phoneRoot].forEach(function (root) {
-      root.querySelectorAll('.w-guide-target').forEach(function (el) { el.classList.remove('w-guide-target'); });
-      root.querySelectorAll('[data-a], button, input, select, textarea, [draggable]').forEach(function (el) {
-        var allowed = sel && el.matches(sel);
-        el.inert = !allowed && !(sel && el.querySelector(sel));
-        if (el.hasAttribute('draggable')) el.draggable = false;
-        if (allowed) el.classList.add('w-guide-target');
-      });
-    });
-    // Reveal within app scroll containers without scrolling the surrounding landing page.
-    var target = sel && surface && surface.querySelector(sel);
-    if (target) {
-      var node = target.parentElement;
-      while (node && node !== surface) {
-        if (node.scrollHeight > node.clientHeight && /auto|scroll/.test(getComputedStyle(node).overflowY)) {
-          var r = target.getBoundingClientRect(), box = node.getBoundingClientRect();
-          if (r.bottom > box.bottom - 12 || r.top < box.top + 12) node.scrollTop += (r.top - box.top - node.clientHeight / 2) / (surface === deskRoot ? D.s : (window.innerWidth >= 768 ? P.s : 1));
-        }
-        node = node.parentElement;
-      }
-      target.setAttribute('aria-describedby', 'demo-guide-description');
-    }
-    guideEl.querySelector('.guide-copy').id = 'demo-guide-description';
-    // Focus goes to the control as soon as it exists, which can be after a reply has streamed in, and back to it if a redraw lost it.
-    var at = document.activeElement, lost = !at || at === document.body || !at.isConnected;
-    if ((G.focus || lost) && target && guideEl.getClientRects().length) { G.focus = false; target.focus({ preventScroll: true }); }
+    var w = guideWhere(), surface = guideSurface();
+    if (D.ws === 'team') G.f.team = true;
+    if (D.ws === 'team' && D.tv === 'reviews') G.f.reviews = true;
+    var step = currentStep(w);
+    G.cur = step;
+    paintChapters(w, step);
+    var key = step ? step.id : 'end', tip = guideEl.querySelector('[data-guide-tip]');
+    if (tip) tip.hidden = G.hide !== key;
+    if (G.hide === key) { WBGuide.hide(); return; }
+    var spec = step ? stepSpec(step, w, surface) : endSpec(w);
+    [deskRoot, phoneRoot].forEach(function (r) { r.querySelectorAll('[aria-describedby="demo-guide-note"]').forEach(function (n) { n.removeAttribute('aria-describedby'); }); });
+    if (!spec) { WBGuide.hide(); return; }
+    var mobile = small.matches;
+    spec.host = guideHost(w);
+    spec.inset = w === 'desk' ? { top: 30 } : null;
+    spec.keep = w === 'phone' && !mobileNow() ? phoneMount.querySelector('.device') : null;
+    spec.dock = mobile ? { parent: guideHost(w), before: phoneMount } : null;
+    if (spec.els[0]) spec.els[0].setAttribute('aria-describedby', 'demo-guide-note');
+    // The conversation makes room beside it for the note, so the note never sits on what it is about.
+    var open = deskRoot.querySelector('.w-asst');
+    if (open) open.classList.toggle('room', w === 'desk');
+    WBGuide.show(spec);
   }
   function guideLayout() {
     if (!guideEl || !guideSection) return;
-    var mobile = window.matchMedia('(max-width: 767px)').matches;
-    var host = mobile ? guideSection.querySelector('[data-panel="phone"]') : guideSection;
-    var before = mobile ? phoneMount : guideSection.querySelector('.demo-stage');
-    if (guideEl.parentNode !== host) host.insertBefore(guideEl, before);
+    var w = guideWhere();
+    if (G.where && G.where !== w) { AS.open = false; asstFresh(); D.sheet = P.sheet = null; D.pal = null; D.sw = false; setOverlay(deskRoot, ''); setOverlay(phoneRoot, ''); }
+    G.where = w;
+    var before = guideSection.querySelector('.demo-stage');
+    if (guideEl.nextElementSibling !== before) guideSection.insertBefore(guideEl, before);
     guideRefresh();
   }
-  /* Moves the example on after an action, and brings the other surface along, so the next control is there on either. */
-  function guideAdvance(action) {
-    var to = NEXT[G.step] && NEXT[G.step][action];
-    if (typeof to === 'function') to = to();
-    if (to) {
-      G.step = to;
-      if (to === 'start') { D.view = 'board'; P.tab = 'board'; P.col = 'backlog'; }
-      if (to === 'running') { P.col = 'doing'; D.task = P.task = G.ids[0]; }
-      if (to === 'answer' || to === 'merge') { D.task = P.task = G.ids[0]; D.ptab = P.ptab = 'activity'; }
-      if (to === 'confirm') {
-        D.sheet = P.sheet = { kind: 'merge', id: G.ids[0] };
-        setOverlay(deskRoot, sheetHTML(D.sheet, false)); setOverlay(phoneRoot, sheetHTML(P.sheet, true));
-      }
-      if (to === 'done') { dropOverlay(); D.task = P.task = null; P.col = 'done'; }
-    }
-    G.focus = true;
+  /* A chapter can be skipped from the bar. What the skipped part would have made is made now, so the next part has its work. */
+  function jumpTo(ch) {
+    if (guideWhere() === 'phone') return;
+    dropOverlay();
+    if (ch >= 1) seedPlan();
+    G.floor = ch; D.task = null; D.pick = null;
+    if (ch === 0) { D.ws = 'universal'; D.uv = 'mywork'; }
+    if (ch === 1) { D.ws = 'individual'; D.view = 'board'; }
+    if (ch === 2) { D.ws = 'team'; D.tv = 'board'; G.f.team = true; }
     render();
   }
-  /* Only the highlighted control reacts to a click, a key or a drop. The reads panel and Escape always work. */
-  function guideBind(root) {
-    root.addEventListener('click', function (e) {
-      if (e.target.closest('summary')) return;
-      var b = e.target.closest('[data-a]'), sel = guideTarget();
-      if (!b || !sel || !b.matches(sel) || root !== guideSurface()) { e.preventDefault(); e.stopImmediatePropagation(); }
-    }, true);
-    root.addEventListener('keydown', function (e) {
-      if (e.key === 'Tab' || e.key === 'Escape' || /^(Arrow|Page|Home|End)/.test(e.key)) return;
-      if ((e.key === 'Enter' || e.key === ' ') && (e.target.matches('.w-guide-target') || e.target.closest('summary'))) return;
-      e.preventDefault(); e.stopImmediatePropagation();
-    }, true);
-    ['submit', 'dragstart', 'drop'].forEach(function (type) {
-      root.addEventListener(type, function (e) { e.preventDefault(); e.stopImmediatePropagation(); }, true);
-    });
-  }
   function guideReset() {
-    halt(); clearTimeout(AS.timer); clearTimeout(toastTimer);
+    halt(); asstFresh(); clearTimeout(toastTimer);
     var fresh = JSON.parse(initialState);
     Object.keys(S).forEach(function (k) { S[k] = fresh[k]; });
-    G.step = 'idea'; G.ids = []; G.focus = true;
-    AS.msgs = []; AS.opts = ROOT.slice(); AS.busy = false; AS.timer = null; AS.open = false;
+    G.f = {}; G.s = {}; G.floor = 0; G.hide = null; revealed = '';
+    AS.open = false;
     [D, P].forEach(function (v) { v.task = null; v.sheet = null; v.scroll = {}; });
-    D.view = 'board'; D.pal = null; D.pick = null; P.tab = 'board'; P.col = 'backlog';
+    D.ws = 'universal'; D.uv = 'mywork'; D.tv = 'board'; D.view = 'control'; D.sw = false; D.pal = null; D.pick = null; D.week = 0;
+    P.tab = 'board'; P.col = 'backlog'; P.day = TODAY;
     [deskRoot, phoneRoot].forEach(function (root) { setOverlay(root, ''); root.querySelector('.w-toast').classList.remove('show'); });
-    guideLast = ''; render(); go();
+    render(); go();
   }
-  /* Escape closes the top layer of the surface on screen: a sheet or the palette, then the assistant, then the task panel.
-     Returns false when there was nothing to close. */
+  /* Escape closes the top layer of the surface on screen: a sheet, the menu or the palette, then the assistant, then the task
+     panel. Returns false when there was nothing to close. */
   function closeTop(where) {
     var root = where === 'desk' ? deskRoot : phoneRoot, V = where === 'desk' ? D : P;
     if (!root || !root.getClientRects().length) return false;
     // Focus leaves the closing layer first, so the redraw does not hand it to a look-alike control elsewhere on the board.
     if (root.contains(document.activeElement)) document.activeElement.blur();
-    if (V.sheet || (where === 'desk' && D.pal !== null)) {
-      dropOverlay();
-      // Escape on the merge sheet: the Merge control is the one to use again.
-      if (G.step === 'confirm') { G.step = 'merge'; G.focus = true; render(); }
-      return true;
-    }
-    if (AS.open) { closeAsst(where); guideAdvance('asst-x'); return true; }
+    if (V.sheet || (where === 'desk' && (D.pal !== null || D.sw))) { dropOverlay(); render(); return true; }
+    if (AS.open) { closeAsst(where); return true; }
     if (V.task) { V.task = null; render(); return true; }
     return false;
   }
-  if (guideEl) guideEl.querySelector('[data-guide-restart]').addEventListener('click', guideReset);
-  window.matchMedia('(max-width: 767px)').addEventListener('change', guideLayout);
+  if (guideEl) {
+    guideEl.querySelector('[data-guide-restart]').addEventListener('click', guideReset);
+    guideEl.querySelector('[data-guide-tip]').addEventListener('click', function () { G.hide = null; guideRefresh(); });
+    guideEl.querySelector('.guide-chapters').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-chapter]');
+      if (b) jumpTo(+b.getAttribute('data-chapter'));
+    });
+  }
+  WBGuide.onAction(function (key) {
+    if (key === 'next' && G.cur) { G.f[G.cur.id] = true; guideRefresh(); }
+    else if (key === 'hide') { G.hide = G.cur ? G.cur.id : 'end'; guideRefresh(); }
+    else if (key === 'restart') guideReset();
+  });
+  small.addEventListener('change', guideLayout);
   /* Escape works while focus is in the demo, or has fallen back to the page. It leaves the waitlist's keys alone. */
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;

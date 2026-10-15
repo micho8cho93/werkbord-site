@@ -14,7 +14,7 @@ const meta = (h, attr, name) => {
   return m ? m[1] : null;
 };
 const SITE = 'https://micho8cho93.github.io/werkbord-site/';
-const COPY = ['index.html', '404.html', 'llms.txt', 'assets/js/waitlist.js', 'assets/js/demo-view.js'];
+const COPY = ['index.html', '404.html', 'llms.txt', 'assets/js/waitlist.js', 'assets/js/demo-view.js', 'assets/js/demo-guide.js', 'assets/js/app-demo.js'];
 
 test('the page has one H1 that names the category, and its rotating word is team, agent or project', () => {
   const h = read('index.html');
@@ -149,7 +149,7 @@ test('the waitlist asks for an email and an optional team size of 2 to 6+, and u
 test('the demo has its two mounts, and the scripts load in dependency order', () => {
   const h = read('index.html');
   assert.ok(h.includes('id="app-demo"') && h.includes('id="phone-demo"'));
-  const order = ['assets/js/common.js', 'assets/js/app-demo.js', 'assets/js/waitlist.js', 'assets/js/demo-view.js']
+  const order = ['assets/js/common.js', 'assets/js/demo-guide.js', 'assets/js/app-demo.js', 'assets/js/waitlist.js', 'assets/js/demo-view.js']
     .map((s) => h.indexOf('src="' + s + '"'));
   for (const i of order) assert.ok(i > -1, 'script missing from index.html');
   assert.deepStrictEqual([...order].sort((a, b) => a - b), order);
