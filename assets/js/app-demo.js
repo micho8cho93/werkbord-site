@@ -36,6 +36,7 @@
     assistant: '<path d="M6 2.5l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/><path d="M12 9.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/>',
     people: '<circle cx="6" cy="5.5" r="2.3"/><path d="M1.8 13c0-2.3 1.9-3.8 4.2-3.8s4.2 1.5 4.2 3.8M10.6 3.6a2.2 2.2 0 0 1 0 3.8M12.4 9.5c1.2.5 1.8 1.6 1.8 3.5"/>',
     analytics: '<path d="M2 2v12h12M5 11V8M8 11V5M11 11V3"/>',
+    activity: '<path d="M1.5 8h3l2-5 3 10 2-5h3"/>',
     help: '<circle cx="8" cy="8" r="5.8"/><path d="M6.3 6.4a1.8 1.8 0 1 1 2.5 1.6c-.5.3-.8.6-.8 1.1v.3"/><path d="M8 11.7v.1"/>'
   };
   function ic(n, size) { size = size || 16; return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>'; }
@@ -154,7 +155,7 @@
 
   /* ---------- views: each surface has its own navigation ---------- */
   var D = { ws: 'universal', uv: 'mywork', tv: 'board', view: 'control', sw: false, task: null, ptab: 'activity', sheet: null, pal: null, week: 0, mode: 'week', pick: null, cc: 'all', drag: null, scroll: {} };
-  var P = { tab: 'board', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', scroll: {} };
+  var P = { at: 'deck', tab: 'board', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', scroll: {} };
 
   // Start with a clean project so the visitor sees an idea become a working board.
   S.tasks = []; S.log = []; S.finding = false;
@@ -545,6 +546,7 @@
     var root = where === 'desk' ? deskRoot : phoneRoot;
     D.sheet = P.sheet = null; D.pal = null; D.sw = false;
     AS.open = true;
+    renderPhone();
     renderAsst(false);
     var first = root && root.querySelector('.w-asst .w-apill, .w-asst [data-a="asst-x"]');
     if (first) first.focus({ preventScroll: true });
@@ -552,6 +554,7 @@
   function closeAsst(where) {
     var root = where === 'desk' ? deskRoot : phoneRoot;
     AS.open = false;
+    renderPhone();
     renderAsst(false);
     var opener = root && root.querySelector('[data-a="asst-open"]');
     if (opener) opener.focus({ preventScroll: true });
@@ -562,7 +565,7 @@
     AS.open = false; renderAsst(false);
     if (where === 'desk') {
       if (c && c.op === 'ticket') { D.ws = 'team'; D.tv = 'board'; } else { D.ws = 'individual'; D.view = 'board'; D.task = null; }
-    } else { P.tab = 'board'; P.task = null; P.col = 'backlog'; }
+    } else { P.at = 'project'; P.tab = 'board'; P.task = null; P.col = 'backlog'; }
     render();
   }
   /* Both surfaces draw the conversation while it is open. Each keeps its own scroll. */
@@ -583,7 +586,7 @@
   }
   function assistantHTML(phone) {
     var newBtn = AS.msgs.length ? '<button class="w-btn quiet sm" type="button" data-a="asst-new" aria-label="Start a new conversation">' + ic('plus', 14) + (phone ? '' : 'New') + '</button>' : '';
-    var closeBtn = phone ? '<button class="w-btn quiet ic" type="button" data-a="asst-x" aria-label="Close assistant">' + ic('close') + '</button>'
+    var closeBtn = phone ? ''
       : '<button class="w-btn quiet sm" type="button" data-a="asst-x" aria-label="Close assistant">' + ic('close', 14) + 'Close<kbd class="w-key">Esc</kbd></button>';
     var top = '<header class="w-atop"><div class="w-awho"><h2>Assistant</h2><button class="w-amodel" type="button" data-a="asst-model">Claude Code<span>· Default</span>' + ic('down', 14) + '</button></div><div class="w-aacts">' + newBtn + closeBtn + '</div></header>';
     return '<div class="w-asst" role="dialog" aria-modal="true" aria-label="Assistant">' + top +
@@ -1174,12 +1177,46 @@
   }
   function closeOverlay() { dropOverlay(); }
 
-  /* ================= phone ================= */
-  function phoneHeader(title, sub, global) {
-    var asst = '<button class="w-btn ic" type="button" data-a="asst-open" aria-haspopup="dialog" aria-label="Assistant">' + ic('assistant') + '</button>';
-    var search = '<button class="w-btn ic" type="button" data-a="toast" data-v="Jump to searches projects, sections and tasks." aria-label="Jump to">' + ic('search') + '</button>';
-    if (global) return '<header class="w-mhead g"><div style="display:flex;align-items:center;gap:10px">' + mark(18) + '<h1>' + title + '</h1></div><div class="w-macts">' + asst + search + '</div></header>';
-    return '<header class="w-mhead"><div class="w-where"><button class="w-pname" type="button" data-a="toast" data-v="The project name switches projects. This demo has one.">' + mark(18) + '<h1>my-app</h1><span class="chev">' + ic('down', 14) + '</span></button><p class="w-path">~/code/my-app · main</p></div><div class="w-macts">' + asst + search + '</div></header>';
+  /* ================= phone =================
+     The phone opens on the Control Deck (web/src/lib/mobile/): nine keys, one line on what needs you, what the agents are doing,
+     and a bottom bar with two places, the deck and the Assistant. Everything else is a page reached from a key, with Back. A
+     project is under Projects and keeps its own sections as a row of tabs. It reads the same state as the desktop window. */
+  var PLACES = { control: 'Needs you', calendar: 'Calendar', projects: 'Projects', mywork: 'My Work', agents: 'Agents', analytics: 'Analytics', reviews: 'Reviews', git: 'Git', runners: 'Runners' };
+  var KEYS = [['control', 'control', 'wait'], ['calendar', 'calendar'], ['projects', 'folder'], ['mywork', 'check'], ['agents', 'activity', 'work'], ['analytics', 'analytics'], ['reviews', 'merge', 'work'], ['git', 'git', 'wait'], ['runners', 'runner']];
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many || one + 's'); }
+  function reviewTasks() { return S.tasks.filter(function (t) { return t.run && t.run.st === 'completed'; }); }
+  /* Agents at work now: this project's, plus the Codex run and the waiting question the rest of Individual has. */
+  function fleet() {
+    var run = S.tasks.filter(function (t) { return t.run && t.run.st === 'running'; }), ask = S.tasks.filter(function (t) { return t.run && (t.run.st === 'needs' || t.run.st === 'blocked'); });
+    var names = {};
+    run.concat(ask).forEach(function (t) { names[t.agent] = 1; });
+    names[S.ext.run.agent] = 1; if (S.ext.ask.st === 'needs') names[S.ext.ask.agent] = 1;
+    return { running: run.length + 1, waiting: ask.length + (S.ext.ask.st === 'needs' ? 1 : 0), names: Object.keys(names) };
+  }
+  function keyCounts() { var f = fleet(); return { control: needsInd(), agents: f.running, reviews: reviewTasks().length, git: gitItems().length }; }
+  function phoneDeck() {
+    var c = keyCounts(), f = fleet(), n = c.control;
+    var keys = KEYS.map(function (k) {
+      var count = c[k[0]] || 0, tone = k[2] || 'plain', lit = count > 0;
+      return '<a class="w-dkey" href="#" data-a="pgo" data-id="' + k[0] + '" data-key="' + k[0] + '"' + (lit ? ' data-lit="on" data-tone="' + tone + '"' : '') + ' aria-label="' + PLACES[k[0]] + (lit ? ', ' + count : '') + '"><span class="cap"><span class="face"><span class="glyph">' + ic(k[1], 26) + '</span><span class="name">' + PLACES[k[0]] + '</span></span>' +
+        (lit ? '<span class="w-num' + (tone === 'wait' ? ' pend' : '') + '" aria-hidden="true">' + count + '</span>' : '') + '</span></a>';
+    }).join('');
+    var attn = n > 0 ? plural(n, 'item') + ' ' + (n === 1 ? 'needs' : 'need') + ' your input' : c.reviews ? c.reviews + ' ready for review' : 'All clear';
+    var head = [f.running ? plural(f.running, 'agent') + ' running' : '', f.waiting ? f.waiting + ' waiting for you' : ''].filter(Boolean).join(' · ') || 'No agents are running';
+    return '<div class="w-deckpage"><header class="w-dtop"><div class="id"><p class="brand">' + mark(20) + '<span class="wm">werkbord</span></p><p class="w-mm status"><span class="conn">' + dot('ok') + 'Connected</span> · 1 runner · ' + plural(f.running, 'agent') + ' running</p></div>' +
+      '<button class="w-btn ic" type="button" data-a="settings" aria-label="Settings">' + ic('settings') + '</button></header>' +
+      '<a class="w-card w-attn' + (n ? ' waiting' : '') + '" href="#" data-a="pgo" data-id="control">' + (n ? '<span class="w-num pend" aria-hidden="true">' + n + '</span>' : '<span class="signal" aria-hidden="true"></span>') + '<span class="say">' + attn + '</span>' + ic('right') + '</a>' +
+      '<section class="w-housing" aria-label="Control Deck"><div class="w-keys">' + keys + '</div></section>' +
+      '<a class="w-card w-act" href="#" data-a="pgo" data-id="agents"><span class="tile" aria-hidden="true">' + ic('activity', 20) + '</span><span class="who"><span class="task">' + head + '</span><span class="w-mm">' + f.names.join(', ') + '</span></span>' + ic('right') + '</a>' +
+      '<nav class="w-more" aria-label="More"><button type="button" data-a="help">Help and shortcuts</button><button type="button" data-a="toast" data-v="Jump to searches projects, sections and tasks.">Jump to…</button></nav></div>';
+  }
+  /* A page under the deck: Back, its name, and one line on how its subject stands (the app's subtitle.ts). */
+  function pageHead(title, sub, back) {
+    return '<header class="w-phh"><button class="w-btn quiet ic" type="button" data-a="pback" aria-label="Back to ' + back + '">' + ic('left', 18) + '</button><div class="t"><h1>' + title + '</h1>' + (sub ? '<p class="w-mm">' + sub + '</p>' : '') + '</div></header>';
+  }
+  function phoneControl() {
+    var c = controlHTML(true);
+    return '<div class="w-mpage">' + c.seg + '<div class="w-filters"><label class="w-pick"><span>Project</span><select><option>all</option></select></label><label class="w-pick"><span>Agent</span><select><option>all</option></select></label></div>' + c.list + c.side + '</div>';
   }
   function phoneBoard() {
     var cols = COLS.map(function (c) { return [c[0], c[1], inCol(c[0])]; });
@@ -1187,14 +1224,10 @@
       filtersHTML() + legendHTML(true) +
       '<ul style="display:flex;flex-direction:column;gap:12px">' + (function () { var ts = inCol(P.col); return ts.length ? ts.map(function (t) { return cardHTML(t, false); }).join('') : '<li class="w-none">' + emptyCol(P.col) + '</li>'; })() + '</ul></div>';
   }
-  function phoneControl() {
-    var c = controlHTML(true);
-    return '<p class="w-mm" style="padding:2px 16px 0">' + needsInd() + ' needs you · ' + c.running + ' running · all projects</p><div class="w-mpage">' + c.seg + '<div class="w-filters"><label class="w-pick"><span>Project</span><select><option>all</option></select></label><label class="w-pick"><span>Agent</span><select><option>all</option></select></label></div>' + c.list + c.side + '</div>';
-  }
   function phoneCalendar() {
     var d = P.day, x = dateOf(d);
     var head = '<div class="w-mcal"><div class="bar"><button class="w-btn" type="button" data-a="pday" data-id="0">Today</button><button class="w-btn ic" type="button" data-a="pday" data-id="-1" aria-label="Previous day">' + ic('left') + '</button><button class="w-btn ic" type="button" data-a="pday" data-id="1" aria-label="Next day">' + ic('right') + '</button><span class="w-caltitle">' + DAYS[(d % 7 + 7) % 7] + ', ' + MONTHS[x.getMonth()] + ' ' + x.getDate() + ', 2026</span></div>' +
-      '<div class="bar"><button class="w-btn" type="button" data-a="tz"><span class="w-mm" style="color:var(--text);font-size:13px">Europe/Amsterdam</span></button><div class="w-seg"><button type="button" aria-pressed="true">Day</button><button type="button" data-a="toast" data-v="Week view needs a wider screen; on a phone the day is easier to read.">Week</button></div></div>' +
+      '<div class="bar"><button class="w-btn" type="button" data-a="tz"><span class="w-mm" style="color:var(--text);font-size:13px">Europe/Amsterdam</span></button><div class="w-seg"><button type="button" aria-pressed="true">Day</button><button type="button" data-a="toast" data-v="Week and Month are in the app. The demo shows the day.">Week</button></div></div>' +
       '<div class="w-dh" style="padding-left:52px">' + DAYS[(d % 7 + 7) % 7].toUpperCase() + '<b' + (d === TODAY ? ' class="today"' : '') + '>' + x.getDate() + '</b></div>' +
       '<div class="w-mday">' + hoursHTML() + dayColHTML(d) + '</div></div>';
     return '<div class="w-mpage">' + head + '</div>';
@@ -1208,19 +1241,71 @@
     return '<div class="w-mpage">' + stripHTML().replace('w-strip"', 'w-strip" style="grid-template-columns:repeat(24,1fr)"') + '<div style="display:flex;align-items:center;gap:12px"><label class="w-pick"><span>State</span><select><option>any</option></select></label><span class="w-mm">' + rs.length + ' of ' + rs.length + '</span></div>' +
       '<section class="w-card" style="overflow:hidden">' + rs.map(function (t) { var st = RUNSTATE[t.run.st]; return '<div class="w-runrow"><div class="top"><b>' + esc(t.title) + '</b><span class="w-muted">' + t.agent + '</span></div><div class="bot"><span class="w-badge" style="font-size:14px;font-weight:400">' + dot(st[0]) + st[1] + '</span><span class="w-mm" data-el="' + t.id + '">' + dur(t.run.el) + '</span></div></div>'; }).join('') + '</section></div>';
   }
+  function phoneProjects() {
+    var n = needsYou(), f = fleet();
+    var mine = [n ? n + ' needs you' : '', S.tasks.filter(function (t) { return t.run && t.run.st === 'running'; }).length ? S.tasks.filter(function (t) { return t.run && t.run.st === 'running'; }).length + ' running' : ''].filter(Boolean).join(' · ') || 'quiet';
+    function row(name, note, act, num) { return '<li><button class="w-card w-prow" type="button" data-a="' + act + '"><span class="sq"></span><span class="who"><b>' + name + '</b><span class="w-mm">' + note + '</span></span>' + (num ? '<span class="w-num pend">' + num + '</span>' : '') + ic('right') + '</button></li>'; }
+    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px">' + row('my-app', mine, 'pproject', n) + row('api-server', S.ext.ask.st === 'needs' ? '1 running · 1 needs input' : '2 running', 'other', S.ext.ask.st === 'needs' ? 1 : 0) + row('marketing-site', 'quiet', 'other', 0) + '</ul></div>';
+  }
+  function phoneMyWork() {
+    var rows = myWorkRows().filter(function (r) { return r.ws === 'individual'; }), status = { doing: 'In progress', review: 'In review' };
+    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px">' + (rows.length ? rows.map(function (w) {
+      var open = w.go.indexOf('ind:') === 0;
+      return '<li><button class="w-card w-prow" type="button" data-a="' + (open ? 'open' : 'other') + '"' + (open ? ' data-id="' + w.go.slice(4) + '"' : '') + '><span class="who"><b>' + esc(w.title) + '</b><span class="w-mm">' + esc(w.project) + ' · ' + status[w.status] + '</span></span>' +
+        (w.exec ? '<span class="w-xb" data-tone="' + EXECTONE[w.exec] + '"><i class="w-dot" data-tone="' + EXECTONE[w.exec] + '"></i>' + EXECWORD[w.exec] + '</span>' : '') + '</button></li>';
+    }).join('') : '<li class="w-empty">Nothing is in progress.</li>') + '</ul></div>';
+  }
+  function phoneAgents() {
+    var act = S.tasks.filter(isActive), ext = S.ext;
+    var cards = act.map(function (t) { return cardHTML(t, false); });
+    cards.push('<li class="w-card w-task" data-tone="work"><button class="title" type="button" data-a="other">' + esc(ext.run.title) + '</button><p class="w-st">' + dot('work', 'pulse') + 'Running · ' + dur(ext.run.el) + ' · this computer</p><div class="mt"><span class="w-chip">' + ext.run.agent + '</span><span class="w-mm">api-server</span></div></li>');
+    if (ext.ask.st === 'needs') cards.push(itemHTML({ kind: 'question', t: extTask(), project: 'api-server' }, true));
+    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px">' + cards.join('') + '</ul></div>';
+  }
+  function phoneReviews() {
+    var items = attention().filter(function (i) { return i.kind === 'review'; });
+    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px">' + (items.length ? items.map(function (i) { return itemHTML(i, true); }).join('') : '<li class="w-empty">Nothing is ready for review. Finished work shows up here.</li>') + '</ul></div>';
+  }
+  function phoneAnalytics() {
+    var all = S.tasks.filter(function (t) { return t.run; }), merged = S.tasks.filter(function (t) { return t.state === 'done'; }).length;
+    function tile(n, l) { return '<li class="w-card w-stat"><b>' + n + '</b><span class="w-mm">' + l + '</span></li>'; }
+    return '<div class="w-mpage"><ul class="w-stats">' + tile(all.length + 2, 'Runs today') + tile(reviewTasks().length, 'Ready for review') + tile(merged, 'Merged today') + tile(fleet().running, 'Agents running') + '</ul>' + stripHTML().replace('w-strip"', 'w-strip" style="grid-template-columns:repeat(24,1fr)"') + '</div>';
+  }
+  function phoneRunners() {
+    return '<div class="w-mpage"><section class="w-card w-pn" aria-label="MacBook-Pro"><div class="top">' + dot('ok') + '<b style="font-weight:500">MacBook-Pro · this computer</b><span class="w-mm" style="margin-left:auto">' + (active() + 1) + '/' + (LIMIT + 1) + ' slots</span></div><p class="w-mm">darwin/arm64 · Claude Code, Codex</p></section></div>';
+  }
+  var PAGE = { control: phoneControl, calendar: phoneCalendar, projects: phoneProjects, mywork: phoneMyWork, agents: phoneAgents, analytics: phoneAnalytics, reviews: phoneReviews, git: phoneGit, runners: phoneRunners };
+  function subtitle(at) {
+    var f = fleet(), n = needsInd(), r = reviewTasks().length;
+    return ({
+      control: n ? plural(n, 'item') + ' waiting' : 'Nothing is waiting',
+      agents: [plural(f.running, 'running', 'running'), f.waiting ? f.waiting + ' waiting for you' : ''].filter(Boolean).join(' · '),
+      reviews: r ? r + ' ready for review' : 'Nothing to review',
+      projects: '3 projects', mywork: plural(myWorkRows().filter(function (x) { return x.ws === 'individual'; }).length, 'task') + ' in progress',
+      calendar: 'Scheduled and planned work', git: gitItems().length ? plural(gitItems().length, 'branch', 'branches') + ' to look at' : 'Nothing needs attention',
+      analytics: 'Today', runners: '1 online'
+    })[at];
+  }
+  function phoneProject() {
+    var tabs = [['board', 'Board'], ['calendar', 'Calendar'], ['git', 'Git'], ['runs', 'Runs']];
+    return '<header class="w-phh"><button class="w-btn quiet ic" type="button" data-a="pback" aria-label="Back to Projects">' + ic('left', 18) + '</button><div class="t"><h1>' + mark(18) + 'my-app</h1><p class="w-mm">~/code/my-app · main</p></div></header>' +
+      '<nav class="w-ptabs" role="tablist" aria-label="my-app">' + tabs.map(function (t) { return '<button type="button" role="tab" data-a="ptabbar" data-id="' + t[0] + '" aria-selected="' + (P.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</nav>' +
+      bannerHTML() + ({ board: phoneBoard, calendar: phoneCalendar, git: phoneGit, runs: phoneRuns })[P.tab]();
+  }
+  function parentOf(at) { return at === 'project' ? 'projects' : 'deck'; }
   function renderPhone() {
     if (!phoneRoot) return;
     keepScroll(phoneRoot, P.scroll);
-    var fk = focusKey(phoneRoot);
-    var page, g = P.tab === 'control';
-    if (g) page = phoneHeader('Needs you', '', true) + phoneControl();
-    else page = phoneHeader() + bannerHTML() + ({ board: phoneBoard, calendar: phoneCalendar, git: phoneGit, runs: phoneRuns })[P.tab]();
-    var n = needsInd();
-    var tabbar = '<nav class="w-tabbar" aria-label="Primary">' + [['control', 'control', 'Needs you'], ['board', 'board', 'Board'], ['calendar', 'calendar', 'Calendar'], ['git', 'git', 'Git'], ['runs', 'runs', 'Runs']].map(function (x) {
-      return '<button type="button" data-a="ptabbar" data-id="' + x[0] + '"' + (P.tab === x[0] && !P.task ? ' aria-current="page"' : '') + '><span class="icon">' + ic(x[1], 20) + (x[0] === 'control' && n ? '<span class="w-num">' + n + '</span>' : '') + '</span><span>' + x[2] + '</span></button>';
-    }).join('') + '</nav>';
+    var fk = focusKey(phoneRoot), at = P.at, page;
+    if (at === 'deck') page = phoneDeck();
+    else if (at === 'project') page = phoneProject();
+    else page = pageHead(PLACES[at], subtitle(at), parentOf(at) === 'deck' ? 'the Control Deck' : 'Projects') + PAGE[at]();
+    var q = waitingChanges();
+    var tabbar = '<nav class="w-tabbar" aria-label="Primary">' +
+      '<button type="button" data-a="pdeck"' + (!AS.open ? ' aria-current="page"' : '') + '><span class="icon">' + ic('control', 22) + '</span><span>Control Deck</span></button>' +
+      '<button type="button" data-a="' + (AS.open ? 'asst-x' : 'asst-open') + '" aria-haspopup="dialog"' + (AS.open ? ' aria-current="page" aria-expanded="true"' : ' aria-expanded="false"') + ' aria-label="Assistant' + (q ? ', ' + q + (q === 1 ? ' change is' : ' changes are') + ' waiting for you' : '') + '"><span class="icon asst">' + ic('assistant', 22) + (q ? '<span class="w-num pend">' + q + '</span>' : '') + '</span><span>Assistant</span></button></nav>';
     var task = P.task && get(P.task) ? '<section class="w-mtask" role="dialog" aria-label="Task">' + panelInner(get(P.task), P.ptab, true) + '</section>' : '';
-    phoneRoot.querySelector('[data-app]').innerHTML = '<div class="w-scroll" data-keep="pscroll-' + P.tab + '">' + page + '</div>' + (P.tab === 'board' && !P.task ? '<button class="w-fab" type="button" data-a="new" aria-label="New task">' + ic('plus', 22) + '</button>' : '') + tabbar + task;
+    phoneRoot.querySelector('[data-app]').innerHTML = '<div class="w-scroll" data-keep="pscroll-' + at + (at === 'project' ? P.tab : '') + '">' + page + '</div>' + (at === 'project' && P.tab === 'board' && !P.task ? '<button class="w-fab" type="button" data-a="new" aria-label="New task">' + ic('plus', 22) + '</button>' : '') + tabbar + task;
     restoreScroll(phoneRoot, P.scroll);
     if (fk) { var el = phoneRoot.querySelector(fk); if (el) el.focus({ preventScroll: true }); }
   }
@@ -1320,7 +1405,7 @@
   /* ---------- events ---------- */
   function nav(where, id) {
     if (where === 'desk') { D.view = id; D.task = null; D.pick = null; }
-    else { P.tab = id === 'overview' ? 'control' : id; P.task = null; }
+    else { P.at = 'project'; P.tab = id === 'overview' ? 'board' : id; P.task = null; }
   }
   function openTask(where, id) {
     if (where === 'desk') { if (D.view === 'control') D.view = 'board'; D.task = +id; D.ptab = 'activity'; }
@@ -1355,6 +1440,10 @@
         case 'cc': V.cc = id; render(); break;
         case 'col': P.col = id; render(); break;
         case 'ptabbar': P.tab = id; P.task = null; render(); break;
+        case 'pgo': P.at = id; P.task = null; dropOverlay(); render(); break;
+        case 'pdeck': P.at = 'deck'; P.task = null; dropOverlay(); render(); break;
+        case 'pback': P.at = parentOf(P.at); P.task = null; render(); break;
+        case 'pproject': P.at = 'project'; P.tab = 'board'; P.task = null; render(); break;
         case 'pday': P.day = id === '0' ? TODAY : P.day + (+id); render(); break;
         case 'wk': D.week += +id; render(); break;
         case 'today': D.week = 0; render(); break;
@@ -1405,7 +1494,7 @@
         t.desc = el.desc.value.trim(); t.interaction = el.inter.value;
         V.sheet = null;
         dropOverlay();
-        if (where === 'desk') { if (D.view === 'control') D.view = 'board'; } else { P.tab = 'board'; P.task = null; P.col = startNow ? 'doing' : 'backlog'; }
+        if (where === 'desk') { if (D.view === 'control') D.view = 'board'; } else { P.at = 'project'; P.tab = 'board'; P.task = null; P.col = startNow ? 'doing' : 'backlog'; }
         if (startNow) startTask(t.id); else toast('“' + title + '” is in Backlog. Start it now, or drag it onto the Calendar.');
         render();
       } else if (f.dataset.form === 'msg') {
@@ -1528,8 +1617,13 @@
   /* Where each step needs the visitor (need), what to press there (aim: selectors; an array inside the array means the first
      one present), and when it is done. kind 'area' outlines a region and has no control to press; wait steps show their note
      even with nothing to point at. sticky steps stay done once they have been. */
-  function boardNeed(w, col) { return w === 'phone' ? { tab: 'board', col: col || 'backlog' } : { ws: 'individual', view: 'board' }; }
+  function boardNeed(w, col) { return w === 'phone' ? { at: 'project', tab: 'board', col: col || 'backlog' } : { ws: 'individual', view: 'board' }; }
+  function onDeck(w) { return w === 'phone' ? { at: 'deck' } : boardNeed(w, 'doing'); }
   var STORY = [
+    { id: 'deck', ch: 0, phone: true, kind: 'area', next: true, sticky: true, kick: 'Control Deck',
+      need: function () { return { at: 'deck' }; }, aim: function () { return ['.w-housing']; },
+      text: 'This is your Control Deck. A key for every place, and a count on what is waiting for you.',
+      done: function () { return P.at !== 'deck' || AS.open || G.f.deck || planned(); } },
     { id: 'look', ch: 0, desk: true, kind: 'area', next: true, sticky: true,
       need: function () { return { ws: 'universal', uv: 'mywork' }; }, aim: function () { return ['.w-uh']; },
       text: 'Start in Universal: your work from every workspace in one list, and what is waiting on you.',
@@ -1561,25 +1655,26 @@
 
     { id: 'board', ch: 1, kind: 'press', sticky: true, hops: true,
       need: function (w) { return boardNeed(w); }, aim: function () { return []; },
-      text: function (h) {
+      text: function (h, w) {
         if (!h) return 'Your board.';
+        if (w === 'phone') return h.kind === 'key' ? 'Open Projects, then the project you just planned.' : h.kind === 'project' ? 'Open my-app, the project you just planned.' : '';
         return h.kind === 'sw' ? 'Now Individual: your own computer and your own repositories. Open the switcher.' : h.kind === 'project' ? 'Open my-app, the project you just planned.' : '';
       },
-      done: function (w) { return w === 'phone' ? P.tab === 'board' && !P.task : D.ws === 'individual' && D.view !== 'control'; } },
+      done: function (w) { return w === 'phone' ? P.at === 'project' && P.tab === 'board' && !P.task : D.ws === 'individual' && D.view !== 'control'; } },
     { id: 'start', ch: 1, kind: 'press',
       need: function (w) { return boardNeed(w); },
       aim: function () { return [story(1), story(2)].filter(function (t) { return t && !started(t); }).map(function (t) { return '[data-a="start"][data-id="' + t.id + '"]'; }); },
       text: 'Start two agents. Each works in its own Git worktree, so they do not collide.',
       done: function () { return !!lead() && [story(1), story(2)].every(function (t) { return !t || started(t); }); } },
     { id: 'running', ch: 1, kind: 'area', wait: true,
-      need: function (w) { var n = boardNeed(w, 'doing'); n.task = true; return n; },
-      aim: function (w) { return w === 'phone' ? ['.w-pills [data-id="doing"]'] : ['.w-col[data-col="doing"]']; },
-      hops: true, text: function (h) { return !h ? 'Both agents are working on your machine, side by side.' : h.kind === 'col' ? 'Both agents are working. Open Doing to watch them.' : ''; },
+      need: function (w) { var n = onDeck(w); n.task = true; return n; },
+      aim: function (w) { return w === 'phone' ? ['[data-key="agents"]'] : ['.w-col[data-col="doing"]']; },
+      hops: true, text: function (h, w) { return !h ? (w === 'phone' ? 'Both agents are working on your computer. The Agents key counts them.' : 'Both agents are working on your machine, side by side.') : h.kind === 'col' ? 'Both agents are working. Open Doing to watch them.' : h.kind === 'deck' ? 'Back to the Control Deck. It counts your agents.' : ''; },
       done: function () { var t = lead(); return !t || !t.run || !!t.run.asked2 || t.run.st === 'completed' || t.state !== 'doing'; } },
     { id: 'answer', ch: 1, kind: 'press',
-      need: function (w) { var n = boardNeed(w, 'doing'); n.task = lead() ? lead().id : true; return n; },
-      aim: function (w) { var t = lead(); return t ? [[(w === 'phone' ? '.w-mtask ' : '.w-panel ') + '[data-a="answer"][data-id="' + t.id + '"]', '.w-task [data-a="answer"][data-id="' + t.id + '"]']] : []; },
-      text: function (h, w) { return w === 'phone' ? 'An agent needs a decision. Answer from your phone, and the desktop window moves on too.' : 'An agent needs a decision. Answer, and it carries on. You can answer from your phone too.'; },
+      need: function (w) { if (w === 'phone') return { at: 'control' }; var n = boardNeed(w, 'doing'); n.task = lead() ? lead().id : true; return n; },
+      aim: function (w) { var t = lead(); return t ? [[(w === 'phone' ? '.w-item ' : '.w-panel ') + '[data-a="answer"][data-id="' + t.id + '"]', '.w-task [data-a="answer"][data-id="' + t.id + '"]']] : []; },
+      hops: true, text: function (h, w) { return h && h.kind === 'key' ? 'An agent needs a decision, and the deck says so. Open Needs you.' : h && h.kind === 'deck' ? 'An agent has a question. Back to the Control Deck.' : w === 'phone' ? 'An agent needs a decision. Answer from your phone, and the desktop window moves on too.' : 'An agent needs a decision. Answer, and it carries on. You can answer from your phone too.'; },
       done: function () { var t = lead(); return !t || !t.run || !(t.run.st === 'needs' || t.run.st === 'blocked'); } },
     { id: 'cal', ch: 1, desk: true, kind: 'press', sticky: true, hops: true,
       need: function () { return { ws: 'individual', view: 'calendar' }; }, aim: function () { return []; },
@@ -1594,17 +1689,17 @@
       text: 'Choose tomorrow at 09:00. It starts by itself, even with this window closed.',
       done: function () { var t = story(3); return !t || !!t.sched; } },
     { id: 'finishing', ch: 1, kind: 'area', wait: true,
-      need: function (w) { var n = boardNeed(w, 'doing'); n.task = true; return n; },
-      aim: function (w) { return w === 'phone' ? ['.w-task'] : ['.w-col[data-col="doing"]']; },
-      hops: true, text: function (h) { return !h ? 'The agent is wrapping up. Nothing merges on its own.' : h.kind === 'col' || h.kind === 'tab' || h.kind === 'project' ? 'Back to the board, to watch the agent finish.' : ''; },
+      need: function (w) { var n = onDeck(w); n.task = true; return n; },
+      aim: function (w) { return w === 'phone' ? ['[data-key="reviews"]'] : ['.w-col[data-col="doing"]']; },
+      hops: true, text: function (h, w) { return !h ? (w === 'phone' ? 'The agent is wrapping up. Reviews counts it when it is ready. Nothing merges on its own.' : 'The agent is wrapping up. Nothing merges on its own.') : h.kind === 'deck' ? 'Back to the Control Deck, to watch the agent finish.' : h.kind === 'col' || h.kind === 'tab' || h.kind === 'project' ? 'Back to the board, to watch the agent finish.' : ''; },
       done: function () { var t = lead(); return !t || t.state === 'review' || t.state === 'done'; } },
     { id: 'review', ch: 1, kind: 'press',
-      need: function (w) { return boardNeed(w, 'review'); },
-      aim: function () { var t = lead(); return t ? ['.w-task[data-card="' + t.id + '"]'] : []; },
-      text: 'The endpoint is ready. Open it and read what the agent did before anything merges.',
+      need: function (w) { return w === 'phone' ? { at: 'reviews' } : boardNeed(w, 'review'); },
+      aim: function (w) { var t = lead(); return t ? (w === 'phone' ? ['.w-row [data-a="open"][data-id="' + t.id + '"]'] : ['.w-task[data-card="' + t.id + '"]']) : []; },
+      hops: true, text: function (h, w) { return h && h.kind === 'key' ? 'The endpoint is ready. Open Reviews.' : h && h.kind === 'deck' ? 'The endpoint is ready. Back to the Control Deck.' : w === 'phone' ? 'The endpoint is ready. Open it from Reviews and read what the agent did before anything merges.' : 'The endpoint is ready. Open it and read what the agent did before anything merges.'; },
       done: function (w) { var t = lead(); return !t || t.state === 'done' || (w === 'phone' ? P.task : D.task) === t.id || sheetOpen(w); } },
     { id: 'merge', ch: 1, kind: 'press',
-      need: function (w) { var n = boardNeed(w, 'review'); n.task = lead() ? lead().id : true; return n; },
+      need: function (w) { var n = w === 'phone' ? { at: 'reviews' } : boardNeed(w, 'review'); n.task = lead() ? lead().id : true; return n; },
       aim: function (w) { var t = lead(); return t ? [[(w === 'phone' ? '.w-mtask ' : '.w-panel ') + '[data-a="merge"][data-id="' + t.id + '"]', '.w-task [data-a="merge"][data-id="' + t.id + '"]']] : []; },
       text: 'You decide what reaches main. Choose Merge to check the branch first.',
       done: function (w) { var t = lead(); return !t || t.state === 'done' || sheetOpen(w); } },
@@ -1639,7 +1734,7 @@
       done: function () { return D.ws === 'universal'; } }
   ];
 
-  function applies(s, w) { return !(s.desk && w !== 'desk'); }
+  function applies(s, w) { return !(s.desk && w !== 'desk') && !(s.phone && w !== 'phone'); }
   function isDone(s, w) {
     var key = s.id + ':' + w;
     if (s.ch < G.floor || G.s[key] || (s.next && G.f[s.id])) return true;
@@ -1657,15 +1752,20 @@
     var phone = w === 'phone', V = phone ? P : D;
     // need.task: true allows any open task; an id allows that task only.
     function taskOk(open) { return !open || need.task === true || need.task === open; }
-    if (AS.open && !need.asst) return { sel: '[data-a="asst-x"]', kind: 'close-asst' };
+    if (AS.open && !need.asst) return { sel: phone ? '.w-tabbar [data-a="pdeck"]' : '[data-a="asst-x"]', kind: 'close-asst' };
     if (!AS.open && need.asst) return { sel: '[data-a="asst-open"]', kind: 'open-asst' };
     if (need.sheet && V.sheet) return null;
     if (V.sheet && !need.sheet) return { sel: '.w-sheet [data-a="sheetx"].ic', kind: 'close-sheet' };
     if (phone) {
       if (P.task && !taskOk(P.task)) return { sel: '.w-mtask [data-a="close"]', kind: 'back' };
-      if (need.tab && !P.task) {
-        if (P.tab !== need.tab) return { sel: '.w-tabbar [data-a="ptabbar"][data-id="' + need.tab + '"]', kind: 'tab', to: need.tab };
-        if (need.col && P.col !== need.col) return { sel: '.w-pills [data-a="col"][data-id="' + need.col + '"]', kind: 'col', to: need.col };
+      if (need.at && !P.task) {
+        if (P.at !== need.at) {
+          if (need.at === 'project' && P.at === 'projects') return { sel: '[data-a="pproject"]', kind: 'project' };
+          if (P.at === 'deck') return { sel: '.w-keys [data-a="pgo"][data-id="' + (need.at === 'project' ? 'projects' : need.at) + '"]', kind: 'key', to: need.at === 'project' ? 'projects' : need.at };
+          return { sel: '.w-tabbar [data-a="pdeck"]', kind: 'deck' };
+        }
+        if (need.at === 'project' && need.tab && P.tab !== need.tab) return { sel: '.w-ptabs [data-a="ptabbar"][data-id="' + need.tab + '"]', kind: 'tab', to: need.tab };
+        if (need.col && P.col !== need.col && need.at === 'project') return { sel: '.w-pills [data-a="col"][data-id="' + need.col + '"]', kind: 'col', to: need.col };
       }
       return null;
     }
@@ -1681,7 +1781,7 @@
     return null;
   }
   var WSNAME = { universal: 'Universal', individual: 'Individual' }, VIEWNAME = { board: 'Board', calendar: 'Calendar', mywork: 'My Work', inbox: 'Needs you', reviews: 'Reviews', home: 'Needs you', review: 'Review', doing: 'Doing', backlog: 'Backlog' };
-  var HOP = { 'close-asst': 'Close the assistant to continue.', 'open-asst': 'Open the assistant.', 'close-sheet': 'Close this to continue.', back: 'Go back to the board.', 'close-task': 'Close the task to see the board.',
+  var HOP = { deck: 'Open the Control Deck.', key: function (h) { return 'Open ' + (PLACES[h.to] || 'the page') + '.'; }, 'close-asst': 'Close the assistant to continue.', 'open-asst': 'Open the assistant.', 'close-sheet': 'Close this to continue.', back: 'Go back to the board.', 'close-task': 'Close the task to see the board.',
     sw: function (h) { return 'Open the switcher to get to ' + (WSNAME[h.to] || S.team.name) + '.'; },
     ws: function (h) { return 'Choose ' + (WSNAME[h.to] || S.team.name) + '.'; },
     project: 'Open my-app.',
@@ -1809,7 +1909,7 @@
     AS.open = false;
     [D, P].forEach(function (v) { v.task = null; v.sheet = null; v.scroll = {}; });
     D.ws = 'universal'; D.uv = 'mywork'; D.tv = 'board'; D.view = 'control'; D.sw = false; D.pal = null; D.pick = null; D.week = 0;
-    P.tab = 'board'; P.col = 'backlog'; P.day = TODAY;
+    P.at = 'deck'; P.tab = 'board'; P.col = 'backlog'; P.day = TODAY; P.cc = 'all';
     [deskRoot, phoneRoot].forEach(function (root) { setOverlay(root, ''); root.querySelector('.w-toast').classList.remove('show'); });
     render(); go();
   }

@@ -4,7 +4,7 @@
 
 ## Page
 
-- [Werkbord](https://micho8cho93.github.io/werkbord-site/): the headline, a beta waitlist with a live count of the first 50 places, and a guided demo of the app at desktop and phone width: your work across workspaces in Universal, the assistant, agents running in parallel, review and merge, and a Team.
+- [Werkbord](https://micho8cho93.github.io/werkbord-site/): the headline, a beta waitlist with a live count of the first 50 places, and a guided demo of the app at desktop and phone width: your work across workspaces in Universal, the assistant, agents running in parallel, review and merge, and a Team; the phone demo follows the app's Control Deck layout.
 
 ## Facts on the page
 

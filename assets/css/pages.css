@@ -102,6 +102,8 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
   .device-status .icons { position: absolute; right: 26px; top: 0; height: 54px; display: flex; align-items: center; gap: 6px; }
   .device-home { display: block; position: absolute; z-index: 30; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: var(--tx); }
   .device .w-mhead { padding-top: 66px; }
+  .device .w-deckpage { padding-top: 66px; }
+  .device .w-phh { padding-top: 66px; }
   .device .w-mtask .w-phead { padding-top: 66px; }
   .device .w-asst .w-atop { padding-top: 66px; }
 }
