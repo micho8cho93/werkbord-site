@@ -35,6 +35,7 @@
   --press-sh: inset 0 1px 3px rgba(21,21,21,.12);
   --win-sh: 0 1px 1px rgba(21,21,21,.1), 0 18px 40px -18px rgba(21,21,21,.35), 0 40px 80px -40px rgba(21,21,21,.25);
   --key-bg: linear-gradient(#FFFFFF, #ECECE8); --key-sh: 0 1px 0 rgba(21,21,21,.18), inset 0 1px 0 #FFFFFF;
+  --key-wf: linear-gradient(#F4F6FF, #DCE2FF);
   --live-ring: 0 0 0 3px rgba(36,71,255,.12);
   --ground: #E9E9E4; --deck-edge: #FFFFFF; --deck-wall: color-mix(in srgb, var(--text) 20%, var(--border));
   --font: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -58,6 +59,7 @@
   --press-sh: inset 0 1px 3px rgba(0,0,0,.5);
   --win-sh: 0 1px 1px rgba(0,0,0,.6), 0 18px 40px -18px rgba(0,0,0,.7), 0 40px 80px -40px rgba(0,0,0,.6);
   --key-bg: linear-gradient(#2E2E31, #1F1F21); --key-sh: 0 1px 0 rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08);
+  --key-wf: linear-gradient(#2C3352, #1C2138);
   --live-ring: 0 0 0 3px rgba(124,147,255,.16);
   --ground: #060607; --deck-edge: color-mix(in srgb, var(--text) 9%, transparent); --deck-wall: color-mix(in srgb, var(--ground) 72%, var(--border));
   color-scheme: dark;
@@ -149,6 +151,8 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .w-rail .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .w-rail .sq { width: 7px; height: 7px; flex: none; background: var(--text-2); }
 .w-nav[aria-current="page"] .sq { background: var(--text); }
+.w-nav.proj { padding-block: 6px; padding-left: 12px; min-height: 0; }
+.w-nav.proj.add { gap: 9px; color: var(--text-2); }
 .w-sec { display: flex; align-items: center; padding: 18px 4px 6px 10px; }
 .w-sec span { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-weight: 500; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); }
 .w-sec .add { margin-left: auto; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 4px; color: var(--text-2); border: 0; background: none; padding: 0; }
@@ -400,13 +404,6 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .wbx-phone .w-task { padding: 14px; cursor: default; }
 .wbx-phone .w-task .title { font-size: 16px; }
 .wbx-phone .w-st { font-size: 13px; }
-.w-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-.w-pills button { flex: none; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font-weight: 500; font-size: 14px; }
-.w-pills .w-mm { font-size: 12px; }
-.w-pills button[aria-selected="true"] { background: linear-gradient(#2B2B2B, #0F0F0F); border-color: var(--text); color: #F5F5F2; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 1px 2px rgba(21,21,21,.35); }
-.w-pills button[aria-selected="true"] .w-mm { color: #C9C9C4; }
-:root[data-theme="dark"] .w-pills button[aria-selected="true"] { background: linear-gradient(#FFFFFF, #DCDCD7); color: #0B0B0C; }
-:root[data-theme="dark"] .w-pills button[aria-selected="true"] .w-mm { color: #55554F; }
 .w-tabbar { position: absolute; z-index: 10; left: 0; right: 0; bottom: 0; height: 90px; padding-bottom: 26px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--border); }
 .w-tabbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 0; background: none; font-size: 11px; font-weight: 500; color: var(--text-2); }
 .w-tabbar button { position: relative; font-family: inherit; font-size: 11.5px; }
@@ -619,22 +616,23 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 
 /* ---------- the phone's Control Deck (web/src/lib/mobile/Deck.svelte, Keycap.svelte) ---------- */
 .wbx-phone .w-asst { bottom: 90px; }
-.w-deckpage { display: flex; flex-direction: column; gap: 12px; padding: 10px 16px 20px; max-width: 440px; margin: 0 auto; }
-.w-dtop { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
-.w-dtop .id { display: grid; gap: 6px; min-width: 0; }
-.w-dtop .brand { display: flex; align-items: center; gap: 10px; margin: 0; }
+.w-deckpage { display: flex; flex-direction: column; gap: 12px; min-height: 100%; padding: 14px 20px 28px; max-width: 440px; margin: 0 auto; }
+.w-deckpage .w-housing { margin-block: auto; }
+/* The header: the mark and the name on the left, the connection on the same line at the right, and the deck's tools
+   just under the name. */
+.w-dtop { display: flex; flex-direction: column; gap: 6px; }
+.w-dtop .id { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; min-height: 24px; }
+.w-dtop .brand { display: flex; align-items: center; gap: 8px; flex: none; margin: 0; }
 .w-dtop .wm { font-family: var(--mono); font-weight: 600; font-size: 17px; letter-spacing: -.06em; line-height: 1; }
-.w-dtop .status { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; margin: 0; }
-.w-dtop .conn { display: inline-flex; align-items: center; gap: 6px; color: var(--text); }
-.w-attn { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px; color: var(--text); text-decoration: none; font-weight: 500; font-size: 14px; }
-.w-attn > svg:last-child, .w-act > svg:last-child { margin-left: auto; flex: none; color: var(--text-2); }
-.w-attn .signal { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
-.w-attn.waiting { border-color: var(--amber); box-shadow: var(--card-sh), 0 0 0 3px var(--amber-ring); }
-.w-housing { padding: 18px; border-radius: 26px; border: 1px solid var(--border);
+.w-dtop .status { display: flex; align-items: center; gap: 4px; margin: 0; min-width: 0; white-space: nowrap; font-size: 12px; }
+.w-dtop .conn { display: inline-flex; align-items: center; gap: 5px; color: var(--text); }
+.w-dtop .tools { display: flex; gap: 10px; }
+.wbx-phone .w-dtop .tools .w-btn { width: 44px; height: 44px; padding: 0; }
+.w-housing { padding: 24px; border-radius: 26px; border: 1px solid var(--border);
   background: radial-gradient(color-mix(in srgb, var(--text) 6%, transparent) .6px, transparent .7px) 0 0 / 3px 3px,
     linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 70%, var(--surface)), var(--surface-2) 55%, color-mix(in srgb, var(--surface-2) 86%, var(--ground)));
   box-shadow: inset 0 2px 0 var(--deck-edge), inset 0 -3px 0 color-mix(in srgb, var(--text) 10%, transparent), inset 0 0 0 5px color-mix(in srgb, var(--text) 3%, transparent), 0 1px 1px color-mix(in srgb, var(--text) 14%, transparent), 0 14px 24px -14px color-mix(in srgb, var(--text) 40%, transparent); }
-.w-keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.w-keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 18px; }
 .w-dkey { --lift: 4px; position: relative; display: block; aspect-ratio: 1 / 1; min-width: 0; padding: 5px; border-radius: 17px; background: var(--ground); color: var(--text); text-decoration: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
   box-shadow: inset 0 2px 5px color-mix(in srgb, var(--text) 26%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent), 0 1px 0 var(--deck-edge); }
 .w-dkey:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -643,20 +641,26 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
   box-shadow: inset 0 1px 0 var(--deck-edge), inset 0 -2px 3px color-mix(in srgb, var(--text) 7%, transparent), 0 var(--lift) 0 var(--deck-wall), 0 calc(var(--lift) + 3px) 7px -1px color-mix(in srgb, var(--text) 32%, transparent);
   transform: translateY(calc(var(--lift) * -1)); transition: transform .16s var(--ease), box-shadow .16s var(--ease); }
 .w-dkey .face { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 0 4px; }
+.w-dkey .face.targeted { gap: 4px; }
+.w-dkey .target { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 11.5px/1.2 var(--mono); color: var(--text-2); }
 .w-dkey .glyph { display: inline-flex; color: var(--text-2); transition: color .16s; }
-.w-dkey .name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 500; letter-spacing: -.005em; line-height: 1.1; }
+.w-dkey .name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: normal; overflow-wrap: anywhere; font-size: 12.5px; font-weight: 500; letter-spacing: -.005em; line-height: 1.1; }
 .w-dkey[data-lit="on"][data-tone="wait"] .glyph { color: var(--warn); }
 .w-dkey[data-lit="on"][data-tone="work"] .glyph { color: var(--accent); }
 .w-dkey .w-num { position: absolute; top: -7px; right: -6px; }
 .w-dkey:active .cap { transform: translateY(0); transition-duration: .05s;
   box-shadow: inset 0 1px 3px color-mix(in srgb, var(--text) 22%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--text) 5%, transparent), 0 0 0 var(--deck-wall), 0 1px 2px color-mix(in srgb, var(--text) 24%, transparent); }
 @media (prefers-reduced-motion: reduce) { .w-dkey .cap { transition: none; } .w-dkey:active .cap { transform: translateY(calc(var(--lift) * -1)); background: var(--surface-2); } }
-.w-act { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; color: var(--text); text-decoration: none; }
-.w-act .tile { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; border-radius: 10px; background: var(--surface-2); box-shadow: var(--tray-sh); color: var(--accent); }
-.w-act .who { display: grid; gap: 2px; min-width: 0; }
-.w-act .task { font-size: 14px; font-weight: 500; }
-.w-more { display: flex; justify-content: center; gap: 8px; }
-.w-more button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--text-2); font: inherit; font-size: 13px; }
+/* A workflow key runs work rather than opening a page, so it wears the accent: a tinted cap, an accent rim and glyph. */
+.w-dkey.workflow .cap { background: radial-gradient(120% 90% at 50% 8%, color-mix(in srgb, var(--deck-edge) 60%, transparent), transparent 62%), var(--key-wf); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.w-dkey.workflow .glyph { color: var(--accent); }
+.w-dkey.workflow .target { color: var(--accent); opacity: .85; }
+/* An empty position is a socket with nothing in it: no cap, a dashed outline and a plus. */
+.w-dkey.empty { font: inherit; cursor: pointer; border: 0; }
+.w-dkey.empty .cap { background: none; border: 1.5px dashed color-mix(in srgb, var(--text) 24%, transparent); box-shadow: none; transform: none; color: var(--text-2); }
+.w-dkey.empty .glyph { color: var(--text-2); }
+.w-dkey.empty:hover .cap { border-color: var(--accent); color: var(--accent); }
+.w-dkey.empty:hover .glyph { color: var(--accent); }
 
 /* a page under the deck: Back, its name, a line on how it stands; a project's own sections as a row of tabs */
 .w-phh { display: flex; align-items: center; gap: 4px; padding: 10px 16px 6px 8px; }
@@ -676,4 +680,83 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .w-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .w-stat { display: grid; gap: 4px; padding: 14px; }
 .w-stat b { font-size: 24px; font-weight: 500; letter-spacing: -.02em; }
-.wbx a.w-dkey, .wbx a.w-attn, .wbx a.w-act { color: var(--text); text-decoration: none; }
+.wbx a.w-dkey { color: var(--text); text-decoration: none; }
+
+/* the workflow's progress above the deck (WorkflowBanner.svelte) */
+.w-wfb { display: grid; gap: 8px; padding: 10px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--card-sh); }
+.w-wfb .ex { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.w-wfb .open { flex: 1; display: grid; gap: 3px; min-width: 0; text-align: left; color: var(--text); }
+.w-wfb .open strong { font-size: 14px; font-weight: 600; }
+.w-wfb .open span { font-size: 12px; overflow-wrap: anywhere; }
+.w-wfb .w-btn { flex: none; }
+
+/* page header on a phone: raised Back, the title and how it stands, Search */
+.w-phh .t { flex: 1; }
+.w-phh h1 .chev { display: inline-flex; color: var(--text-2); }
+.w-phh .w-mm { display: flex; align-items: center; gap: 6px; }
+.w-phh { gap: 10px; padding-right: 16px; }
+
+/* Projects: one card, a tile, the name, its folder and branch, how it stands */
+.w-plist { padding: 4px 0; }
+.w-plist .w-ph { display: flex; align-items: center; gap: 8px; margin: 0; padding: 14px 16px 6px; font-size: 14px; font-weight: 600; }
+.w-plist ul { display: flex; flex-direction: column; }
+.w-plist .w-prow { background: none; border: 0; box-shadow: none; padding: 12px 16px; gap: 12px; min-height: 64px; }
+.w-plist .w-prow .tile { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 36px; height: 36px; border-radius: 9px; background: var(--surface-2); box-shadow: var(--tray-sh); color: var(--text-2); }
+.w-plist .w-prow .who .w-mm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Agents: a card for each agent, its sessions inside */
+.w-agent { display: grid; gap: 10px; padding: 14px; }
+.w-agent[data-tone="ask"] { border-color: color-mix(in srgb, var(--warn) 55%, var(--border)); box-shadow: var(--card-sh), 0 0 0 3px var(--amber-ring); }
+.w-agent .head { display: flex; align-items: center; gap: 12px; }
+.w-agent .tile { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; border-radius: 10px; background: var(--surface-2); box-shadow: var(--tray-sh); color: var(--accent); }
+.w-agent[data-tone="ask"] .tile { color: var(--warn); }
+.w-agent[data-tone="ok"] .tile { color: var(--text-2); }
+.w-agent .who { display: grid; gap: 2px; min-width: 0; }
+.w-agent .who b { font-size: 15px; font-weight: 600; }
+.w-agent .who .w-mm { display: inline-flex; align-items: center; gap: 6px; }
+.w-agent .inside { display: grid; }
+.w-agent .inside > .w-card { border: 0; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; background: none; padding: 12px 0 0; margin-top: 12px; }
+
+/* one choice among a few: the phone's segmented control, with touch-sized segments */
+.w-seg.full { display: flex; width: 100%; }
+.w-seg.full button { flex: 1; min-width: 0; justify-content: center; height: auto; min-height: 40px; padding: 0 4px; font-size: 13.5px; gap: 5px; }
+
+/* Match the current phone deck and its persistent assistant activity state. */
+.w-asst-live { position: absolute; top: 2px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.w-deckhistory { display: grid; gap: 10px; }
+.w-deckhistory h2 { font-size: 14px; font-weight: 500; }
+.w-deckhistory p { margin: 0; font-size: 13px; }
+.wbx-phone .w-uitable .hd { flex-wrap: wrap; }
+@media (max-width: 359px) {
+  .w-dkey .name { font-size: 12px; }
+  .w-dkey .face { padding-inline: 2px; }
+  .w-housing { padding: 16px; border-radius: 22px; }
+  .w-keys { gap: 14px 12px; }
+  .w-dtop .tools { gap: 4px; }
+}
+
+/* Building blocks stay visible when the next piece arrives. */
+.w-ui.is-building, .w-aai[aria-busy="true"] .w-acard { animation: none; }
+
+/* Workspace management and appearance share the rail’s final row. */
+.w-rrow .w-devices { gap: 6px; padding-inline: 4px; font-size: 11px; white-space: nowrap; }
+.w-rrow > [data-a="theme"] { flex: none; }
+
+.w-workflows { display: grid; gap: 10px; }
+.w-workflow-option { display: flex; align-items: flex-start; gap: 12px; padding: 14px; text-align: left; color: var(--text); font: inherit; cursor: pointer; }
+.w-workflow-option > svg { flex: none; margin-top: 2px; }
+.w-workflow-option > span { display: grid; gap: 4px; }
+.w-workflow-option small { color: var(--text-2); }
+.w-workflow-option:disabled { cursor: default; opacity: .6; }
+/* The repository picker a workflow key opens: one touch-sized row per repository. */
+.w-repos { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.w-repos legend { padding: 0; margin-bottom: 8px; }
+.w-repos .w-radio { min-height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 14px; cursor: pointer; }
+.w-repos .w-radio:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.w-dkey .target .w-dot { width: 6px; height: 6px; margin-right: 4px; vertical-align: 1px; }
+.w-workflow-option:not(:disabled) { border-color: var(--accent); }
+.w-phone-team .w-col { flex: none; width: 100%; }
+.w-phone-team .w-list { overflow: visible; }
+.w-phone-team .w-rv { flex-wrap: wrap; }
+.w-phone-team .w-main { overflow: visible; }
+@media (max-width: 359px) { .w-dtop .wm { font-size: 15px; } .w-dtop .status { font-size: 11px; } }

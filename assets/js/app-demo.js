@@ -1,4 +1,4 @@
-/* A working replica of Werkbord: the Mac app (Universal, Individual and a Team) and the phone, sharing one controller.
+/* A working replica of werkbord: the Mac app (Universal, Individual and a Team) and the phone, sharing one controller.
    The markup, wording and states follow the product's Svelte components (web/src) so the simulator looks and behaves
    like the app. Start an agent on the desktop and it shows up on the phone; answer on the phone and the desktop moves on.
    The guided story walks through it with quiet notes (demo-guide.js), and nothing is locked. Nothing leaves the page. */
@@ -20,6 +20,7 @@
     folder: '<path d="M2 4.5A1 1 0 0 1 3 3.5h3L7.5 5H13a1 1 0 0 1 1 1v5.5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>',
     runner: '<rect x="2" y="2.5" width="12" height="8.5" rx="1"/><path d="M5.5 13.5h5M8 11v2.5"/>',
     settings: '<path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/>',
+    bug: '<rect x="4.5" y="5" width="7" height="8" rx="3.5"/><path d="M6 5V3h4v2M8 6v7M2 5l2.5 2M1.5 9h3M2 13l2.5-2M14 5l-2.5 2M14.5 9h-3M14 13l-2.5-2"/>',
     search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>',
     plus: '<path d="M8 3v10M3 8h10"/>',
     left: '<path d="M10 3L5 8l5 5"/>', right: '<path d="M6 3l5 5-5 5"/>', down: '<path d="M4 6l4 4 4-4"/>',
@@ -37,6 +38,7 @@
     people: '<circle cx="6" cy="5.5" r="2.3"/><path d="M1.8 13c0-2.3 1.9-3.8 4.2-3.8s4.2 1.5 4.2 3.8M10.6 3.6a2.2 2.2 0 0 1 0 3.8M12.4 9.5c1.2.5 1.8 1.6 1.8 3.5"/>',
     analytics: '<path d="M2 2v12h12M5 11V8M8 11V5M11 11V3"/>',
     activity: '<path d="M1.5 8h3l2-5 3 10 2-5h3"/>',
+    edit: '<path d="M10.5 2.5l3 3L5.5 13.5l-3.5.5.5-3.5z"/><path d="M2 14.5h12"/>',
     help: '<circle cx="8" cy="8" r="5.8"/><path d="M6.3 6.4a1.8 1.8 0 1 1 2.5 1.6c-.5.3-.8.6-.8 1.1v.3"/><path d="M8 11.7v.1"/>'
   };
   function ic(n, size) { size = size || 16; return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>'; }
@@ -155,12 +157,12 @@
 
   /* ---------- views: each surface has its own navigation ---------- */
   var D = { ws: 'universal', uv: 'mywork', tv: 'board', view: 'control', sw: false, task: null, ptab: 'activity', sheet: null, pal: null, week: 0, mode: 'week', pick: null, cc: 'all', drag: null, scroll: {} };
-  var P = { at: 'deck', tab: 'board', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', scroll: {} };
+  var P = { scope: 'individual', teamTab: 'board', deckAdded: false, repo: null, at: 'deck', tab: 'board', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', wf: null, af: 'all', scroll: {} };
 
   // Start with a clean project so the visitor sees an idea become a working board.
   S.tasks = []; S.log = []; S.finding = false;
   var initialState = JSON.stringify(S);
-  var G = { f: {}, s: {}, floor: 0, cur: null, where: null, hide: null };
+  var G = { mode: 'core', active: false, f: {}, s: {}, floor: 0, cur: null, where: null, hide: null };
 
   function get(id) { for (var i = 0; i < S.tasks.length; i++) if (S.tasks[i].id == id) return S.tasks[i]; }
   function isActive(t) { return t.run && ['running', 'needs', 'blocked', 'idle'].indexOf(t.run.st) > -1; }
@@ -247,8 +249,9 @@
     var w = waitingFor(t);
     if (w.length) { toast('“' + t.title + '” waits for “' + w[0].title + '”. It becomes ready when that one does.'); return; }
     var sc = t.script || startScript;
+    var seconds = 38 + t.id % 7;
     t.state = 'doing'; t.fresh = true;
-    t.run = run('queued', 0, { left: sc.work, logs: sc.logs.slice(), ask: sc.ask, li: 0, feed: [] });
+    t.run = run('queued', 0, { left: seconds, phaseDuration: seconds, phaseElapsed: 0, logs: sc.logs.slice(), ask: sc.ask, li: 0, feed: [] });
     t.run.id = 'run-' + (S.seq++).toString(36);
     if (active() < LIMIT) begin(t);
     else { say('“' + t.title + '” is queued: the project runs ' + LIMIT + ' agents at once'); if (!quiet) toast(LIMIT + ' agents are already working. “' + t.title + '” starts the moment one finishes.'); }
@@ -267,6 +270,7 @@
     var was = t.run.st;
     if (was !== 'needs' && was !== 'blocked') return;
     t.run.st = 'running'; t.fresh = true;
+    t.run.left = t.run.phaseDuration = 34 + t.id % 7; t.run.phaseElapsed = 0;
     if (t.run.after) { t.run.logs = t.run.logs.concat(t.run.after); t.run.after = null; }
     feed(t, 'me', v);
     say('You answered “' + t.title + '”: ' + v);
@@ -281,6 +285,7 @@
     feed(t, 'out', 'Committed: ' + r.commit); feed(t, 'sys', 'Session finished');
     say('“' + t.title + '” finished');
     if (t.story) { t.state = 'review'; say('“' + t.title + '” is ready for review'); }
+    toast('“' + t.title + '” is ready for your review.');
     pump();
   }
   function toReview(id) {
@@ -319,7 +324,7 @@
     toast('Scheduled for ' + dayLabel(d) + ', ' + clock(m) + '. It starts by itself, even with this window closed.');
   }
 
-  /* ---------- the assistant: predefined messages, scripted replies ----------
+  /* ---------- Salie: predefined messages, scripted replies ----------
      The person picks one of the messages on offer; there is no text box. Each message has a reply written in advance, which
      streams in word by word, and the next messages on offer follow from it. A reply can carry generated interface (the
      OpenUI blocks the product draws inline: figures, a chart, a table that sorts and filters here, all read only) and
@@ -336,11 +341,10 @@
     return n;
   }
   function rootOpts() {
-    return guideWhere() === 'phone' ? ['Plan CSV export for reports', 'What needs me today?', 'What is planned for this week?']
-      : ['What is on my plate this week?', 'Plan CSV export for reports', 'What needs me today?'];
+    return ['What is on my plate this week?', 'Plan CSV export for reports', 'What needs me today?'];
   }
   function backOpts(extra) {
-    var o = (extra || []).concat(guideWhere() === 'phone' ? ['What needs me today?', 'What is planned for this week?'] : ['What is on my plate this week?', 'What needs me today?']);
+    var o = (extra || []).concat(['What is on my plate this week?', 'What needs me today?']);
     if (!planned()) o.unshift('Plan CSV export for reports');
     return o.filter(function (l, i) { return o.indexOf(l) === i; }).slice(0, 3);
   }
@@ -353,7 +357,7 @@
     return '“' + r.t.title + '” (' + r.project + ') is finished and ready for review.';
   }
   function needsText() {
-    var rows = guideWhere() === 'phone' ? rowsInd() : rowsAll();
+    var rows = rowsAll();
     if (!rows.length) return 'Nothing needs you right now.';
     return (rows.length === 1 ? 'One thing needs you. ' : rows.length + ' things need you. ') + rows.map(rowSentence).join(' ');
   }
@@ -396,21 +400,22 @@
   }
   function uiBodyHTML(u) {
     var rows = uiRows(u);
-    return rows.length ? rows.map(function (r) { return '<tr>' + r.map(function (x, j) { return '<td' + (j === 3 && x === 'Needs you' ? ' class="hot"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') : '<tr><td colspan="4" class="none">No rows match the filter.</td></tr>';
+    if (u.progress != null) rows = rows.slice(0, Math.max(0, u.progress - 5 - u.bars.length));
+    return rows.length ? rows.map(function (r) { return '<tr>' + r.map(function (x, j) { return '<td' + (j === 3 && x === 'Needs you' ? ' class="hot"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') : '<tr><td colspan="4" class="none">' + (u.progress != null ? 'Adding work items…' : 'No rows match the filter.') + '</td></tr>';
   }
   function uiHTML(u, i) {
     var peak = Math.max.apply(null, u.bars.map(function (b) { return b[1]; }).concat(1));
-    return '<section class="w-ui" aria-label="Interface generated by the assistant">' +
-      '<div class="w-uimetrics">' + u.metrics.map(function (m) { return '<div class="w-metric"><p class="l">' + esc(m[0]) + '</p><p class="v">' + esc(m[1]) + '</p><p class="d">' + esc(m[2]) + '</p></div>'; }).join('') + '</div>' +
-      '<div class="w-uichart"><h3>Open work by project</h3>' + u.bars.map(function (b) { return '<div class="bar"><span class="c">' + esc(b[0]) + '</span><span class="track"><span style="width:' + Math.round(b[1] / peak * 100) + '%"></span></span><span class="n">' + b[1] + '</span></div>'; }).join('') + '</div>' +
-      '<div class="w-uitable"><div class="hd"><h3>Everything open</h3><label class="f"><span>Filter rows</span><input type="search" data-ui-q="' + i + '" value="' + esc(u.q) + '" aria-label="Filter everything open"></label></div>' +
+    return '<section class="w-ui' + (u.progress != null ? ' is-building' : '') + '" aria-label="Interface generated by Salie">' +
+      '<div class="w-uimetrics">' + u.metrics.slice(0, u.progress == null ? 4 : Math.min(4, u.progress)).map(function (m) { return '<div class="w-metric"><p class="l">' + esc(m[0]) + '</p><p class="v">' + esc(m[1]) + '</p><p class="d">' + esc(m[2]) + '</p></div>'; }).join('') + '</div>' +
+      (u.progress == null || u.progress > 4 ? '<div class="w-uichart"><h3>Open work by project</h3>' + u.bars.slice(0, u.progress == null ? u.bars.length : u.progress - 4).map(function (b) { return '<div class="bar"><span class="c">' + esc(b[0]) + '</span><span class="track"><span style="width:' + Math.round(b[1] / peak * 100) + '%"></span></span><span class="n">' + b[1] + '</span></div>'; }).join('') + '</div>' : '') +
+      (u.progress == null || u.progress > 4 + u.bars.length ? '<div class="w-uitable"><div class="hd"><h3>Everything open</h3><label class="f"><span>Filter rows</span><input type="search" data-ui-q="' + i + '" value="' + esc(u.q) + '" aria-label="Filter everything open"></label></div>' +
       '<div class="scroll"><table><thead><tr>' + u.cols.map(function (c, j) {
         return '<th scope="col" aria-sort="' + (u.sort === j ? (u.dir > 0 ? 'ascending' : 'descending') : 'none') + '"><button type="button" data-a="ui-sort" data-id="' + i + '" data-v="' + j + '" aria-label="Sort by ' + esc(c) + '">' + esc(c) + '<i class="sort' + (u.sort === j ? ' on ' + (u.dir > 0 ? 'asc' : 'desc') : '') + '" aria-hidden="true"></i></button></th>';
-      }).join('') + '</tr></thead><tbody data-uitbody="' + i + '">' + uiBodyHTML(u) + '</tbody></table></div></div>' +
-      '<p class="stamp">Read at ' + u.at + ' · a snapshot, not live</p></section>';
+      }).join('') + '</tr></thead><tbody data-uitbody="' + i + '">' + uiBodyHTML(u) + '</tbody></table></div></div>' : '') +
+      (u.progress == null ? '<p class="stamp">Read at ' + u.at + ' · a snapshot, not live</p>' : '') + '</section>';
   }
 
-  /* Changes the assistant proposes: each is a card with its own Confirm, and several at once can be confirmed together. */
+  /* Changes Salie proposes: each is a card with its own Confirm, and several at once can be confirmed together. */
   var PLAN = [
     { title: 'Build the reports CSV endpoint', agent: 'Claude Code', desc: 'Add a CSV endpoint for filtered reports. Include headers, quote values safely, and keep the active filters.' },
     { title: 'Add the CSV export button', agent: 'Codex', desc: 'Add Export CSV to the reports toolbar. Call the endpoint, show progress, and show a useful error message.' },
@@ -441,7 +446,7 @@
     return { op: 'ticket', title: DOC.title, dest: S.team.name + ' · ' + S.team.project + ' · Backlog', detail: DOC.desc, done: 'Added to Backlog.',
       ok: function () { return !storyTicket(); }, run: makeTicket };
   }
-  function planCards() { var c = [0, 1, 2].map(taskCard); if (guideWhere() !== 'phone') c.push(ticketCard()); return c; }
+  function planCards() { var c = [0, 1, 2].map(taskCard); c.push(ticketCard()); return c; }
   /* The chapter skip and the phone may need the plan without the conversation: this makes what confirming all would. */
   function seedPlan() {
     if (!story(1)) makeTask(0); if (!story(2)) makeTask(1); if (!story(3)) makeTask(2);
@@ -461,7 +466,7 @@
       next: function () { return backOpts(); } },
     'Plan CSV export for reports': { reads: 'Read the reports tasks and project context',
       ok: function () { return !story(1); }, gone: 'The CSV export is already planned. You will find it in Backlog.',
-      text: function () { return 'Let’s split this into three scoped tasks for my-app: the endpoint, an export button and tests. ' + (guideWhere() === 'phone' ? '' : 'The API reference needs a page too, so I will add a ticket for ' + S.team.name + '. ') + 'Each task has an agent and clear acceptance criteria, and the tests wait for the other two.'; },
+      text: function () { return 'Let’s split this into three scoped tasks for my-app: the endpoint, an export button and tests. ' + ('The API reference needs a page too, so I will add a ticket for ' + S.team.name + '. ') + 'Each task has an agent and clear acceptance criteria, and the tests wait for the other two.'; },
       cards: planCards },
     'What needs me today?': { reads: 'Read the attention lists', text: needsText,
       next: function () { return backOpts(S.ext.ask.st === 'needs' ? ['Answer the auth test question'] : []); } },
@@ -483,32 +488,56 @@
     if (e.ok && !e.ok()) { replyAsst({ text: e.gone, next: backOpts }); return; }
     replyAsst(e);
   }
-  /* The reply streams in: a short pause while the assistant reads the board, then a word or two at a time, with a longer
-     pause at the end of a sentence. Under reduced motion it appears at once. Each step redraws only the reply's own text,
-     so the chat keeps its scroll and focus. */
-  var THINK = 700;
-  function pace(word) { return 46 + Math.random() * 34 + (/[.?!]$/.test(word) ? 260 : /[,;:]$/.test(word) ? 120 : 0); }
+  /* One cancellable timeline streams text, then builds generated blocks and proposals in order.
+     Reduced motion changes presentation, never the amount of simulated work. */
   function replyAsst(e) {
     var as = AS, text = typeof e.text === 'function' ? e.text() : e.text;
-    var m = { r: 'ai', x: '', reads: e.reads || '', done: false, cards: null, ui: null, open: false };
-    var words = text.split(' '), i = 0;
-    as.msgs.push(m);
-    as.busy = true;
-    function complete() {
-      as.busy = false; as.timer = null; m.done = true;
-      if (e.ui) m.ui = e.ui();
-      if (e.cards) { m.cards = e.cards(); as.opts = []; }
-      else as.opts = typeof e.next === 'function' ? e.next() : (e.next || backOpts());
-      if (as === AS) { renderAsst(true); render(); }
+    var m = { r: 'ai', x: '', reads: e.reads || '', done: false, cards: null, ui: null, open: false, stage: 'Reading workspace context…' };
+    var words = text.split(' '), events = [], complex = !!(e.ui || e.cards);
+    as.msgs.push(m); as.busy = true;
+    function at(time, fn) { events.push({ time: time, fn: fn }); }
+    function redraw() {
+      var chat = guideSurface().querySelector('.w-achat');
+      var stick = !chat || chat.scrollHeight - chat.scrollTop - chat.clientHeight < 90;
+      renderAsst(stick); renderPhone();
     }
-    if (WB.reduced) { m.x = text; complete(); return; }
-    renderAsst(true);
-    as.timer = setTimeout(function step() {
-      i = Math.min(words.length, i + 1 + (Math.random() < .4 ? 1 : 0));
-      m.x = words.slice(0, i).join(' ');
-      if (i < words.length) { if (as === AS) paintReply(m); as.timer = setTimeout(step, pace(words[i - 1])); }
-      else complete();
-    }, THINK);
+    var textEnd = complex ? 11500 : Math.max(5000, Math.min(12000, words.length * 155));
+    var chunk = WB.reduced ? 7 : 1;
+    for (var i = chunk; i < words.length + chunk; i += chunk) (function (n) {
+      at(1800 + (textEnd - 1800) * n / words.length, function () {
+        m.x = words.slice(0, n).join(' '); m.stage = 'Writing the reply…'; paintReply(m);
+      });
+    })(Math.min(i, words.length));
+    if (e.ui) {
+      var u = e.ui(), count = 4 + u.bars.length + 1 + u.rows.length;
+      u.progress = 0;
+      for (var j = 1; j <= count; j++) (function (n) {
+        at(13500 + (32000 - 13500) * (n - 1) / Math.max(1, count - 1), function () {
+          m.ui = u; u.progress = n;
+          m.stage = n <= 4 ? 'Building your overview…' : n <= 4 + u.bars.length ? 'Grouping work by project…' : 'Adding your work items…'; redraw();
+        });
+      })(j);
+    }
+    if (e.cards) {
+      var cards = e.cards(); m.cards = [];
+      cards.forEach(function (c, j) { at(15000 + j * 5000, function () {
+        m.cards.push(c); m.stage = 'Preparing proposed changes · ' + (j + 1) + ' of ' + cards.length; redraw();
+      }); });
+    }
+    at(complex ? 35000 : textEnd + 800, function () {
+      as.busy = false; as.timer = null; m.done = true; m.x = text;
+      if (m.ui) delete m.ui.progress;
+      as.opts = e.cards ? [] : typeof e.next === 'function' ? e.next() : (e.next || backOpts());
+      redraw(); render();
+    });
+    events.sort(function (a, b) { return a.time - b.time; });
+    var previous = 0;
+    function next() {
+      if (!events.length) return;
+      var event = events.shift(), delay = event.time - previous; previous = event.time;
+      as.timer = setTimeout(function () { if (as.msgs.indexOf(m) < 0) return; event.fn(); next(); }, delay);
+    }
+    renderAsst(true); renderPhone(); next();
   }
   /* Redraws the words of a reply that is still streaming, in each surface that shows the conversation. */
   function paintReply(m) {
@@ -518,6 +547,8 @@
       var node = chat && chat.querySelector('[data-m="' + at + '"] .w-atext');
       if (!node) return;
       var stick = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
+      var statusNode = node.closest('.w-aai').querySelector('.w-astat');
+      if (statusNode) statusNode.textContent = m.stage;
       node.innerHTML = esc(m.x) + '<span class="w-acur" aria-hidden="true"></span>';
       if (stick) chat.scrollTop = chat.scrollHeight;
     });
@@ -559,13 +590,13 @@
     var opener = root && root.querySelector('[data-a="asst-open"]');
     if (opener) opener.focus({ preventScroll: true });
   }
-  /* "Open task" on a confirmed card leaves the assistant for the place the change landed in. */
+  /* "Open task" on a confirmed card leaves Salie for the place the change landed in. */
   function openFromAssistant(where, mi, ci) {
     var m = AS.msgs[mi], c = m && m.cards && m.cards[ci];
     AS.open = false; renderAsst(false);
     if (where === 'desk') {
       if (c && c.op === 'ticket') { D.ws = 'team'; D.tv = 'board'; } else { D.ws = 'individual'; D.view = 'board'; D.task = null; }
-    } else { P.at = 'project'; P.tab = 'board'; P.task = null; P.col = 'backlog'; }
+    } else { P.at = c && c.op === 'ticket' ? 'team' : 'project'; P.teamTab = 'board'; P.tab = 'board'; P.task = null; P.col = 'backlog'; }
     render();
   }
   /* Both surfaces draw the conversation while it is open. Each keeps its own scroll. */
@@ -587,9 +618,9 @@
   function assistantHTML(phone) {
     var newBtn = AS.msgs.length ? '<button class="w-btn quiet sm" type="button" data-a="asst-new" aria-label="Start a new conversation">' + ic('plus', 14) + (phone ? '' : 'New') + '</button>' : '';
     var closeBtn = phone ? ''
-      : '<button class="w-btn quiet sm" type="button" data-a="asst-x" aria-label="Close assistant">' + ic('close', 14) + 'Close<kbd class="w-key">Esc</kbd></button>';
-    var top = '<header class="w-atop"><div class="w-awho"><h2>Assistant</h2><button class="w-amodel" type="button" data-a="asst-model">Claude Code<span>· Default</span>' + ic('down', 14) + '</button></div><div class="w-aacts">' + newBtn + closeBtn + '</div></header>';
-    return '<div class="w-asst" role="dialog" aria-modal="true" aria-label="Assistant">' + top +
+      : '<button class="w-btn quiet sm" type="button" data-a="asst-x" aria-label="Close Salie">' + ic('close', 14) + 'Close<kbd class="w-key">Esc</kbd></button>';
+    var top = '<header class="w-atop"><div class="w-awho"><h2>Salie</h2><button class="w-amodel" type="button" data-a="asst-model">Claude Code<span>· Default</span>' + ic('down', 14) + '</button></div><div class="w-aacts">' + newBtn + closeBtn + '</div></header>';
+    return '<div class="w-asst" role="dialog" aria-modal="true" aria-label="Salie">' + top +
       '<div class="w-achat" data-keep="achat"><div class="w-acol">' + chatHTML() + '</div></div>' + dockHTML() + '</div>';
   }
   function chatHTML() {
@@ -598,19 +629,20 @@
       if (m.r === 'me') return '<div class="w-ame"><p>' + esc(m.x) + '</p></div>';
       var cursor = m.done ? '' : '<span class="w-acur" aria-hidden="true"></span>';
       var words = m.x ? esc(m.x) + cursor : '<span class="w-dots" role="img" aria-label="Working on it"><i></i><i></i><i></i></span>';
-      var cards = m.done && m.cards ? m.cards.map(function (c, ci) { return assistCardHTML(c, i, ci); }).join('') : '';
+      var cards = m.cards ? m.cards.map(function (c, ci) { return assistCardHTML(c, i, ci); }).join('') : '';
       var left = m.done && m.cards ? m.cards.filter(function (c) { return !c.state; }).length : 0;
       var bar = left >= 2 ? '<div class="w-aall" role="group" aria-label="All the changes waiting"><span>' + left + ' changes are waiting for you.</span><button class="w-btn pri sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="yes">Confirm all ' + left + '</button><button class="w-btn sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="no">Not now</button></div>' : '';
       return '<div class="w-aai" data-m="' + i + '"><p class="w-atext">' + words + '</p>' + (m.ui ? uiHTML(m.ui, i) : '') +
         (m.reads ? '<details class="w-reads" data-i="' + i + '"' + (m.open ? ' open' : '') + '><summary>What I looked at</summary><p>' + esc(m.reads) + '</p></details>' : '') +
-        '<p class="w-astat">' + (m.done ? 'Reply finished.' : 'Working on it') + '</p>' + cards + bar + (m.result ? '<p class="w-aresult" role="status">' + esc(m.result) + '</p>' : '') + '</div>';
+        '<p class="w-astat">' + (m.done ? 'Reply finished.' : esc(m.stage || 'Working on it…')) + '</p>' + cards + bar + (m.result ? '<p class="w-aresult" role="status">' + esc(m.result) + '</p>' : '') + '</div>';
     }).join('');
   }
   function assistCardHTML(c, mi, ci) {
     var label = ({ task: 'Create task', ticket: 'Create ticket', answer: 'Answer a question' })[c.op];
     var st = !c.state ? 'Needs you' : c.state === 'yes' ? 'Done' : c.state === 'no' ? 'Declined' : 'Not sent';
     var body;
-    if (!c.state) body = '<div class="acts"><button class="w-btn pri sm" type="button" data-a="asst-ok" data-id="' + mi + '" data-v="' + ci + '">Confirm</button><button class="w-btn sm" type="button" data-a="asst-no" data-id="' + mi + '" data-v="' + ci + '">Not now</button></div><p class="w-muted fine">Nothing changes until you confirm. Open until ' + clock(S.now + 15) + '.</p>';
+    if (AS.busy && !c.state) body = '<p class="w-mm">Preparing proposal…</p>';
+    else if (!c.state) body = '<div class="acts"><button class="w-btn pri sm" type="button" data-a="asst-ok" data-id="' + mi + '" data-v="' + ci + '">Confirm</button><button class="w-btn sm" type="button" data-a="asst-no" data-id="' + mi + '" data-v="' + ci + '">Not now</button></div><p class="w-muted fine">Nothing changes until you confirm. Open until ' + clock(S.now + 15) + '.</p>';
     else if (c.state === 'yes') body = '<p class="res ok">' + ic('check', 14) + c.done + (c.op === 'answer' ? '' : ' <button class="link" type="button" data-a="asst-opentask" data-id="' + mi + '" data-v="' + ci + '">Open task</button>') + '</p>';
     else body = '<p class="res">' + (c.state === 'no' ? 'Not done. You said no.' : 'This changed before you confirmed, so nothing was sent.') + '</p>';
     return '<section class="w-acard" data-state="' + (c.state || 'wait') + '" aria-label="' + label + ': ' + st + '"><p class="w-lab">' + label + '<span class="st"><i></i>' + st + '</span></p><h3>' + esc(c.title) + '</h3>' +
@@ -618,7 +650,7 @@
   }
   function dockHTML() {
     var pills = (waitingChanges() ? [] : optsNow()).map(function (o) { return '<button class="w-apill" type="button" data-a="asst-ask" data-id="" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('');
-    var note = waitingChanges() ? 'Confirm or decline the changes above to continue.' : AS.busy ? 'Working on it.' : 'Pick a message. Replies are scripted in this demo, and nothing is sent to a model.';
+    var note = AS.busy ? 'Working on it.' : waitingChanges() ? 'Confirm or decline the changes above to continue.' : 'Pick a message. Replies are scripted in this demo, and nothing is sent to a model.';
     return '<div class="w-acol w-adock">' + (pills ? '<div class="w-apills" role="group" aria-label="Predefined messages">' + pills + '</div>' : '') + '<p class="w-anote">' + note + '</p></div>';
   }
 
@@ -647,7 +679,7 @@
   function initials(n) { return n.split(' ').map(function (w) { return w.charAt(0); }).join('').slice(0, 2).toUpperCase(); }
   function execOf(r) { return !r ? null : ({ running: 'running', needs: 'needs_input', blocked: 'blocked', queued: 'queued', completed: 'completed' })[r.st] || null; }
 
-  /* api-server has two agents beside my-app. The question is answered from Needs you, from Universal or by the assistant. */
+  /* api-server has two agents beside my-app. The question is answered from Needs you, from Universal or by Salie. */
   function extTask() {
     var a = S.ext.ask;
     return { id: a.id, title: a.title, agent: a.agent, project: a.project, prio: a.prio, state: 'doing', run: { st: a.st, q: a.q, choices: a.choices, asked: a.asked, el: S.now - a.asked } };
@@ -704,7 +736,7 @@
   function railHTML() {
     var n = needsYou(), act = active(), ni = needsInd(), name = wsName();
     var head = '<button class="w-switch" type="button" data-a="sw" aria-haspopup="menu" aria-expanded="' + !!D.sw + '" aria-label="Switch workspace. Showing ' + esc(name) + '"><span class="brand">' + mark(20) + '<span class="w-wm">werkbord</span></span><span class="mode"><span class="mn">' + esc(name) + '</span>' + ic('down', 14) + '</span></button>' +
-      '<div class="w-ask"><button class="w-askbtn" type="button" data-a="asst-open" aria-haspopup="dialog">' + ic('assistant') + '<span class="w-askl">Assistant</span>' + (waitingChanges() ? '<span class="w-num pend">' + waitingChanges() + '</span>' : '') + '</button></div>';
+      '<div class="w-ask"><button class="w-askbtn" type="button" data-a="asst-open" aria-haspopup="dialog">' + ic('assistant') + '<span class="w-askl">Salie</span>' + (waitingChanges() ? '<span class="w-num pend">' + waitingChanges() + '</span>' : '') + '</button></div>';
     var body = '';
     if (D.ws === 'universal') {
       body = [['mywork', 'My Work', 'check', 0], ['calendar', 'Calendar', 'calendar', 0], ['inbox', 'Needs you', 'control', needsAll()]].map(function (p) {
@@ -713,25 +745,27 @@
     } else if (D.ws === 'individual') {
       var ask = S.ext.ask.st === 'needs';
       body = '<div class="w-sec"><span>Individual</span></div>' +
-        navBtn('data-a="view" data-id="control"', 'control', 'Needs you', D.view === 'control', ni) +
-        '<div class="w-sec"><span>' + ic('folder') + 'Projects</span><button class="add" type="button" data-a="other" aria-label="Add a project">' + ic('plus', 14) + '</button></div>' +
-        '<button class="w-nav" type="button" data-a="other"><span class="sq"></span><span class="name">api-server</span>' + (ask ? '<span class="w-num pend">1</span>' : '<span class="n">2</span>') + '</button>' +
-        '<button class="w-nav" type="button" data-a="other"><span class="sq"></span><span class="name">marketing-site</span></button>' +
-        '<button class="w-nav" type="button" data-a="view" data-id="board"' + (D.view !== 'control' ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">my-app</span>' + (n ? '<span class="w-num pend">' + n + '</span>' : act ? '<span class="n">' + act + '</span>' : '') + '</button>';
+        navBtn('data-a="view" data-id="control"', 'overview', 'Needs you', D.view === 'control', ni) +
+        navBtn('data-a="other"', 'folder', 'Projects', false, 0) +
+        '<button class="w-nav proj" type="button" data-a="other"><span class="sq"></span><span class="name">api-server</span>' + (ask ? '<span class="w-num pend">1</span>' : '<span class="n">2</span>') + '</button>' +
+        '<button class="w-nav proj" type="button" data-a="other"><span class="sq"></span><span class="name">marketing-site</span></button>' +
+        '<button class="w-nav proj" type="button" data-a="view" data-id="board"' + (D.view !== 'control' ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">my-app</span>' + (n ? '<span class="w-num pend">' + n + '</span>' : act ? '<span class="n">' + act + '</span>' : '') + '</button>' +
+        '<button class="w-nav proj add" type="button" data-a="other">' + ic('plus', 14) + 'Add project</button>' +
+        navBtn('data-a="toast" data-v="Analytics shows where agent time and cost go. It is not part of this demo."', 'analytics', 'Analytics', false, 0);
     } else {
       var reviews = rowsTeam().length;
       body = '<div class="w-sec"><span>' + esc(S.team.name) + '</span></div>' +
-        navBtn('data-a="tv" data-id="home"', 'control', 'Needs you', D.tv === 'home', reviews) +
-        '<div class="w-sec"><span>' + ic('folder') + 'Projects</span></div>' +
-        '<button class="w-nav" type="button" data-a="tv" data-id="board"' + (D.tv === 'board' ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">' + esc(S.team.project) + '</span></button>' +
+        navBtn('data-a="tv" data-id="home"', 'overview', 'Needs you', D.tv === 'home', reviews) +
+        navBtn('data-a="tvp"', 'folder', 'Projects', false, 0) +
+        '<button class="w-nav proj" type="button" data-a="tv" data-id="board"' + (D.tv === 'board' ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">' + esc(S.team.project) + '</span></button>' +
         navBtn('data-a="tv" data-id="reviews"', 'merge', 'Reviews', D.tv === 'reviews', reviews) +
         navBtn('data-a="tv" data-id="members"', 'people', 'Members', D.tv === 'members', 0) +
         navBtn('data-a="toast" data-v="Analytics shows how work moves through the Team. It is not part of this demo."', 'analytics', 'Analytics', false, 0);
     }
-    var foot = '<div class="w-rfoot"><button class="w-nav" type="button" data-a="toast" data-v="Workspaces and devices lists each workspace, this computer and the runners you have paired."><span class="w-ic">' + ic('runner') + '</span>Workspaces and devices</button>' +
-      '<div class="w-rrow">' + (D.ws !== 'universal' ? '<button class="w-nav" type="button" data-a="settings">' + ic('settings') + 'Settings</button>' : '<span class="w-nav w-spacer"></span>') +
+    var foot = '<div class="w-rfoot">' + (D.ws !== 'universal' ? '<button class="w-nav" type="button" data-a="settings">' + ic('settings') + 'Settings</button>' : '') +
+      '<div class="w-rrow"><button class="w-nav w-devices" type="button" data-a="toast" data-v="Workspaces &amp; Devices lists each workspace, this computer and the runners you have paired."><span class="w-ic">' + ic('runner') + '</span><span>Workspaces &amp; Devices</span></button>' +
       '<button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div>';
-    return '<aside class="w-rail" aria-label="Werkbord">' + head + body + foot + '</aside>';
+    return '<aside class="w-rail" aria-label="werkbord">' + head + body + foot + '</aside>';
   }
   /* The switcher opens under the product name, as in the app: Universal first, Individual, then each Team, then adding one. */
   function switcherHTML() {
@@ -759,7 +793,7 @@
   }
 
   /* ================= Universal: My Work, Calendar and Needs you across workspaces ================= */
-  function wsTag(kind, name) { return '<span class="w-ws" data-kind="' + kind + '" title="' + (kind === 'team' ? 'A Team workspace' : 'Your own Werkbord on this computer') + '">' + esc(name) + '</span>'; }
+  function wsTag(kind, name) { return '<span class="w-ws" data-kind="' + kind + '" title="' + (kind === 'team' ? 'A Team workspace' : 'Your own werkbord on this computer') + '">' + esc(name) + '</span>'; }
   function upage(h, lede, body, head) {
     return '<header class="w-ghead"><div class="w-uh"><h1>' + h + '</h1><p class="w-lede">' + lede + '</p></div>' + (head || '') + '</header><main class="w-main" data-keep="main-u-' + D.uv + '"><div class="w-upage">' + body + '</div></main>';
   }
@@ -814,7 +848,7 @@
   function teamHeadHTML() {
     return '<header class="w-head"><div class="w-where"><span class="w-pname"><h1>' + esc(S.team.project) + '</h1></span><p class="w-path">' + esc(S.team.name) + ' · Team workspace · early access</p></div>' +
       '<div class="w-acts"><button class="w-btn" type="button" data-a="toast" data-v="Jump to searches projects, sections and tickets.">' + ic('search') + 'Jump to</button><button class="w-btn pri" type="button" data-a="toast" data-v="New ticket adds work to Backlog. Anyone on the Team can claim it.">' + ic('plus') + 'New ticket</button></div></header>' +
-      '<nav class="w-tabs" aria-label="' + esc(S.team.project) + ' sections">' + navTab('data-a="tv" data-id="board"', 'Board', true) + navTab('data-a="toast" data-v="Git shows the branches and pull requests each member\'s Werkbord reports."', 'Git') + navTab('data-a="toast" data-v="Activity lists who changed what on the board."', 'Activity') + '</nav>';
+      '<nav class="w-tabs" aria-label="' + esc(S.team.project) + ' sections">' + navTab('data-a="tv" data-id="board"', 'Board', true) + navTab('data-a="toast" data-v="Git shows the branches and pull requests each member\'s werkbord reports."', 'Git') + navTab('data-a="toast" data-v="Activity lists who changed what on the board."', 'Activity') + '</nav>';
   }
   function navTab(attrs, label, cur) { return '<button class="w-tab" type="button" ' + attrs + (cur ? ' aria-current="page"' : '') + '>' + label + '</button>'; }
   function teamBoardHTML() {
@@ -942,7 +976,7 @@
         var st = RUNSTATE[t.run.st];
         return '<div class="w-tr"><span class="w-mm">' + t.run.id + '</span><span style="font-weight:500">' + esc(t.title) + '</span><span class="w-badge">' + dot(st[0]) + st[1] + '</span><span class="w-mm r" data-el="' + t.id + '">' + dur(t.run.el) + '</span></div>';
       }).join('') + '</div></section></div>' +
-      '<div class="w-pane" data-keep="ov-r"><section class="w-pn" aria-label="Git"><div class="w-ph">Git <span class="w-chip">main</span><a class="end" href="#" data-a="view" data-id="git">Open →</a></div><div class="w-big">' + dot('neutral') + branches.length + ' Werkbord branch' + (branches.length === 1 ? '' : 'es') + '</div><p class="w-mm">' + branches.filter(function (t) { return t.state === 'review'; }).length + ' ready to merge · ' + branches.length + ' unpushed · 0 to clean up</p></section>' +
+      '<div class="w-pane" data-keep="ov-r"><section class="w-pn" aria-label="Git"><div class="w-ph">Git <span class="w-chip">main</span><a class="end" href="#" data-a="view" data-id="git">Open →</a></div><div class="w-big">' + dot('neutral') + branches.length + ' werkbord branch' + (branches.length === 1 ? '' : 'es') + '</div><p class="w-mm">' + branches.filter(function (t) { return t.state === 'review'; }).length + ' ready to merge · ' + branches.length + ' unpushed · 0 to clean up</p></section>' +
       '<section class="w-pn" aria-label="Agents"><div class="w-ph">Agents</div>' + ['Claude Code', 'Codex'].map(function (a) {
         var n = S.tasks.filter(function (t) { return t.agent === a && isActive(t); }).length;
         return '<div style="display:flex;align-items:center;gap:10px;font-size:13px">' + dot('ok') + '<b style="font-weight:500">' + a + '</b><span class="w-mm">ready</span><span class="w-mm" style="margin-left:auto">' + n + ' active</span></div>';
@@ -1098,6 +1132,13 @@
   /* ---------- sheets and the switcher ---------- */
   function sheetHTML(sh, phone) {
     if (!sh) return '';
+    if (sh.kind === 'workflow-report' && P.wf) {
+      var findings = {
+        'my-app': [['An empty report crashes the CSV export', 'Return a file with the header row only when no rows match.'], ['A comma inside a field splits the CSV row', 'Quote every field, and double any quote inside one.']],
+        'api-server': [['An empty request body returns a 500', 'Answer with a 400 and a validation message.'], ['Rate limits reset a second late at the window edge', 'Measure from the window’s start, not from the last request.']],
+        'marketing-site': [['Signup errors are not announced to screen readers', 'Put the message in a polite live region.'], ['The theme resets after navigating', 'Read the saved theme before the first paint.']] }[P.wf.repo];
+      return '<div class="w-scrim" data-a="sheetx"></div><section class="w-sheet" role="dialog" aria-label="Find Bugs report"><header><h2>Find Bugs · ' + esc(P.wf.repo) + '</h2><button class="w-btn ic" type="button" data-a="sheetx" aria-label="Close report">' + ic('close') + '</button></header><div class="body"><p>Finished on MacBook-Pro: two bugs it could reproduce, each with a suggested fix. No files were changed.</p><p class="w-mm">A scripted report in this demo · Claude Code</p><ol class="w-workflows">' + findings.map(function (f) { return '<li class="w-card w-pn"><strong>' + esc(f[0]) + '</strong><p class="w-mm">Suggested fix: ' + esc(f[1]) + '</p></li>'; }).join('') + '</ol></div><footer><button class="w-btn pri" type="button" data-a="sheetx">' + (phone ? 'Back to the deck' : 'Close') + '</button></footer></section>';
+    }
     if (sh.kind === 'new') {
       return '<div class="w-scrim" data-a="sheetx"></div><form class="w-sheet" data-form="new" role="dialog" aria-label="New task in my-app" style="--w:640px"><header><h2>New task in my-app</h2><button class="w-btn quiet sm ic" type="button" data-a="sheetx" aria-label="Close">' + ic('close') + '</button></header>' +
         '<div class="body"><label class="w-field"><span class="w-lab">What should an agent do?</span><input class="w-input big" name="title" maxlength="200" placeholder="Fix the flaky auth test" autocomplete="off" required></label>' +
@@ -1150,7 +1191,7 @@
       panel = D.task && get(D.task) && D.view !== 'control' ? '<section class="w-panel" role="dialog" aria-label="Task">' + panelInner(get(D.task), D.ptab, false) + '</section>' : '';
     }
     // Sheets, the switcher and toasts live outside this part, so an open form keeps what was typed.
-    deskRoot.querySelector('[data-app]').innerHTML = '<div class="w-shell">' + railHTML() + '<div class="w-mainarea">' + main + panel + '</div></div>';
+    deskRoot.querySelector('[data-app]').innerHTML = '<div class="w-shell">' + railHTML() + '<div class="w-mainarea">' + (P.wf ? wfBanner() : '') + main + panel + '</div></div>';
     restoreScroll(deskRoot, D.scroll);
     S.tasks.forEach(function (t) { t.fresh = false; });
     S.team.tickets.forEach(function (k) { k.fresh = false; });
@@ -1167,7 +1208,7 @@
     guideRefresh();
   }
   function openOverlay(html, focusSel) { setOverlay(deskRoot, html, focusSel); }
-  /* Clears whatever sits over either simulator: a sheet, the palette or the assistant. Only one surface is on screen at a
+  /* Clears whatever sits over either simulator: a sheet, the palette or Salie. Only one surface is on screen at a
      time, so this closes the one the visitor sees. */
   function dropOverlay() {
     D.sheet = P.sheet = null; D.pal = null; D.sw = false;
@@ -1178,11 +1219,21 @@
   function closeOverlay() { dropOverlay(); }
 
   /* ================= phone =================
-     The phone opens on the Control Deck (web/src/lib/mobile/): nine keys, one line on what needs you, what the agents are doing,
-     and a bottom bar with two places, the deck and the Assistant. Everything else is a page reached from a key, with Back. A
+     The phone opens on the Control Deck (web/src/lib/mobile/): nine keys you set up yourself (a workflow key starts an agent on a repository), a row of tools for editing the deck, search, help
+     and Settings, and a bottom bar with two places, the deck and Salie. Everything else is a page reached from a key, with Back. A
      project is under Projects and keeps its own sections as a row of tabs. It reads the same state as the desktop window. */
-  var PLACES = { control: 'Needs you', calendar: 'Calendar', projects: 'Projects', mywork: 'My Work', agents: 'Agents', analytics: 'Analytics', reviews: 'Reviews', git: 'Git', runners: 'Runners' };
-  var KEYS = [['control', 'control', 'wait'], ['calendar', 'calendar'], ['projects', 'folder'], ['mywork', 'check'], ['agents', 'activity', 'work'], ['analytics', 'analytics'], ['reviews', 'merge', 'work'], ['git', 'git', 'wait'], ['runners', 'runner']];
+  var PLACES = { bugs: 'Find Bugs', control: 'Needs you', calendar: 'Calendar', projects: 'Projects', mywork: 'My Work', agents: 'Agents', analytics: 'Analytics', reviews: 'Reviews', git: 'Git', runners: 'Runners' };
+  /* Eight navigation keys and one empty position, where the visitor adds a workflow key. */
+  var KEYS = [['control', 'control', 'wait'], ['calendar', 'calendar'], ['projects', 'folder'], ['mywork', 'check'], ['agents', 'activity', 'work'], ['analytics', 'analytics'], ['reviews', 'merge', 'work'], ['git', 'git', 'wait'], ['bugs', 'bug']];
+  /* The product's workflow buttons (web/src/lib/mobile/layout.ts WORKFLOWS). The demo runs Find Bugs only. */
+  var WORKFLOWS = [['bugs', 'bug', 'Find Bugs', 'Report reproducible bugs and suggested fixes. Leaves files unchanged.'],
+    ['tests', 'check', 'Improve Tests', 'Find coverage gaps, propose tests and validate approved changes.'],
+    ['security', 'control', 'Security Audit', 'Report security risks and remediation. Leaves files unchanged.'],
+    ['deps', 'git', 'Dependency Check', 'Report dependency risks and recommended updates. Does not update packages.'],
+    ['refactor', 'edit', 'Refactor Codebase', 'Propose targeted refactors and validate approved changes.'],
+    ['summary', 'runs', 'Sprint Summary', 'Summarise tasks, blockers, agent activity and Git activity from the last 14 days.']];
+  var REPOS = ['my-app', 'api-server', 'marketing-site'];
+  var WF_STAGES = ['Reading the repository', 'Reproducing each finding', 'Writing suggested fixes', 'Writing the report'];
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many || one + 's'); }
   function reviewTasks() { return S.tasks.filter(function (t) { return t.run && t.run.st === 'completed'; }); }
   /* Agents at work now: this project's, plus the Codex run and the waiting question the rest of Individual has. */
@@ -1194,25 +1245,88 @@
     return { running: run.length + 1, waiting: ask.length + (S.ext.ask.st === 'needs' ? 1 : 0), names: Object.keys(names) };
   }
   function keyCounts() { var f = fleet(); return { control: needsInd(), agents: f.running, reviews: reviewTasks().length, git: gitItems().length }; }
+  function wfStep() { return P.wf ? Math.min(WF_STAGES.length, Math.floor((P.wf.elapsed || 0) / 10500)) : 0; }
+  function wfLines() {
+    var i = wfStep(), done = P.wf && (P.wf.stopped || i >= WF_STAGES.length);
+    return { status: P.wf && P.wf.stopped ? 'Stopped' : done ? 'Completed' : 'Running', stage: done ? 'Execution ended' : WF_STAGES[i], count: (P.wf && P.wf.stopped ? i : done ? WF_STAGES.length : i) + ' of ' + WF_STAGES.length + ' stages reported complete', ended: !!done };
+  }
+  /* The workflow's progress strip above the deck (WorkflowBanner.svelte): what it is doing, how many stages have reported, Stop. */
+  function wfBanner() {
+    if (!P.wf || P.wf.dismissed) return '';
+    var l = wfLines();
+    return '<section class="w-wfb" aria-label="Workflow progress"><div class="ex"><div class="open"><strong>Find Bugs</strong><span data-wf="status">' + l.status + '</span><span data-wf="stage">' + l.stage + ' · ' + esc(P.wf.repo) + '</span><span class="w-mm" data-wf="count">Claude Code · ' + l.count + '</span></div>' +
+      (l.ended && !P.wf.stopped ? '<button class="w-btn" type="button" data-a="wfreport">View report</button>' : '') + (l.ended ? '<button class="w-btn" type="button" data-a="wfx" aria-label="Dismiss finished workflow">' + ic('close') + '</button>' : '<button class="w-btn" type="button" data-a="wfstop" aria-label="Stop Find Bugs">' + ic('stop', 14) + 'Stop</button>') + '</div></section>';
+  }
+  /* The deck's three sheets for a workflow key: the button library (an empty position, or the pencil), the repository
+     picker (a tap, while the key asks every time) and the key's settings (a hold, or Shift+F10). P.repo is the saved
+     repository, or null to ask every time. */
+  function workflowSheet(kind) {
+    P.sheet = { kind: kind };
+    var title, body, foot = '', focus;
+    if (kind === 'decklibrary') {
+      title = 'Add a button'; focus = '[data-a="deckadd"]';
+      body = '<p>Workflow buttons turn a task you repeat into one tap. Your paired computer does the work: no new task to write, no settings to fill in each time.</p><div class="w-workflows">' + WORKFLOWS.map(function (w) {
+        var on = w[0] === 'bugs';
+        return '<button class="w-card w-workflow-option" type="button"' + (on ? ' data-a="deckadd"' : ' disabled') + '>' + ic(w[1], 20) + '<span><strong>' + w[2] + '</strong><span>' + w[3] + '</span><small>' + (on ? (P.deckAdded ? 'On your deck · settings' : 'Add to your deck') : 'Not in this demo') + '</small></span></button>';
+      }).join('') + '</div><p class="w-mm">Navigation keys open a page. In the app, the pencil above the deck replaces, removes or moves any of the nine.</p>';
+    } else if (kind === 'wfpick') {
+      title = 'Run Find Bugs'; focus = 'input[name="wfrepo"]:checked';
+      body = '<p>Choose a repository. Your computer looks for bugs it can reproduce and suggests fixes. No files are changed.</p><fieldset class="w-repos"><legend class="w-lab">Repository</legend>' +
+        REPOS.map(function (r, i) { return '<label class="w-radio"><input type="radio" name="wfrepo" value="' + r + '"' + (i === 0 ? ' checked' : '') + '> ' + r + '</label>'; }).join('') + '</fieldset><p class="w-mm">Claude Code · MacBook-Pro</p>';
+      foot = '<footer><button class="w-btn" type="button" data-a="sheetx">Cancel</button><button class="w-btn pri" type="button" data-a="wfrun">' + ic('play', 12) + 'Run Find Bugs</button></footer>';
+    } else {
+      title = 'Find Bugs settings'; focus = '[data-workflow-repo]';
+      body = '<p>Holding a workflow button opens its settings. Save a repository, and a tap runs it there straight away.</p><label class="w-field"><span class="w-lab">Repository</span><select class="w-select" data-workflow-repo><option value=""' + (P.repo ? '' : ' selected') + '>Ask every time</option>' +
+        REPOS.map(function (r) { return '<option value="' + r + '"' + (P.repo === r ? ' selected' : '') + '>' + r + '</option>'; }).join('') + '</select></label>' +
+        '<dl class="w-kv"><dt>Agent</dt><dd>Claude Code</dd><dt>Runner</dt><dd>MacBook-Pro</dd><dt>Result</dt><dd>A report. Leaves files unchanged.</dd></dl>';
+      foot = '<footer><button class="w-btn" type="button" data-a="sheetx">Cancel</button><button class="w-btn pri" type="button" data-a="wfsave">Save</button></footer>';
+    }
+    setOverlay(phoneRoot, '<div class="w-scrim" data-a="sheetx"></div><section class="w-sheet" role="dialog" aria-label="' + title + '"><header><h2>' + title + '</h2><button class="w-btn ic" type="button" data-a="sheetx" aria-label="Close">' + ic('close') + '</button></header><div class="body">' + body + '</div>' + foot + '</section>', focus);
+  }
+  function wfRunning() { return !!P.wf && !wfLines().ended; }
+  function saveWorkflow() {
+    var select = phoneRoot.querySelector('[data-workflow-repo]');
+    if (select) P.repo = select.value || null;
+    G.f['phone-config'] = true;
+    toast(P.repo ? 'Saved. A tap on Find Bugs now runs it on ' + P.repo + '.' : 'Saved. Find Bugs asks for a repository each time.');
+  }
+  function runWorkflow(repo) {
+    if (wfRunning()) { toast('Find Bugs is already running on ' + P.wf.repo + '. Its progress is above the deck.'); return; }
+    P.wf = { elapsed: 0, repo: repo };
+    G.f['phone-run'] = true;
+    toast('Find Bugs started on ' + repo + '. Your computer is doing the work.');
+  }
+  /* A tap runs the key: on its saved repository, or after asking for one. */
+  function tapWorkflow() {
+    if (wfRunning()) { toast('Find Bugs is already running on ' + P.wf.repo + '. Its progress is above the deck.'); return; }
+    if (P.repo) { runWorkflow(P.repo); render(); } else workflowSheet('wfpick');
+  }
   function phoneDeck() {
-    var c = keyCounts(), f = fleet(), n = c.control;
+    var c = keyCounts();
     var keys = KEYS.map(function (k) {
+      if (k[0] === 'bugs') {
+        if (!P.deckAdded) return '<button class="w-dkey empty" type="button" data-a="decklibrary" aria-label="Add a button to position 9"><span class="cap"><span class="face"><span class="glyph">' + ic('plus', 26) + '</span><span class="name">Add button</span></span></span></button>';
+        // A workflow key: tap to run, hold to configure. It names where it runs, and says so while it is running.
+        // "Ask every time" in its settings; the key has room for nine characters.
+        var busy = wfRunning(), where = busy ? 'Running' : P.repo || 'Pick repo';
+        return '<a class="w-dkey workflow" href="#" data-a="wftap" data-key="bugs" aria-keyshortcuts="Shift+F10"' + (busy ? ' data-run="on"' : '') + ' aria-label="Find Bugs, ' + (busy ? 'running on ' + esc(P.wf.repo) : P.repo ? 'runs on ' + esc(P.repo) : 'asks for a repository') + '. Hold to change its settings."><span class="cap"><span class="face targeted"><span class="glyph">' + ic('bug', 22) + '</span><span class="name">Find Bugs</span><span class="target">' + (busy ? dot('work', 'pulse') : '') + esc(where) + '</span></span></span></a>';
+      }
       var count = c[k[0]] || 0, tone = k[2] || 'plain', lit = count > 0;
       return '<a class="w-dkey" href="#" data-a="pgo" data-id="' + k[0] + '" data-key="' + k[0] + '"' + (lit ? ' data-lit="on" data-tone="' + tone + '"' : '') + ' aria-label="' + PLACES[k[0]] + (lit ? ', ' + count : '') + '"><span class="cap"><span class="face"><span class="glyph">' + ic(k[1], 26) + '</span><span class="name">' + PLACES[k[0]] + '</span></span>' +
         (lit ? '<span class="w-num' + (tone === 'wait' ? ' pend' : '') + '" aria-hidden="true">' + count + '</span>' : '') + '</span></a>';
     }).join('');
-    var attn = n > 0 ? plural(n, 'item') + ' ' + (n === 1 ? 'needs' : 'need') + ' your input' : c.reviews ? c.reviews + ' ready for review' : 'All clear';
-    var head = [f.running ? plural(f.running, 'agent') + ' running' : '', f.waiting ? f.waiting + ' waiting for you' : ''].filter(Boolean).join(' · ') || 'No agents are running';
-    return '<div class="w-deckpage"><header class="w-dtop"><div class="id"><p class="brand">' + mark(20) + '<span class="wm">werkbord</span></p><p class="w-mm status"><span class="conn">' + dot('ok') + 'Connected</span> · 1 runner · ' + plural(f.running, 'agent') + ' running</p></div>' +
-      '<button class="w-btn ic" type="button" data-a="settings" aria-label="Settings">' + ic('settings') + '</button></header>' +
-      '<a class="w-card w-attn' + (n ? ' waiting' : '') + '" href="#" data-a="pgo" data-id="control">' + (n ? '<span class="w-num pend" aria-hidden="true">' + n + '</span>' : '<span class="signal" aria-hidden="true"></span>') + '<span class="say">' + attn + '</span>' + ic('right') + '</a>' +
-      '<section class="w-housing" aria-label="Control Deck"><div class="w-keys">' + keys + '</div></section>' +
-      '<a class="w-card w-act" href="#" data-a="pgo" data-id="agents"><span class="tile" aria-hidden="true">' + ic('activity', 20) + '</span><span class="who"><span class="task">' + head + '</span><span class="w-mm">' + f.names.join(', ') + '</span></span>' + ic('right') + '</a>' +
-      '<nav class="w-more" aria-label="More"><button type="button" data-a="help">Help and shortcuts</button><button type="button" data-a="toast" data-v="Jump to searches projects, sections and tasks.">Jump to…</button></nav></div>';
+    return '<div class="w-deckpage"><header class="w-dtop"><div class="id"><p class="brand">' + mark(20) + '<span class="wm">werkbord</span></p><p class="w-mm status"><span class="conn">' + dot('ok') + 'Connected</span> · 1 runner</p></div>' +
+      '<nav class="tools" aria-label="Deck tools"><button class="w-btn ic" type="button" data-a="decklibrary" aria-label="Edit Deck">' + ic('edit') + '</button>' +
+      '<button class="w-btn ic" type="button" data-a="toast" data-v="Jump to searches projects, sections and tasks." aria-label="Jump to">' + ic('search') + '</button>' +
+      '<button class="w-btn ic" type="button" data-a="help" aria-label="Help and shortcuts">' + ic('help') + '</button>' +
+      '<button class="w-btn ic" type="button" data-a="settings" aria-label="Settings">' + ic('settings') + '</button></nav></header>' +
+      wfBanner() +
+      '<section class="w-housing" aria-label="Control Deck"><div class="w-keys">' + keys + '</div></section>' + (P.wf ? '<section class="w-deckhistory" aria-label="Workflow executions"><h2>Workflow executions</h2><p>Find Bugs · ' + esc(P.wf.repo) + '</p><p class="w-mm" data-wf="count">Claude Code · ' + wfLines().count + '</p><p data-wf="stage">' + wfLines().stage + ' · ' + esc(P.wf.repo) + '</p>' + (P.wf.ended && !P.wf.stopped ? '<p>2 bugs found · 2 suggested fixes · no files changed</p><button class="w-btn" type="button" data-a="wfreport">View report</button>' : '') + '</section>' : '') + '</div>';
   }
   /* A page under the deck: Back, its name, and one line on how its subject stands (the app's subtitle.ts). */
-  function pageHead(title, sub, back) {
-    return '<header class="w-phh"><button class="w-btn quiet ic" type="button" data-a="pback" aria-label="Back to ' + back + '">' + ic('left', 18) + '</button><div class="t"><h1>' + title + '</h1>' + (sub ? '<p class="w-mm">' + sub + '</p>' : '') + '</div></header>';
+  function pageHead(title, sub, back, tone) {
+    return '<header class="w-phh"><button class="w-btn ic" type="button" data-a="pback" aria-label="Back to ' + back + '">' + ic('left', 18) + '</button><div class="t"><h1>' + title + '</h1>' + (sub ? '<p class="w-mm">' + (tone ? dot(tone) : '') + sub + '</p>' : '') + '</div>' +
+      '<button class="w-btn ic" type="button" data-a="toast" data-v="Jump to searches projects, sections and tasks." aria-label="Jump to">' + ic('search') + '</button></header>';
   }
   function phoneControl() {
     var c = controlHTML(true);
@@ -1220,7 +1334,7 @@
   }
   function phoneBoard() {
     var cols = COLS.map(function (c) { return [c[0], c[1], inCol(c[0])]; });
-    return '<div class="w-mpage"><div class="w-pills" role="tablist" aria-label="Columns">' + cols.map(function (c) { return '<button type="button" role="tab" data-a="col" data-id="' + c[0] + '" aria-selected="' + (P.col === c[0]) + '">' + c[1] + '<span class="w-mm">' + c[2].length + '</span></button>'; }).join('') + '</div>' +
+    return '<div class="w-mpage"><div class="w-seg full" role="group" aria-label="Board column">' + cols.map(function (c) { return '<button type="button" data-a="col" data-id="' + c[0] + '" aria-pressed="' + (P.col === c[0]) + '">' + c[1] + '<span class="w-mm">' + c[2].length + '</span></button>'; }).join('') + '</div>' +
       filtersHTML() + legendHTML(true) +
       '<ul style="display:flex;flex-direction:column;gap:12px">' + (function () { var ts = inCol(P.col); return ts.length ? ts.map(function (t) { return cardHTML(t, false); }).join('') : '<li class="w-none">' + emptyCol(P.col) + '</li>'; })() + '</ul></div>';
   }
@@ -1230,7 +1344,8 @@
       '<div class="bar"><button class="w-btn" type="button" data-a="tz"><span class="w-mm" style="color:var(--text);font-size:13px">Europe/Amsterdam</span></button><div class="w-seg"><button type="button" aria-pressed="true">Day</button><button type="button" data-a="toast" data-v="Week and Month are in the app. The demo shows the day.">Week</button></div></div>' +
       '<div class="w-dh" style="padding-left:52px">' + DAYS[(d % 7 + 7) % 7].toUpperCase() + '<b' + (d === TODAY ? ' class="today"' : '') + '>' + x.getDate() + '</b></div>' +
       '<div class="w-mday">' + hoursHTML() + dayColHTML(d) + '</div></div>';
-    return '<div class="w-mpage">' + head + '</div>';
+    var task = story(3);
+    return '<div class="w-mpage">' + (task && !task.sched ? '<section class="w-card w-pn"><p>' + esc(task.title) + '</p><button class="w-btn" type="button" data-a="pschedule">Schedule tomorrow at 09:00</button></section>' : '') + head + '</div>';
   }
   function phoneGit() {
     var items = gitItems();
@@ -1242,25 +1357,47 @@
       '<section class="w-card" style="overflow:hidden">' + rs.map(function (t) { var st = RUNSTATE[t.run.st]; return '<div class="w-runrow"><div class="top"><b>' + esc(t.title) + '</b><span class="w-muted">' + t.agent + '</span></div><div class="bot"><span class="w-badge" style="font-size:14px;font-weight:400">' + dot(st[0]) + st[1] + '</span><span class="w-mm" data-el="' + t.id + '">' + dur(t.run.el) + '</span></div></div>'; }).join('') + '</section></div>';
   }
   function phoneProjects() {
-    var n = needsYou(), f = fleet();
+    var n = needsYou();
     var mine = [n ? n + ' needs you' : '', S.tasks.filter(function (t) { return t.run && t.run.st === 'running'; }).length ? S.tasks.filter(function (t) { return t.run && t.run.st === 'running'; }).length + ' running' : ''].filter(Boolean).join(' · ') || 'quiet';
-    function row(name, note, act, num) { return '<li><button class="w-card w-prow" type="button" data-a="' + act + '"><span class="sq"></span><span class="who"><b>' + name + '</b><span class="w-mm">' + note + '</span></span>' + (num ? '<span class="w-num pend">' + num + '</span>' : '') + ic('right') + '</button></li>'; }
-    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px">' + row('my-app', mine, 'pproject', n) + row('api-server', S.ext.ask.st === 'needs' ? '1 running · 1 needs input' : '2 running', 'other', S.ext.ask.st === 'needs' ? 1 : 0) + row('marketing-site', 'quiet', 'other', 0) + '</ul></div>';
+    function row(name, path, note, act, num) { return '<li><button class="w-prow" type="button" data-a="' + act + '"><span class="tile" aria-hidden="true">' + ic('folder', 18) + '</span><span class="who"><b>' + name + '</b><span class="w-mm">' + path + ' · main</span><span class="w-mm">' + note + '</span></span>' + (num ? '<span class="w-num pend">' + num + '</span>' : '') + '</button></li>'; }
+    return '<div class="w-mpage">' + '<div class="w-seg full" role="group" aria-label="Workspace">' + [['individual', 'Individual'], ['team', 'Team']].map(function (w) { return '<button type="button" data-a="pscope" data-id="' + w[0] + '" aria-pressed="' + (P.scope === w[0]) + '">' + w[1] + '</button>'; }).join('') + '</div>' + (P.scope === 'team' ? '<section class="w-card w-plist"><h2 class="w-ph">' + esc(S.team.name) + '</h2><ul>' + row(S.team.project, 'Team workspace', 'Shared tickets, branches and reviews', 'pteam', 0) + '</ul></section></div>' : '<section class="w-card w-plist" aria-label="Projects"><h2 class="w-ph">Projects <span class="w-chip">3</span></h2><ul>' + row('my-app', '~/code/my-app', mine, 'pproject', n) + row('api-server', '~/code/api-server', S.ext.ask.st === 'needs' ? '1 running · 1 needs input' : '2 running', 'other', S.ext.ask.st === 'needs' ? 1 : 0) + row('marketing-site', '~/code/marketing-site', 'quiet', 'other', 0) + '</ul></section></div>');
+  }
+  function phoneTeam() {
+    return pageHead(S.team.project, S.team.name + ' · Team workspace', 'Projects') + '<nav class="w-ptabs" aria-label="Team sections">' + [['board', 'Board'], ['reviews', 'Reviews']].map(function (t) { return '<button type="button" data-a="pteamtab" data-id="' + t[0] + '" aria-current="' + (P.teamTab === t[0] ? 'page' : 'false') + '">' + t[1] + '</button>'; }).join('') + '</nav>' + (P.teamTab === 'reviews' ? '<div class="w-phone-team">' + teamReviewsHTML() + '</div>' : '<div class="w-mpage w-phone-team">' + TCOLS.map(function (c) { var tickets = S.team.tickets.filter(function (t) { return t.st === c[0]; }); return '<section class="w-col" data-col="' + c[0] + '"><h2 class="w-ph">' + c[1] + '</h2><ul class="w-list">' + tickets.map(tcardHTML).join('') + '</ul></section>'; }).join('') + '</div>');
   }
   function phoneMyWork() {
-    var rows = myWorkRows().filter(function (r) { return r.ws === 'individual'; }), status = { doing: 'In progress', review: 'In review' };
+    var rows = myWorkRows(), status = { doing: 'In progress', review: 'In review' };
     return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px">' + (rows.length ? rows.map(function (w) {
       var open = w.go.indexOf('ind:') === 0;
-      return '<li><button class="w-card w-prow" type="button" data-a="' + (open ? 'open' : 'other') + '"' + (open ? ' data-id="' + w.go.slice(4) + '"' : '') + '><span class="who"><b>' + esc(w.title) + '</b><span class="w-mm">' + esc(w.project) + ' · ' + status[w.status] + '</span></span>' +
+      return '<li><button class="w-card w-prow" type="button" data-a="' + (open ? 'open' : w.ws === 'team' ? 'pteam' : 'other') + '"' + (open ? ' data-id="' + w.go.slice(4) + '"' : '') + '><span class="who"><b>' + esc(w.title) + '</b><span class="w-mm">' + esc(w.wsName) + ' · ' + esc(w.project) + ' · ' + status[w.status] + '</span></span>' +
         (w.exec ? '<span class="w-xb" data-tone="' + EXECTONE[w.exec] + '"><i class="w-dot" data-tone="' + EXECTONE[w.exec] + '"></i>' + EXECWORD[w.exec] + '</span>' : '') + '</button></li>';
     }).join('') : '<li class="w-empty">Nothing is in progress.</li>') + '</ul></div>';
   }
+  function agentCards() {
+    var ext = S.ext, extAsk = ext.ask.st === 'needs';
+    return ['Claude Code', 'Codex'].map(function (name) {
+      var mine = S.tasks.filter(function (t) { return isActive(t) && t.agent === name; });
+      var asks = mine.filter(function (t) { return t.run.st === 'needs' || t.run.st === 'blocked'; }).length + (extAsk && ext.ask.agent === name ? 1 : 0);
+      var working = mine.some(function (t) { return t.run.st === 'running'; }) || ext.run.agent === name || (!extAsk && ext.ask.agent === name);
+      var n = mine.length + (ext.run.agent === name ? 1 : 0) + (ext.ask.agent === name ? 1 : 0);
+      return { name: name, tasks: mine, ext: ext.run.agent === name, ask: ext.ask.agent === name, state: asks ? 'Waiting for you' : working ? 'Working' : 'Idle', sessions: n };
+    });
+  }
   function phoneAgents() {
-    var act = S.tasks.filter(isActive), ext = S.ext;
-    var cards = act.map(function (t) { return cardHTML(t, false); });
-    cards.push('<li class="w-card w-task" data-tone="work"><button class="title" type="button" data-a="other">' + esc(ext.run.title) + '</button><p class="w-st">' + dot('work', 'pulse') + 'Running · ' + dur(ext.run.el) + ' · this computer</p><div class="mt"><span class="w-chip">' + ext.run.agent + '</span><span class="w-mm">api-server</span></div></li>');
-    if (ext.ask.st === 'needs') cards.push(itemHTML({ kind: 'question', t: extTask(), project: 'api-server' }, true));
-    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px">' + cards.join('') + '</ul></div>';
+    var cards = agentCards(), tone = { 'Waiting for you': 'ask', Working: 'work', Idle: 'ok' };
+    function match(c, f) { return f === 'all' || (f === 'running' && c.state === 'Working') || (f === 'waiting' && c.state === 'Waiting for you') || (f === 'idle' && c.state === 'Idle'); }
+    var seg = [['all', 'All'], ['running', 'Running'], ['waiting', 'Waiting'], ['idle', 'Idle']].map(function (f) {
+      return '<button type="button" data-a="af" data-id="' + f[0] + '" aria-pressed="' + (P.af === f[0]) + '">' + f[1] + '<span class="w-mm">' + cards.filter(function (c) { return match(c, f[0]); }).length + '</span></button>';
+    }).join('');
+    var list = cards.filter(function (c) { return match(c, P.af); }).map(function (c) {
+      var inside = c.tasks.map(function (t) { return cardHTML(t, false); });
+      if (c.ext) inside.push('<li class="w-card w-task" data-tone="work"><button class="title" type="button" data-a="other">' + esc(S.ext.run.title) + '</button><p class="w-st">' + dot('work', 'pulse') + 'Running · ' + dur(S.ext.run.el) + ' · this computer</p><div class="mt"><span class="w-mm">api-server</span></div></li>');
+      if (c.ask && S.ext.ask.st === 'needs') inside.push(itemHTML({ kind: 'question', t: extTask(), project: 'api-server' }, true));
+      if (c.ask && S.ext.ask.st !== 'needs' && !c.ext) inside.push('<li class="w-card w-task" data-tone="work"><button class="title" type="button" data-a="other">' + esc(S.ext.ask.title) + '</button><p class="w-st">' + dot('work', 'pulse') + 'Running · this computer</p><div class="mt"><span class="w-mm">api-server</span></div></li>');
+      return '<li class="w-card w-agent" data-tone="' + tone[c.state] + '"><div class="head"><span class="tile" aria-hidden="true">' + ic('activity', 20) + '</span><span class="who"><b>' + c.name + '</b><span class="w-mm">' + dot(tone[c.state]) + c.state + (c.sessions > 1 ? ' · ' + c.sessions + ' sessions' : '') + '</span></span></div>' +
+        (c.state === 'Idle' ? '<p class="w-muted" style="font-size:13px">Ready. Start it on a task from a project\'s Board.</p>' : '') + (inside.length ? '<ul class="inside">' + inside.join('') + '</ul>' : '') + '</li>';
+    }).join('');
+    return '<div class="w-mpage"><div class="w-seg full" role="group" aria-label="Show agents">' + seg + '</div><ul style="display:flex;flex-direction:column;gap:10px">' + (list || '<li class="w-empty">No agent is ' + (P.af === 'waiting' ? 'waiting for you' : P.af) + '.</li>') + '</ul></div>';
   }
   function phoneReviews() {
     var items = attention().filter(function (i) { return i.kind === 'review'; });
@@ -1276,34 +1413,36 @@
   }
   var PAGE = { control: phoneControl, calendar: phoneCalendar, projects: phoneProjects, mywork: phoneMyWork, agents: phoneAgents, analytics: phoneAnalytics, reviews: phoneReviews, git: phoneGit, runners: phoneRunners };
   function subtitle(at) {
-    var f = fleet(), n = needsInd(), r = reviewTasks().length;
+    var f = fleet(), r = reviewTasks().length, n = needsInd();
+    var idle = agentCards().filter(function (c) { return c.state === 'Idle'; }).length;
     return ({
-      control: n ? plural(n, 'item') + ' waiting' : 'Nothing is waiting',
-      agents: [plural(f.running, 'running', 'running'), f.waiting ? f.waiting + ' waiting for you' : ''].filter(Boolean).join(' · '),
-      reviews: r ? r + ' ready for review' : 'Nothing to review',
-      projects: '3 projects', mywork: plural(myWorkRows().filter(function (x) { return x.ws === 'individual'; }).length, 'task') + ' in progress',
-      calendar: 'Scheduled and planned work', git: gitItems().length ? plural(gitItems().length, 'branch', 'branches') + ' to look at' : 'Nothing needs attention',
-      analytics: 'Today', runners: '1 online'
-    })[at];
+      control: 'Items that need your attention',
+      mywork: 'Your tasks, plan and progress',
+      agents: [f.running ? f.running + ' running' : '', f.waiting ? f.waiting + ' waiting for you' : '', idle ? idle + ' idle' : ''].filter(Boolean).join(' · ') || 'None running',
+      reviews: r ? r + (r === 1 ? ' task is' : ' tasks are') + ' ready for you to review' : 'Work ready for you to review',
+      runners: '1 online'
+    })[at] || '';
   }
   function phoneProject() {
     var tabs = [['board', 'Board'], ['calendar', 'Calendar'], ['git', 'Git'], ['runs', 'Runs']];
-    return '<header class="w-phh"><button class="w-btn quiet ic" type="button" data-a="pback" aria-label="Back to Projects">' + ic('left', 18) + '</button><div class="t"><h1>' + mark(18) + 'my-app</h1><p class="w-mm">~/code/my-app · main</p></div></header>' +
-      '<nav class="w-ptabs" role="tablist" aria-label="my-app">' + tabs.map(function (t) { return '<button type="button" role="tab" data-a="ptabbar" data-id="' + t[0] + '" aria-selected="' + (P.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</nav>' +
+    return '<header class="w-phh"><button class="w-btn ic" type="button" data-a="pback" aria-label="Back to Projects">' + ic('left', 18) + '</button><div class="t"><h1>my-app<span class="chev">' + ic('down', 14) + '</span></h1><p class="w-mm">~/code/my-app · main</p></div>' +
+      '<button class="w-btn ic" type="button" data-a="toast" data-v="Jump to searches projects, sections and tasks." aria-label="Jump to">' + ic('search') + '</button></header>' +
+      '<nav class="w-ptabs" role="tablist" aria-label="my-app">' + tabs.map(function (t) { return '<button type="button" role="tab" data-a="ptabbar" data-id="' + t[0] + '" aria-selected="' + (P.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '<button type="button" role="tab" data-a="toast" data-v="Project settings cover agents, defaults and labels. They are not part of this demo." aria-selected="false">Settings</button></nav>' +
       bannerHTML() + ({ board: phoneBoard, calendar: phoneCalendar, git: phoneGit, runs: phoneRuns })[P.tab]();
   }
-  function parentOf(at) { return at === 'project' ? 'projects' : 'deck'; }
+  function parentOf(at) { return at === 'project' || at === 'team' ? 'projects' : 'deck'; }
   function renderPhone() {
     if (!phoneRoot) return;
     keepScroll(phoneRoot, P.scroll);
     var fk = focusKey(phoneRoot), at = P.at, page;
     if (at === 'deck') page = phoneDeck();
     else if (at === 'project') page = phoneProject();
-    else page = pageHead(PLACES[at], subtitle(at), parentOf(at) === 'deck' ? 'the Control Deck' : 'Projects') + PAGE[at]();
+    else if (at === 'team') page = phoneTeam();
+    else page = pageHead(PLACES[at], subtitle(at), parentOf(at) === 'deck' ? 'the Control Deck' : 'Projects', at === 'agents' ? (agentCards().some(function (c) { return c.state === 'Waiting for you'; }) ? 'ask' : fleet().running ? 'ok' : 'neutral') : '') + PAGE[at]();
     var q = waitingChanges();
     var tabbar = '<nav class="w-tabbar" aria-label="Primary">' +
       '<button type="button" data-a="pdeck"' + (!AS.open ? ' aria-current="page"' : '') + '><span class="icon">' + ic('control', 22) + '</span><span>Control Deck</span></button>' +
-      '<button type="button" data-a="' + (AS.open ? 'asst-x' : 'asst-open') + '" aria-haspopup="dialog"' + (AS.open ? ' aria-current="page" aria-expanded="true"' : ' aria-expanded="false"') + ' aria-label="Assistant' + (q ? ', ' + q + (q === 1 ? ' change is' : ' changes are') + ' waiting for you' : '') + '"><span class="icon asst">' + ic('assistant', 22) + (q ? '<span class="w-num pend">' + q + '</span>' : '') + '</span><span>Assistant</span></button></nav>';
+      '<button type="button" data-a="' + (AS.open ? 'asst-x' : 'asst-open') + '" aria-haspopup="dialog"' + (AS.open ? ' aria-current="page" aria-expanded="true"' : ' aria-expanded="false"') + ' aria-label="Salie' + (q ? ', ' + q + (q === 1 ? ' change is' : ' changes are') + ' waiting for you' : AS.busy ? ', working' : '') + '"><span class="icon asst">' + ic('assistant', 22) + (q ? '<span class="w-num pend">' + q + '</span>' : AS.busy ? '<span class="w-asst-live" aria-hidden="true"></span>' : '') + '</span><span>Salie</span></button></nav>';
     var task = P.task && get(P.task) ? '<section class="w-mtask" role="dialog" aria-label="Task">' + panelInner(get(P.task), P.ptab, true) + '</section>' : '';
     phoneRoot.querySelector('[data-app]').innerHTML = '<div class="w-scroll" data-keep="pscroll-' + at + (at === 'project' ? P.tab : '') + '">' + page + '</div>' + (at === 'project' && P.tab === 'board' && !P.task ? '<button class="w-fab" type="button" data-a="new" aria-label="New task">' + ic('plus', 22) + '</button>' : '') + tabbar + task;
     restoreScroll(phoneRoot, P.scroll);
@@ -1340,21 +1479,33 @@
     });
   }
 
-  /* ---------- the clock: one simulated minute a second ---------- */
+  /* ---------- shared demo clock: six real seconds per simulated minute ---------- */
+  function wfLive() {
+    if (P.wf && !P.wf.stopped && phoneRoot) { var wl = wfLines(); if (wl.ended && !P.wf.ended) { P.wf.ended = true; render(); return; } ['status', 'stage', 'count'].forEach(function (k) { document.querySelectorAll('.wbx [data-wf="' + k + '"]').forEach(function (el) { el.textContent = k === 'status' ? wl.status : k === 'stage' ? wl.stage + ' · ' + P.wf.repo : 'Claude Code · ' + wl.count; }); }); }
+  }
   function tick() {
+    if (P.wf && !P.wf.stopped && !P.wf.ended) P.wf.elapsed += 1000;
+    wfLive();
     if (!S.tasks.some(function (t) { return t.run && t.run.st === 'running'; })) return;
     var changed = false;
-    S.now += 1;
+    S.now += 1 / 6;
     S.tasks.forEach(function (t) {
       var r = t.run; if (!r) return;
       if (r.st === 'running') {
-        r.el += 1;
-        if (r.el % 2 === 0 && r.li < r.logs.length) { feed(t, 'out', r.logs[r.li]); r.li++; }
-        if (r.ask && !r.asked2 && r.el >= r.ask.at) {
-          r.asked2 = true; r.st = 'needs'; r.q = r.ask.q; r.choices = r.ask.choices; r.asked = S.now; changed = true;
-          r.left = Math.max(4, r.left);
-          feed(t, 'q', r.q); say(t.agent + ' asked a question on “' + t.title + '”');
-        } else if (--r.left <= 0) { finish(t); changed = true; }
+        r.el += 1 / 6; r.phaseElapsed = (r.phaseElapsed || 0) + 1;
+        var beforeQuestion = r.ask && !r.asked2;
+        var total = r.phaseDuration || 40, progress = Math.min(1, r.phaseElapsed / total);
+        var startLine = beforeQuestion ? 0 : r.ask ? 2 : 0;
+        var endLine = beforeQuestion ? Math.min(2, r.logs.length) : r.logs.length;
+        var targetLine = startLine + Math.min(endLine - startLine, Math.floor(progress * (endLine - startLine + 1)));
+        while (r.li < targetLine) { feed(t, 'out', r.logs[r.li]); r.li++; }
+        if (--r.left <= 0) {
+          if (beforeQuestion) {
+            r.asked2 = true; r.st = 'needs'; r.q = r.ask.q; r.choices = r.ask.choices; r.asked = S.now; changed = true;
+            feed(t, 'q', r.q); say(t.agent + ' asked a question on “' + t.title + '”');
+            toast('Your agent has a question on “' + t.title + '”. Open the task or Needs you to answer.');
+          } else { finish(t); changed = true; }
+        }
       }
     });
     if (changed) render(); else updateLive();
@@ -1365,7 +1516,7 @@
 
   /* ---------- mounting and scaling ---------- */
   function mountDesk() {
-    deskMount.innerHTML = '<div class="mac"><div class="mac-bar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="mac-title">Werkbord</span><span></span></div><div class="stage" style="--h:800px"><div class="wbx wbx-desk" data-root="desk"><div data-app style="height:100%"></div><div data-overlay></div><div class="w-toast" role="status" aria-live="polite"></div></div></div></div>';
+    deskMount.innerHTML = '<div class="mac"><div class="mac-bar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="mac-title">werkbord</span><span></span></div><div class="stage" style="--h:800px"><div class="wbx wbx-desk" data-root="desk"><div data-app style="height:100%"></div><div data-overlay></div><div class="w-toast" role="status" aria-live="polite"></div></div></div></div>';
     deskRoot = deskMount.querySelector('.wbx-desk');
     bind(deskRoot, 'desk');
   }
@@ -1420,6 +1571,7 @@
         if (col && D.pick && where === 'desk') { var r = col.getBoundingClientRect(); schedule(D.pick, +col.dataset.day, H0 * 60 + (e.clientY - r.top) / (D.s || 1) / HOUR * 60); render(); }
         return;
       }
+      if (root.dataset.held === 'yes') { delete root.dataset.held; e.preventDefault(); return; }
       var a = b.dataset.a, id = b.dataset.id, v = b.dataset.v;
       if (b.tagName === 'A') e.preventDefault();
       switch (a) {
@@ -1441,8 +1593,21 @@
         case 'col': P.col = id; render(); break;
         case 'ptabbar': P.tab = id; P.task = null; render(); break;
         case 'pgo': P.at = id; P.task = null; dropOverlay(); render(); break;
+        case 'decklibrary': workflowSheet('decklibrary'); break;
+        case 'deckadd': if (P.deckAdded) workflowSheet('wfconfig'); else { P.deckAdded = true; dropOverlay(); toast('Find Bugs is on your deck. Tap to run, hold to configure.'); render(); } break;
+        case 'wftap': tapWorkflow(); break;
+        case 'wfrun': var picked = phoneRoot.querySelector('input[name="wfrepo"]:checked'); runWorkflow(picked ? picked.value : REPOS[0]); dropOverlay(); render(); break;
+        case 'wfsave': saveWorkflow(); dropOverlay(); render(); break;
+        case 'wfreport': V.sheet = { kind: 'workflow-report' }; G.f['phone-report'] = true; setOverlay(root, sheetHTML(V.sheet, where === 'phone')); break;
+        case 'wfstop': if (P.wf) { P.wf.stopped = true; render(); } break;
+        case 'wfx': if (P.wf) P.wf.dismissed = true; render(); break;
+        case 'af': P.af = id; render(); break;
         case 'pdeck': P.at = 'deck'; P.task = null; dropOverlay(); render(); break;
         case 'pback': P.at = parentOf(P.at); P.task = null; render(); break;
+        case 'pscope': P.scope = id; render(); break;
+        case 'pteam': P.at = 'team'; P.teamTab = 'board'; render(); break;
+        case 'pteamtab': P.teamTab = id; render(); break;
+        case 'pschedule': var scheduled = story(3); if (scheduled) schedule(scheduled.id, TODAY + 1, 9 * 60); render(); break;
         case 'pproject': P.at = 'project'; P.tab = 'board'; P.task = null; render(); break;
         case 'pday': P.day = id === '0' ? TODAY : P.day + (+id); render(); break;
         case 'wk': D.week += +id; render(); break;
@@ -1464,10 +1629,11 @@
         case 'ws': goWs(id); break;
         case 'uv': D.uv = id; render(); break;
         case 'tv': D.tv = id; render(); break;
+        case 'tvp': D.tv = 'board'; render(); break;
         case 'go': jump(v); break;
         case 'claim': claim(+id); G.f.claimed = true; render(); break;
         case 'signoff': signoff(+id); render(); break;
-        case 'runner': toast('Open in my runner hands the ticket to your own Werkbord. Team never runs anything.'); break;
+        case 'runner': toast('Open in my runner hands the ticket to your own werkbord. Team never runs anything.'); break;
         case 'addteam': toast('Adding a Team installs a small background service, after you approve it. It is not part of this demo.'); break;
         case 'slot': schedule(D.pick, +b.dataset.day, +b.dataset.m); render(); break;
         case 'asst-model': toast('Replies are scripted here, so the model is fixed in this demo.'); break;
@@ -1525,6 +1691,26 @@
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && e.target.closest('form[data-form="new"]')) { e.preventDefault(); var sb = e.target.closest('form').querySelector('[value="start"]'); if (sb) sb.click(); }
       if (where === 'desk' && D.ws === 'individual' && e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey && !e.target.matches('input,textarea,select') && !D.sheet && !AS.open) { e.preventDefault(); D.sheet = { kind: 'new' }; openOverlay(sheetHTML(D.sheet), 'input[name=title]'); }
     });
+    if (where === 'phone') {
+      /* Hold a workflow key for its settings (lib/mobile/press.ts: 550ms, and a move of a few pixels cancels). The click that
+         follows the hold is swallowed, so a hold never also runs the workflow. With a keyboard, Shift+F10 does the same. */
+      var holdTimer, holdPoint;
+      function cancelHold() { clearTimeout(holdTimer); holdPoint = null; }
+      root.addEventListener('pointerdown', function (e) {
+        delete root.dataset.held;
+        if (!e.target.closest('[data-key="bugs"]') || e.button !== 0) return;
+        holdPoint = [e.clientX, e.clientY];
+        holdTimer = setTimeout(function () { root.dataset.held = 'yes'; workflowSheet('wfconfig'); }, 550);
+      });
+      root.addEventListener('pointermove', function (e) { if (holdPoint && Math.hypot(e.clientX - holdPoint[0], e.clientY - holdPoint[1]) > 8) cancelHold(); });
+      ['pointercancel', 'pointerleave'].forEach(function (event) { root.addEventListener(event, cancelHold); });
+      // The click comes in the same task as pointerup, so the flag is cleared only after it has been swallowed.
+      root.addEventListener('pointerup', function () { cancelHold(); if (root.dataset.held) setTimeout(function () { delete root.dataset.held; }, 0); });
+      root.addEventListener('contextmenu', function (e) { if (e.target.closest('[data-key="bugs"]')) e.preventDefault(); });
+      root.addEventListener('keydown', function (e) {
+        if (e.target.closest('[data-key="bugs"]') && ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu')) { e.preventDefault(); workflowSheet('wfconfig'); }
+      });
+    }
     if (where === 'desk') bindDrag(root);
   }
 
@@ -1602,9 +1788,9 @@
      visitor has to be, what to press and how to tell it is done. The note shows the first step that is not done, so doing
      things in another order, or elsewhere, only moves the note. When the visitor is not where the step needs them, the note
      points at the next control on the way there (the switcher, a tab, a layer to close). A chapter can be skipped from the
-     bar: it then makes what the skipped part would have made. The phone has its own shorter story: Individual only, as in the
-     product. demo-guide.js draws the ring, the line and the note. */
-  var CHAPTERS = ['Universal', 'Individual', 'Team'];
+     bar: it then makes what the skipped part would have made. Both surfaces share progress; a separate phone tour teaches
+     workflow shortcuts after the core story. demo-guide.js draws the ring, the line and the note. */
+  var CHAPTERS = ['Plan', 'Run', 'Review'];
   var guideSection = document.getElementById('demo');
   var guideEl = document.querySelector('[data-guide]');
   var small = window.matchMedia('(max-width: 767px)');
@@ -1618,6 +1804,13 @@
      one present), and when it is done. kind 'area' outlines a region and has no control to press; wait steps show their note
      even with nothing to point at. sticky steps stay done once they have been. */
   function boardNeed(w, col) { return w === 'phone' ? { at: 'project', tab: 'board', col: col || 'backlog' } : { ws: 'individual', view: 'board' }; }
+  /* On the phone a step can be done in more than one place: the deck's page for it, or my-app's own board or tab, which is
+     where a switch from the desktop lands. The visitor is not sent back to the deck from a place that works. */
+  function phoneNeed(page, tab, col) {
+    var t = lead();
+    if (t && P.task === t.id) return { task: t.id };
+    return P.at === 'project' ? (tab === 'board' ? boardNeed('phone', col) : { at: 'project', tab: tab }) : { at: page };
+  }
   function onDeck(w) { return w === 'phone' ? { at: 'deck' } : boardNeed(w, 'doing'); }
   var STORY = [
     { id: 'deck', ch: 0, phone: true, kind: 'area', next: true, sticky: true, kick: 'Control Deck',
@@ -1628,27 +1821,27 @@
       need: function () { return { ws: 'universal', uv: 'mywork' }; }, aim: function () { return ['.w-uh']; },
       text: 'Start in Universal: your work from every workspace in one list, and what is waiting on you.',
       done: function () { return D.ws !== 'universal' || D.uv !== 'mywork' || AS.open || G.f.plate || planned(); } },
-    { id: 'ask', ch: 0, kind: 'press', kick: 'Assistant', sticky: true,
+    { id: 'ask', ch: 0, kind: 'press', kick: 'Salie', sticky: true,
       need: function () { return {}; }, aim: function () { return ['[data-a="asst-open"]']; },
-      text: function (h, w) { return w === 'phone' ? 'Start with an idea. Ask the assistant to turn it into scoped work.' : 'Ask the assistant. It works across your workspaces, from this one interface.'; },
+      text: function (h, w) { return w === 'phone' ? 'Start with an idea. Ask Salie to turn it into scoped work.' : 'Ask Salie. It works across your workspaces, from this one interface.'; },
       done: function () { return AS.open || G.f.plate || G.f.planAsk || planned(); } },
-    { id: 'plate', ch: 0, desk: true, kind: 'press', kick: 'Assistant',
+    { id: 'plate', ch: 0, kind: 'press', kick: 'Salie',
       need: function () { return { asst: true }; }, aim: function () { return ['.w-apill[data-v="What is on my plate this week?"]']; },
       text: 'Ask about your whole week, across Individual and your team.',
       done: function () { return G.f.plate || G.f.planAsk || planned(); } },
-    { id: 'ui', ch: 0, desk: true, kind: 'area', next: true, kick: 'Generated interface', sticky: true,
-      need: function () { return { asst: true }; }, aim: function () { return [{ last: '.w-ui' }]; },
-      text: 'The assistant can answer with interface, not only text (OpenUI). Sort it, filter it. It is read only, and stamped with when it was read.',
+    { id: 'ui', ch: 0, kind: 'area', next: true, kick: 'Generated interface', sticky: true, wait: true, nextOk: function () { return !AS.busy; },
+      need: function () { return { asst: true }; }, aim: function () { return AS.busy ? [] : [{ last: '.w-ui' }]; },
+      text: function () { return AS.busy ? 'Salie is reading My Work, the schedules and Needs you in both workspaces, and building the answer as it goes.' : 'Salie can answer with interface, not only text (OpenUI). Sort it, filter it. It is read only, and stamped with when it was read.'; },
       done: function () { return G.f.planAsk || planned() || !AS.open; } },
-    { id: 'plan', ch: 0, kind: 'press', kick: 'Assistant',
-      need: function () { return { asst: true }; }, aim: function () { return ['.w-apill[data-v="Plan CSV export for reports"]']; },
-      text: 'Now turn an idea into work, in one request.',
-      done: function () { return planned() || (G.f.planAsk && waitingChanges() > 0); } },
-    { id: 'confirm', ch: 0, kind: 'press', kick: 'Assistant',
-      need: function () { return { asst: true }; }, aim: function () { return [['.w-aall', '[data-a="asst-ok"]']]; },
-      text: function (h, w) { return (w === 'phone' ? 'Three tasks for my-app.' : 'Three tasks for my-app and a ticket for your team.') + ' Nothing is created until you confirm.'; },
+    { id: 'plan', ch: 0, kind: 'press', kick: 'Salie', wait: true,
+      need: function () { return { asst: true }; }, aim: function () { return AS.busy ? [] : ['.w-apill[data-v="Plan CSV export for reports"]']; },
+      text: function () { return AS.busy ? 'Salie is splitting the idea into scoped tasks. Each proposal arrives as a card, and none of them changes anything yet.' : 'Now turn an idea into work, in one request.'; },
+      done: function () { return planned() || (G.f.planAsk && !AS.busy && waitingChanges() > 0); } },
+    { id: 'confirm', ch: 0, kind: 'press', kick: 'Salie',
+      need: function () { return { asst: true }; }, aim: function () { return [['.w-aall [data-a="asst-all"][data-v="yes"]', '[data-a="asst-ok"]']]; },
+      text: function (h, w) { return 'Three tasks for my-app and a ticket for your team.' + ' Nothing is created until you confirm.'; },
       done: function () { return planned() && waitingChanges() === 0; } },
-    { id: 'open', ch: 0, kind: 'press', kick: 'Assistant', sticky: true,
+    { id: 'open', ch: 0, kind: 'press', kick: 'Salie', sticky: true,
       need: function () { return { asst: true }; }, aim: function () { return ['.w-acard [data-a="asst-opentask"]']; },
       text: 'Added. Open the first task where it lives.',
       done: function () { return !AS.open; } },
@@ -1666,84 +1859,150 @@
       aim: function () { return [story(1), story(2)].filter(function (t) { return t && !started(t); }).map(function (t) { return '[data-a="start"][data-id="' + t.id + '"]'; }); },
       text: 'Start two agents. Each works in its own Git worktree, so they do not collide.',
       done: function () { return !!lead() && [story(1), story(2)].every(function (t) { return !t || started(t); }); } },
-    { id: 'running', ch: 1, kind: 'area', wait: true,
-      need: function (w) { var n = onDeck(w); n.task = true; return n; },
-      aim: function (w) { return w === 'phone' ? ['[data-key="agents"]'] : ['.w-col[data-col="doing"]']; },
-      hops: true, text: function (h, w) { return !h ? (w === 'phone' ? 'Both agents are working on your computer. The Agents key counts them.' : 'Both agents are working on your machine, side by side.') : h.kind === 'col' ? 'Both agents are working. Open Doing to watch them.' : h.kind === 'deck' ? 'Back to the Control Deck. It counts your agents.' : ''; },
-      done: function () { var t = lead(); return !t || !t.run || !!t.run.asked2 || t.run.st === 'completed' || t.state !== 'doing'; } },
-    { id: 'answer', ch: 1, kind: 'press',
-      need: function (w) { if (w === 'phone') return { at: 'control' }; var n = boardNeed(w, 'doing'); n.task = lead() ? lead().id : true; return n; },
-      aim: function (w) { var t = lead(); return t ? [[(w === 'phone' ? '.w-item ' : '.w-panel ') + '[data-a="answer"][data-id="' + t.id + '"]', '.w-task [data-a="answer"][data-id="' + t.id + '"]']] : []; },
-      hops: true, text: function (h, w) { return h && h.kind === 'key' ? 'An agent needs a decision, and the deck says so. Open Needs you.' : h && h.kind === 'deck' ? 'An agent has a question. Back to the Control Deck.' : w === 'phone' ? 'An agent needs a decision. Answer from your phone, and the desktop window moves on too.' : 'An agent needs a decision. Answer, and it carries on. You can answer from your phone too.'; },
-      done: function () { var t = lead(); return !t || !t.run || !(t.run.st === 'needs' || t.run.st === 'blocked'); } },
-    { id: 'cal', ch: 1, desk: true, kind: 'press', sticky: true, hops: true,
+    { id: 'parallel', ch: 1, kind: 'area', next: true, sticky: true,
+      need: function () { return {}; }, aim: function () { return []; }, wait: true,
+      text: 'Both agents are working in the background. While they read the code and build, let’s take care of something else.',
+      done: function () { return !!G.f.parallel; } },
+    { id: 'cal', ch: 1, kind: 'press', sticky: true, hops: true,
       need: function () { return { ws: 'individual', view: 'calendar' }; }, aim: function () { return []; },
       text: function (h) { return h && h.kind === 'tab' ? 'While the agents work, plan the third task. Open Calendar.' : ''; },
-      done: function () { var t = story(3); return !t || !!t.sched || D.view === 'calendar'; } },
+      done: function () { var t = story(3); return !t || !!t.sched || (guideWhere() === 'phone' ? P.at === 'project' && P.tab === 'calendar' : D.view === 'calendar'); } },
     { id: 'pick', ch: 1, desk: true, kind: 'press',
       need: function () { return { ws: 'individual', view: 'calendar' }; }, aim: function () { var t = story(3); return t ? ['.w-unit[data-id="' + t.id + '"]'] : []; },
       text: 'Pick the test task. It waits until the other two are merged.',
       done: function () { var t = story(3); return !t || !!t.sched || D.pick === t.id; } },
-    { id: 'slot', ch: 1, desk: true, kind: 'press',
-      need: function () { return { ws: 'individual', view: 'calendar' }; }, aim: function () { return ['[data-a="slot"]']; },
+    { id: 'slot', ch: 1, kind: 'press',
+      need: function () { return { ws: 'individual', view: 'calendar' }; }, aim: function (w) { return [w === 'phone' ? '[data-a="pschedule"]' : '[data-a="slot"]']; },
       text: 'Choose tomorrow at 09:00. It starts by itself, even with this window closed.',
       done: function () { var t = story(3); return !t || !!t.sched; } },
+    { id: 'team', ch: 1, kind: 'press', sticky: true, hops: true,
+      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { return []; },
+      text: function (h) {
+        if (!h) return '';
+        return ({ ws: 'Choose ' + S.team.name + ': a shared workspace, in the same window.', sw: 'While your agents work, check what your team needs. Open the switcher.',
+          deck: 'While your agents work, check what your team needs. Back to the Control Deck.', key: 'Open Projects. Your Team’s projects are there too.',
+          scope: 'Choose Team: ' + S.team.name + ' is a shared workspace, on the same phone.', teamproject: 'Open ' + S.team.project + ', your team’s shared project.' })[h.kind] || '';
+      },
+      done: function () { return !!G.f.team; } },
+    { id: 'see', ch: 1, kind: 'area', next: true, sticky: true,
+      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { return ['.w-col[data-col="progress"]', '.w-col[data-col="review"]']; },
+      text: 'Your team’s board: who owns what, with the branch and pull request each person’s own computer reports.',
+      done: function () { return !!G.f.claimed; } },
+    { id: 'claim', ch: 1, kind: 'press',
+      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { var k = claimTarget(); return k ? ['[data-a="claim"][data-id="' + k.n + '"]'] : []; },
+      text: function () { return (storyTicket() ? 'Claim the ticket Salie created.' : 'Claim a ticket.') + ' Claiming is one guarded step, so only one person gets it.'; },
+      done: function () { return !!G.f.claimed; } },
+    { id: 'reviews', ch: 1, kind: 'press', sticky: true, hops: true,
+      need: function () { return { ws: 'team', tv: 'reviews' }; }, aim: function () { return []; },
+      text: function (h) { return h && h.kind === 'nav' ? 'Maya finished a change, and it is waiting for you. Open Reviews.' : ''; },
+      done: function () { return !!G.f.reviews || tix(42).st === 'done'; } },
+    { id: 'signoff', ch: 1, kind: 'press',
+      need: function () { return { ws: 'team', tv: 'reviews' }; }, aim: function () { return ['[data-a="signoff"]']; },
+      text: 'Sign off. Team never marks work done while its pull request is open. This one is already merged.',
+      done: function () { return tix(42).st === 'done'; } },
+    { id: 'running', ch: 1, kind: 'area', wait: true,
+      need: function () { return {}; }, aim: function () { return []; },
+      text: 'The agents are still working in the background. Keep exploring; we’ll let you know when one needs a decision.',
+      done: function () { var t = lead(); return !t || !t.run || !!t.run.asked2 || t.run.st === 'completed' || t.state !== 'doing'; } },
+    { id: 'answer', ch: 1, kind: 'press',
+      need: function (w) { if (w === 'phone') return phoneNeed('control', 'board', 'doing'); var n = boardNeed(w, 'doing'); n.task = lead() ? lead().id : true; return n; },
+      aim: function (w) { var t = lead(); return t ? [[(w === 'phone' ? '.w-mtask ' : '.w-panel ') + '[data-a="answer"][data-id="' + t.id + '"]', '.w-item [data-a="answer"][data-id="' + t.id + '"]', '.w-task [data-a="answer"][data-id="' + t.id + '"]']] : []; },
+      hops: true, text: function (h, w) { return h && h.kind === 'key' ? 'An agent needs a decision, and the deck says so. Open Needs you.' : h && h.kind === 'deck' ? 'An agent has a question. Back to the Control Deck.' : w === 'phone' ? 'An agent needs a decision. Answer from your phone, and the desktop window moves on too.' : 'Your agent has a question. Open its task, answer the separator question, and it will carry on.'; },
+      done: function () { var t = lead(); return !t || !t.run || !(t.run.st === 'needs' || t.run.st === 'blocked'); } },
+    { id: 'check-git', ch: 1, kind: 'area', next: true, sticky: true, wait: true,
+      need: function (w) { return w === 'phone' ? phoneNeed('git', 'git') : { ws: 'individual', view: 'git' }; },
+      aim: function () { return []; },
+      text: 'The agent has your answer and is testing the change. Check the repository here while it finishes. Every change stays in its own branch until you review it.',
+      done: function () { var t = lead(); return !!G.f['check-git'] || !t || t.state === 'review' || t.state === 'done'; } },
     { id: 'finishing', ch: 1, kind: 'area', wait: true,
-      need: function (w) { var n = onDeck(w); n.task = true; return n; },
-      aim: function (w) { return w === 'phone' ? ['[data-key="reviews"]'] : ['.w-col[data-col="doing"]']; },
-      hops: true, text: function (h, w) { return !h ? (w === 'phone' ? 'The agent is wrapping up. Reviews counts it when it is ready. Nothing merges on its own.' : 'The agent is wrapping up. Nothing merges on its own.') : h.kind === 'deck' ? 'Back to the Control Deck, to watch the agent finish.' : h.kind === 'col' || h.kind === 'tab' || h.kind === 'project' ? 'Back to the board, to watch the agent finish.' : ''; },
+      need: function () { return {}; }, aim: function () { return []; },
+      text: 'The agent is running checks and preparing its commit. You can keep exploring. We’ll bring you back when it is ready for review.',
       done: function () { var t = lead(); return !t || t.state === 'review' || t.state === 'done'; } },
-    { id: 'review', ch: 1, kind: 'press',
-      need: function (w) { return w === 'phone' ? { at: 'reviews' } : boardNeed(w, 'review'); },
-      aim: function (w) { var t = lead(); return t ? (w === 'phone' ? ['.w-row [data-a="open"][data-id="' + t.id + '"]'] : ['.w-task[data-card="' + t.id + '"]']) : []; },
-      hops: true, text: function (h, w) { return h && h.kind === 'key' ? 'The endpoint is ready. Open Reviews.' : h && h.kind === 'deck' ? 'The endpoint is ready. Back to the Control Deck.' : w === 'phone' ? 'The endpoint is ready. Open it from Reviews and read what the agent did before anything merges.' : 'The endpoint is ready. Open it and read what the agent did before anything merges.'; },
+    { id: 'review', ch: 2, kind: 'press',
+      need: function (w) { return w === 'phone' ? phoneNeed('reviews', 'board', 'review') : boardNeed(w, 'review'); },
+      aim: function (w) { var t = lead(); return t ? [['.w-row [data-a="open"][data-id="' + t.id + '"]', '.w-task[data-card="' + t.id + '"] .acts [data-a="open"]', '.w-task[data-card="' + t.id + '"] .title']] : []; },
+      hops: true, text: function (h, w) { return h && h.kind === 'key' ? 'The endpoint is ready. Open Reviews.' : h && h.kind === 'deck' ? 'The endpoint is ready. Back to the Control Deck.' : w === 'phone' && P.at !== 'project' ? 'The endpoint is ready. Open it from Reviews and read what the agent did before anything merges.' : 'The endpoint is ready. Open it and read what the agent did before anything merges.'; },
       done: function (w) { var t = lead(); return !t || t.state === 'done' || (w === 'phone' ? P.task : D.task) === t.id || sheetOpen(w); } },
-    { id: 'merge', ch: 1, kind: 'press',
-      need: function (w) { var n = w === 'phone' ? { at: 'reviews' } : boardNeed(w, 'review'); n.task = lead() ? lead().id : true; return n; },
+    { id: 'merge', ch: 2, kind: 'press',
+      need: function (w) { var n = w === 'phone' ? phoneNeed('reviews', 'board', 'review') : boardNeed(w, 'review'); n.task = lead() ? lead().id : true; return n; },
       aim: function (w) { var t = lead(); return t ? [[(w === 'phone' ? '.w-mtask ' : '.w-panel ') + '[data-a="merge"][data-id="' + t.id + '"]', '.w-task [data-a="merge"][data-id="' + t.id + '"]']] : []; },
       text: 'You decide what reaches main. Choose Merge to check the branch first.',
       done: function (w) { var t = lead(); return !t || t.state === 'done' || sheetOpen(w); } },
-    { id: 'merged', ch: 1, kind: 'press',
+    { id: 'merged', ch: 2, kind: 'press',
       need: function () { return { sheet: true }; }, aim: function () { return ['.w-sheet [data-a="mergego"]']; },
       text: 'Checked now, and again when you confirm. The merge is local; nothing is pushed.',
       done: function () { var t = lead(); return !t || t.state === 'done'; } },
 
-    { id: 'team', ch: 2, desk: true, kind: 'press', sticky: true, hops: true,
-      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { return []; },
-      text: function (h) { return h.kind === 'ws' ? 'Choose ' + S.team.name + ': a shared workspace, in the same window.' : h.kind === 'sw' ? 'Now your team. Open the switcher.' : ''; },
-      done: function () { return !!G.f.team; } },
-    { id: 'see', ch: 2, desk: true, kind: 'area', next: true, sticky: true,
-      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { return ['.w-col[data-col="progress"]', '.w-col[data-col="review"]']; },
-      text: 'Your team’s board: who owns what, with the branch and pull request each person’s own computer reports.',
-      done: function () { return !!G.f.claimed; } },
-    { id: 'claim', ch: 2, desk: true, kind: 'press',
-      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { var k = claimTarget(); return k ? ['[data-a="claim"][data-id="' + k.n + '"]'] : []; },
-      text: function () { return (storyTicket() ? 'Claim the ticket the assistant created.' : 'Claim a ticket.') + ' Claiming is one guarded step, so only one person gets it.'; },
-      done: function () { return !!G.f.claimed; } },
-    { id: 'reviews', ch: 2, desk: true, kind: 'press', sticky: true, hops: true,
-      need: function () { return { ws: 'team', tv: 'reviews' }; }, aim: function () { return []; },
-      text: function (h) { return h.kind === 'nav' ? 'Maya finished a change, and it is waiting for you. Open Reviews.' : ''; },
-      done: function () { return !!G.f.reviews || tix(42).st === 'done'; } },
-    { id: 'signoff', ch: 2, desk: true, kind: 'press',
-      need: function () { return { ws: 'team', tv: 'reviews' }; }, aim: function () { return ['[data-a="signoff"]']; },
-      text: 'Sign off. Team never marks work done while its pull request is open. This one is already merged.',
-      done: function () { return tix(42).st === 'done'; } },
     { id: 'home', ch: 2, desk: true, kind: 'press', sticky: true, hops: true,
       need: function () { return { ws: 'universal', uv: 'mywork' }; }, aim: function () { return []; },
-      text: function (h) { return h.kind === 'sw' ? 'Last stop: back to Universal. Open the switcher.' : ''; },
-      done: function () { return D.ws === 'universal'; } }
+      text: function (h) { return h && h.kind === 'sw' ? 'Last stop: back to Universal. Open the switcher.' : ''; },
+      done: function () { return !!lead() && lead().state === 'done' && D.ws === 'universal'; } }
+  ];
+
+  /* The phone lesson, after the core story: only what is different on the phone. The deck is the way in, and a workflow key
+     runs a task you repeat on the paired computer: tap it and choose a repository, or hold it and save one. Each step reads
+     the sheet that is open, so a visitor who holds before tapping, or taps twice, is still on the story. */
+  function wfSheet(kind) { return !!P.sheet && P.sheet.kind === kind; }
+  var PHONE_STORY = [
+    { id: 'phone-intro', ch: 0, kind: 'area', next: true, sticky: true, kick: 'Desktop and phone, paired',
+      need: function () { return { at: 'deck' }; }, aim: function () { return ['.w-housing']; },
+      text: 'Your desktop is the detailed control center. Your phone is paired with it: the same control, distilled into one deck of keys, with a count on each for what is waiting for you.',
+      done: function () { return false; } },
+    { id: 'phone-add', ch: 0, kind: 'press', kick: 'Make the deck yours',
+      need: function () { return { at: 'deck', sheet: wfSheet('decklibrary') }; },
+      aim: function () { return wfSheet('decklibrary') ? ['[data-a="deckadd"]'] : ['.w-dkey.empty']; },
+      text: function () { return wfSheet('decklibrary') ? 'These are workflow buttons. Each one turns a task you repeat into a single tap. Choose Find Bugs; the others show what else a key can do.' : 'The ninth key is empty. Set the deck up for the work you do: tap it to add a button.'; },
+      done: function () { return P.deckAdded; } },
+    { id: 'phone-run', ch: 1, kind: 'press', kick: 'Tap to run',
+      need: function () { return { at: 'deck', sheet: wfSheet('wfpick') || wfSheet('wfconfig') }; },
+      aim: function () { return wfSheet('wfpick') ? ['[data-a="wfrun"]'] : wfSheet('wfconfig') ? ['[data-a="wfsave"]'] : ['[data-key="bugs"]']; },
+      text: function () {
+        if (wfSheet('wfpick')) return 'Choose a repository and run. Your paired computer does the work, and nothing on it changes.';
+        if (wfSheet('wfconfig')) return 'Save a repository here, and a tap runs Find Bugs there straight away.';
+        return P.repo ? 'Tap Find Bugs. It runs on ' + P.repo + ' straight away.' : 'The new key wears the accent: it runs work instead of opening a page. Tap it. No task to write, no form to fill in.';
+      },
+      done: function () { return !!G.f['phone-run']; } },
+    { id: 'phone-progress', ch: 1, kind: 'area', next: true, sticky: true, kick: 'On your computer',
+      need: function () { return { at: 'deck' }; }, aim: function () { return ['.w-wfb']; },
+      text: 'Find Bugs is running on your computer, not your phone. Its stages report here as they finish, and it carries on if you leave this screen.',
+      done: function () { return !wfRunning(); } },
+    { id: 'phone-hold', ch: 1, kind: 'press', kick: 'Hold to configure', sticky: true,
+      need: function () { return { at: 'deck', sheet: wfSheet('wfconfig') || wfSheet('wfpick') }; },
+      aim: function () { return wfSheet('wfconfig') ? ['[data-a="wfsave"]'] : wfSheet('wfpick') ? ['.w-sheet [data-a="sheetx"].ic'] : ['[data-key="bugs"]']; },
+      text: function () {
+        if (wfSheet('wfconfig')) return 'Choose ' + (P.wf ? P.wf.repo : 'a repository') + ' and save. Tap to run, hold to configure: that is the whole deck.';
+        if (wfSheet('wfpick')) return 'A tap asks for a repository every time. Close this, then press and hold Find Bugs to save one instead.';
+        return 'Next time can take one tap. Press and hold Find Bugs to open its settings. With a keyboard, Shift+F10.';
+      },
+      done: function () { return !!G.f['phone-config']; } },
+    { id: 'phone-team', ch: 1, kind: 'press', kick: 'Meanwhile', sticky: true, hops: true,
+      need: function () { return { at: 'projects' }; }, aim: function () { return ['[data-a="pscope"][data-id="team"]']; },
+      text: function (h) { return h && h.kind === 'key' ? 'The scan keeps going on your computer while you move around. Open Projects.' : h ? '' : 'Individual and Team sit side by side here, as on the desktop. Switch to Team: your team’s work is a tap away.'; },
+      done: function () { return P.scope === 'team'; } },
+    { id: 'phone-wait', ch: 2, kind: function () { return P.wf && P.wf.stopped ? 'press' : 'area'; }, wait: true, kick: 'On your computer', hops: true,
+      need: function () { return { at: 'deck' }; }, aim: function () { return P.wf && P.wf.stopped ? ['[data-key="bugs"]'] : ['.w-wfb']; },
+      text: function (h) {
+        if (h) return h.kind === 'deck' ? 'Back to the Control Deck to see how the scan is going.' : '';
+        return P.wf && P.wf.stopped ? 'You stopped Find Bugs. Tap it to run it again.' : 'Find Bugs is still at work on your computer, about 40 seconds in this demo. Your phone only had to start it.';
+      },
+      done: function () { return !!P.wf && wfLines().ended && !P.wf.stopped; } },
+    { id: 'phone-report', ch: 2, kind: 'press', kick: 'The result', sticky: true, hops: true,
+      need: function () { return { at: 'deck', sheet: wfSheet('workflow-report') }; }, aim: function () { return [['.w-wfb [data-a="wfreport"]', '.w-deckhistory [data-a="wfreport"]']]; },
+      text: function (h) { return h ? (h.kind === 'deck' ? 'Find Bugs is done. Back to the Control Deck for its report.' : '') : 'Done. Open the report: what it found, with a fix for each.'; },
+      done: function () { return !!G.f['phone-report']; } }
   ];
 
   function applies(s, w) { return !(s.desk && w !== 'desk') && !(s.phone && w !== 'phone'); }
   function isDone(s, w) {
-    var key = s.id + ':' + w;
+    var key = s.id;
     if (s.ch < G.floor || G.s[key] || (s.next && G.f[s.id])) return true;
     var d = !!s.done(w);
     if (d && s.sticky) G.s[key] = true;
     return d;
   }
   function currentStep(w) {
-    for (var i = 0; i < STORY.length; i++) if (applies(STORY[i], w) && !isDone(STORY[i], w)) return STORY[i];
+    var steps = G.mode === 'phone' ? PHONE_STORY : STORY;
+    for (var i = 0; i < steps.length; i++) if (applies(steps[i], w) && !isDone(steps[i], w)) return steps[i];
     return null;
   }
 
@@ -1757,15 +2016,20 @@
     if (need.sheet && V.sheet) return null;
     if (V.sheet && !need.sheet) return { sel: '.w-sheet [data-a="sheetx"].ic', kind: 'close-sheet' };
     if (phone) {
+      if (need.ws === 'individual') need = { at: 'project', tab: need.view === 'control' ? 'board' : need.view, task: need.task };
+      if (need.ws === 'team') need = { at: 'team', teamTab: need.tv };
+      if ((need.at === 'project' || need.at === 'team') && P.at === 'projects' && P.scope !== (need.at === 'team' ? 'team' : 'individual')) return { sel: '[data-a="pscope"][data-id="' + (need.at === 'team' ? 'team' : 'individual') + '"]', kind: 'scope', to: need.at === 'team' ? 'Team' : 'Individual' };
+      if (need.at === 'team' && P.at === 'projects') return { sel: '[data-a="pteam"]', kind: 'teamproject' };
+      if (need.at === 'team' && P.at === 'team' && need.teamTab && P.teamTab !== need.teamTab) return { sel: '[data-a="pteamtab"][data-id="' + need.teamTab + '"]', kind: 'nav', to: need.teamTab };
       if (P.task && !taskOk(P.task)) return { sel: '.w-mtask [data-a="close"]', kind: 'back' };
       if (need.at && !P.task) {
         if (P.at !== need.at) {
           if (need.at === 'project' && P.at === 'projects') return { sel: '[data-a="pproject"]', kind: 'project' };
-          if (P.at === 'deck') return { sel: '.w-keys [data-a="pgo"][data-id="' + (need.at === 'project' ? 'projects' : need.at) + '"]', kind: 'key', to: need.at === 'project' ? 'projects' : need.at };
+          if (P.at === 'deck') return { sel: '.w-keys [data-a="pgo"][data-id="' + (need.at === 'project' || need.at === 'team' ? 'projects' : need.at) + '"]', kind: 'key', to: need.at === 'project' || need.at === 'team' ? 'projects' : need.at };
           return { sel: '.w-tabbar [data-a="pdeck"]', kind: 'deck' };
         }
         if (need.at === 'project' && need.tab && P.tab !== need.tab) return { sel: '.w-ptabs [data-a="ptabbar"][data-id="' + need.tab + '"]', kind: 'tab', to: need.tab };
-        if (need.col && P.col !== need.col && need.at === 'project') return { sel: '.w-pills [data-a="col"][data-id="' + need.col + '"]', kind: 'col', to: need.col };
+        if (need.col && P.col !== need.col && need.at === 'project') return { sel: '.w-seg [data-a="col"][data-id="' + need.col + '"]', kind: 'col', to: need.col };
       }
       return null;
     }
@@ -1780,8 +2044,8 @@
     }
     return null;
   }
-  var WSNAME = { universal: 'Universal', individual: 'Individual' }, VIEWNAME = { board: 'Board', calendar: 'Calendar', mywork: 'My Work', inbox: 'Needs you', reviews: 'Reviews', home: 'Needs you', review: 'Review', doing: 'Doing', backlog: 'Backlog' };
-  var HOP = { deck: 'Open the Control Deck.', key: function (h) { return 'Open ' + (PLACES[h.to] || 'the page') + '.'; }, 'close-asst': 'Close the assistant to continue.', 'open-asst': 'Open the assistant.', 'close-sheet': 'Close this to continue.', back: 'Go back to the board.', 'close-task': 'Close the task to see the board.',
+  var WSNAME = { universal: 'Universal', individual: 'Individual' }, VIEWNAME = { board: 'Board', calendar: 'Calendar', mywork: 'My Work', inbox: 'Needs you', reviews: 'Reviews', home: 'Needs you', review: 'Review', git: 'Git', doing: 'Doing', backlog: 'Backlog' };
+  var HOP = { scope: function (h) { return 'Choose ' + h.to + ' projects.'; }, teamproject: 'Open your team’s shared project.', deck: 'Open the Control Deck.', key: function (h) { return 'Open ' + (PLACES[h.to] || 'the page') + '.'; }, 'close-asst': 'Close Salie to continue.', 'open-asst': 'Open Salie.', 'close-sheet': 'Close this to continue.', back: 'Go back to the board.', 'close-task': 'Close the task to see the board.',
     sw: function (h) { return 'Open the switcher to get to ' + (WSNAME[h.to] || S.team.name) + '.'; },
     ws: function (h) { return 'Choose ' + (WSNAME[h.to] || S.team.name) + '.'; },
     project: 'Open my-app.',
@@ -1806,20 +2070,37 @@
   /* Scrolls the app's own containers so the whole target is in view. A new target is always brought in; after that only a target
      that has become half hidden is nudged back, such as when the note above a phone grows and shrinks the list. A visitor who
      has scrolled the target out of sight altogether is left where they are. */
-  var revealed = '';
+  var revealed = '', placed = {};
+  /* The bar that floats over a phone page's bottom edge, when the target is on that page and not in a layer above it. */
+  function coverOf(target, surface) { return surface === phoneRoot && target.closest('.w-scroll') ? surface.querySelector('.w-tabbar') : null; }
   function reveal(target, surface, sig) {
     var first = revealed !== sig;
     revealed = sig;
     var scale = (surface === deskRoot ? D.s : (window.innerWidth >= 768 ? P.s : 1)) || 1;
-    var node = target.parentElement;
+    var bar = coverOf(target, surface), node = target.parentElement, pad = 14;
+    // One axis at a time: a lead and a trail edge of the box, and of the target, along that axis. A box still scrolled to
+    // where this last had the target in view was not scrolled by the visitor, so a target the layout has since pushed out
+    // is brought back too (the box shrinks when the note docked above a phone grows). Boxes are known by their data-keep,
+    // as redraws replace them.
+    function nudge(prop, a0, a1, b0, b1) {
+      var none = a1 <= b0 || a0 >= b1, whole = a0 >= b0 && a1 <= b1, key = (surface === deskRoot ? 'desk:' : 'phone:') + prop + (node.dataset.keep || '');
+      var mine = !!node.dataset.keep && placed[key] === node[prop];
+      if (whole) { placed[key] = node[prop]; return; }
+      if (!(first || !none || mine)) return;
+      if (a1 - a0 + 2 * pad > b1 - b0 || a0 < b0 + pad) node[prop] += (a0 - b0 - pad) / scale;
+      else node[prop] += (a1 - b1 + pad) / scale;
+      placed[key] = node[prop];
+    }
     while (node && node !== surface) {
-      if (node.scrollHeight > node.clientHeight && /auto|scroll/.test(getComputedStyle(node).overflowY)) {
-        var r = target.getBoundingClientRect(), box = node.getBoundingClientRect(), pad = 14;
-        var none = r.bottom <= box.top || r.top >= box.bottom, whole = r.top >= box.top && r.bottom <= box.bottom;
-        if (!whole && (first || !none)) {
-          if (r.height + 2 * pad > box.height || r.top < box.top + pad) node.scrollTop += (r.top - box.top - pad) / scale;
-          else node.scrollTop += (r.bottom - box.bottom + pad) / scale;
-        }
+      var cs = getComputedStyle(node), r = target.getBoundingClientRect(), box = node.getBoundingClientRect();
+      if (node.scrollHeight > node.clientHeight && /auto|scroll/.test(cs.overflowY)) {
+        var bottom = box.bottom;
+        if (bar) { var b = bar.getBoundingClientRect(); if (b.top < bottom && b.bottom > box.top) bottom = b.top; }
+        nudge('scrollTop', r.top, r.bottom, box.top, bottom);
+      }
+      if (node.scrollWidth > node.clientWidth && /auto|scroll/.test(cs.overflowX)) {
+        r = target.getBoundingClientRect();
+        nudge('scrollLeft', r.left, r.right, box.left, box.right);
       }
       node = node.parentElement;
     }
@@ -1830,28 +2111,40 @@
     return small.matches ? guideSection.querySelector('[data-panel="phone"]') : guideSection.querySelector('.demo-stage');
   }
   function stepSpec(s, w, surface) {
-    var h = route(s.need ? s.need(w) : {}, w), els = [], kind = s.kind;
+    var h = route(s.need ? s.need(w) : {}, w), els = [], kind = typeof s.kind === 'function' ? s.kind(w) : s.kind;
     if (h) { var n = surface.querySelector(h.sel); els = n ? [n] : []; kind = 'press'; }
     else els = (s.aim ? s.aim(w) : []).map(function (a) { return pick(surface, a); }).filter(Boolean);
     if (!els.length && !s.wait) return null;
     var sig = s.id + (h ? ':' + h.kind : '');
-    // Once per target, and again when the same control turns up in another place, such as a task's panel after its card.
-    if (els[0]) { var at = els[0].closest('.w-panel, .w-mtask, .w-asst, .w-sheet, .w-menu'); reveal(els[0], surface, sig + ':' + (els[0].getAttribute('data-id') || '') + ':' + (at ? at.className : '')); }
-    return { id: sig, kicker: s.kick || CHAPTERS[s.ch], text: stepText(s, h, w), els: els, kind: kind, wait: !!s.wait && !h,
-      actions: s.next && !h ? [{ key: 'next', label: 'Next', primary: true }] : [] };
+    // Once per target, and again when the same control turns up in another place, such as a task's panel after its card,
+    // or on the other surface after a switch between desktop and phone.
+    var shown = null;
+    if (els[0]) { var at = els[0].closest('.w-panel, .w-mtask, .w-asst, .w-sheet, .w-menu'); shown = [els[0], surface, w + ':' + sig + ':' + (els[0].getAttribute('data-id') || '') + ':' + (at ? at.className : '')]; reveal.apply(null, shown); }
+    return { id: sig, kicker: s.kick || CHAPTERS[s.ch], text: stepText(s, h, w), els: els, kind: kind, wait: !!s.wait && !h, shown: shown,
+      actions: s.next && !h && (!s.nextOk || s.nextOk()) ? [{ key: 'next', label: 'Next', primary: true }] : [] };
+  }
+  function startPhoneTour() {
+    dropOverlay(); clearTimeout(toastTimer);
+    [deskRoot, phoneRoot].forEach(function (root) { root.querySelector('.w-toast').classList.remove('show'); });
+    G.mode = 'phone'; G.active = true; G.floor = 0; G.hide = null; G.left = null; G.deskSw = null;
+    Object.keys(G.f).forEach(function (key) { if (key.indexOf('phone-') === 0) delete G.f[key]; });
+    Object.keys(G.s).forEach(function (key) { if (key.indexOf('phone-') === 0) delete G.s[key]; });
+    window.dispatchEvent(new CustomEvent('wb-demo-view', { detail: 'phone' }));
+    P.at = 'deck'; P.task = null; P.deckAdded = false; P.repo = null; P.wf = null; P.scope = 'individual'; P.scroll = {};
+    render();
   }
   function endSpec(w) {
-    var acts = [{ key: 'restart', label: 'Restart' }];
-    if (!small.matches) acts.push({ key: 'join', label: 'Join the waitlist', primary: true, href: '#waitlist' });
-    return { id: 'end', kicker: 'Done', text: w === 'phone' ? 'That was the loop on your phone. Universal and your Team live in the desktop app.' : 'That was the loop: plan, run and review, together. Restart the tour, or join the waitlist.', els: [], kind: 'area', actions: acts };
+    if (G.mode === 'phone') return { id: 'phone-end', kicker: 'Desktop and phone, paired', text: 'Use them together. The desktop is the detailed control center; the phone keeps the same control in reach, and its workflow keys get you the same results with a tap while you are away.', els: [], kind: 'area', actions: [{ key: 'restart', label: 'Restart' }, { key: 'phone-tour', label: 'Replay phone demo', primary: true }] };
+    if (w === 'phone') return { id: 'end', kicker: 'Plan, run, review', text: 'That is the whole loop, on your phone, with the same board the desktop shows. Now see what is special about the phone: a deck you set up yourself, and workflow keys that run a task with a tap.', els: [], kind: 'area', actions: [{ key: 'restart', label: 'Restart' }, { key: 'phone-tour', label: 'See what’s special on the phone', primary: true }] };
+    return { id: 'end', kicker: 'Plan, run, review', text: 'That is the whole loop, and your phone can drive all of it too. The phone demo shows only what is different there: a deck you set up yourself, and workflow keys that run a task with a tap.', els: [], kind: 'area', actions: [{ key: 'restart', label: 'Restart' }, { key: 'phone-tour', label: 'Phone demo', primary: true }] };
   }
   function paintChapters(w, step) {
     var list = guideEl.querySelector('.guide-chapters');
-    if (w === 'phone') { list.hidden = true; return; }
+    if (w === 'phone' || G.mode === 'phone') { list.hidden = true; return; }
     list.hidden = false;
     var cur = step ? step.ch : -1;
     var html = CHAPTERS.map(function (name, i) {
-      var done = i < G.floor || STORY.every(function (s) { return s.ch !== i || !applies(s, w) || isDone(s, w); });
+      var done = i < G.floor || (planned() && STORY.every(function (s) { return s.ch !== i || !applies(s, w) || isDone(s, w); }));
       return '<li' + (done && i !== cur ? ' class="is-done"' : '') + '><button type="button" data-chapter="' + i + '"' + (i === cur ? ' aria-current="step"' : '') + ' title="' + (i === cur ? name : 'Go to ' + name) + '">' + name + '</button></li>';
     }).join('');
     if (list.dataset.sig !== html) { list.dataset.sig = html; list.innerHTML = html; }
@@ -1859,32 +2152,84 @@
   function guideRefresh() {
     if (!guideEl || !deskRoot || !phoneRoot) return;
     var w = guideWhere(), surface = guideSurface();
-    if (D.ws === 'team') G.f.team = true;
-    if (D.ws === 'team' && D.tv === 'reviews') G.f.reviews = true;
+    // Give a narrow desktop stage one usable note gutter instead of two cramped ones.
+    var stageWidth = guideSection.querySelector('.demo-stage').clientWidth;
+    var phoneWidth = phoneMount.getBoundingClientRect().width;
+    var compactPhone = G.active && w === 'phone' && !small.matches && (stageWidth - phoneWidth) / 2 < 190;
+    phoneMount.style.marginLeft = compactPhone ? 'auto' : '';
+    phoneMount.style.marginRight = compactPhone ? '0' : '';
+    var restart = guideEl.querySelector('[data-guide-restart]');
+    restart.textContent = G.active ? 'Restart' : 'Start walkthrough';
+    var phoneGuide = guideSection.querySelector('[data-phone-guide]');
+    if (phoneGuide) phoneGuide.textContent = G.active ? 'Restart walkthrough' : 'Start walkthrough';
+    guideEl.querySelector('.guide-chapters').hidden = !G.active || w === 'phone';
+    if (!G.active) { WBGuide.hide(); return; }
+    if (w === 'phone' ? P.at === 'team' : D.ws === 'team') G.f.team = true;
+    if (w === 'phone' ? P.at === 'team' && P.teamTab === 'reviews' : D.ws === 'team' && D.tv === 'reviews') G.f.reviews = true;
     var step = currentStep(w);
     G.cur = step;
     paintChapters(w, step);
     var key = step ? step.id : 'end', tip = guideEl.querySelector('[data-guide-tip]');
     if (tip) tip.hidden = G.hide !== key;
     if (G.hide === key) { WBGuide.hide(); return; }
-    var spec = step ? stepSpec(step, w, surface) : endSpec(w);
+    var spec = G.mode === 'phone' && w === 'desk' && step ? { id: 'phone-resume', kicker: 'Desktop and phone, paired', text: P.wf ? 'The same Find Bugs run shows here, at the top of the window: one computer does the work, and either screen follows it. The phone demo carries on on the phone.' : 'The phone demo carries on on the phone. Anything you start there shows here too.', els: [], actions: [{ key: 'phone-resume', label: 'Back to the phone', primary: true }] } : step ? stepSpec(step, w, surface) : endSpec(w);
     [deskRoot, phoneRoot].forEach(function (r) { r.querySelectorAll('[aria-describedby="demo-guide-note"]').forEach(function (n) { n.removeAttribute('aria-describedby'); }); });
+    var open = deskRoot.querySelector('.w-asst');
+    if (open) open.classList.toggle('room', w === 'desk');
     if (!spec) { WBGuide.hide(); return; }
     var mobile = small.matches;
     spec.host = guideHost(w);
     spec.inset = w === 'desk' ? { top: 30 } : null;
     spec.keep = w === 'phone' && !mobileNow() ? phoneMount.querySelector('.device') : null;
     spec.dock = mobile ? { parent: guideHost(w), before: phoneMount } : null;
+    spec.cover = spec.els[0] ? [coverOf(spec.els[0], surface)].filter(Boolean) : [];
     if (spec.els[0]) spec.els[0].setAttribute('aria-describedby', 'demo-guide-note');
-    // The conversation makes room beside it for the note, so the note never sits on what it is about.
-    var open = deskRoot.querySelector('.w-asst');
-    if (open) open.classList.toggle('room', w === 'desk');
     WBGuide.show(spec);
+    // Docking the note above a phone takes room from the app, which can push the target back out of view.
+    if (spec.shown) reveal.apply(null, spec.shown);
   }
+  /* Where a surface is: enough to put the visitor back, and to tell whether they moved while they were there. */
+  var NAV = { desk: ['ws', 'uv', 'tv', 'view', 'task', 'ptab'], phone: ['at', 'tab', 'scope', 'teamTab', 'task', 'ptab', 'col'] };
+  function navOf(w) { var V = w === 'phone' ? P : D, o = { sheet: V.sheet }; NAV[w].forEach(function (k) { o[k] = V[k]; }); return o; }
+  function navSig(w) { var o = navOf(w); o.sheet = o.sheet ? o.sheet.kind + ':' + (o.sheet.id || '') : ''; return JSON.stringify(o); }
   function guideLayout() {
     if (!guideEl || !guideSection) return;
     var w = guideWhere();
-    if (G.where && G.where !== w) { AS.open = false; asstFresh(); D.sheet = P.sheet = null; D.pal = null; D.sw = false; setOverlay(deskRoot, ''); setOverlay(phoneRoot, ''); }
+    if (G.where && G.where !== w) {
+      // Back where they came from without moving on the other surface: the visitor returns to exactly where they were, even
+      // to a place the other surface has no match for (the phone's Projects list, say). Otherwise the place is translated.
+      var back = !!G.left && G.left.to === G.where && navSig(G.where) === G.left.landed, saved = navOf(G.where);
+      // The phone has no switcher. One left open on the desktop is open again on the way back, if the workspace is the same.
+      var swWs = G.deskSw;
+      G.deskSw = w === 'phone' && D.sw ? D.ws : null;
+      var fields = Array.from((G.where === 'phone' ? phoneRoot : deskRoot).querySelectorAll('.w-sheet input, .w-sheet select, .w-sheet textarea')).map(function (el) { return { name: el.name, value: el.value, checked: el.checked, repo: el.hasAttribute('data-workflow-repo') }; });
+      if (back) { var V = w === 'phone' ? P : D; Object.keys(G.left.saved).forEach(function (k) { V[k] = G.left.saved[k]; }); }
+      else if (w === 'phone') {
+        P.task = D.task; P.ptab = D.ptab; P.sheet = D.sheet;
+        if (D.ws === 'team') { P.at = 'team'; P.scope = 'team'; P.teamTab = D.tv === 'reviews' ? 'reviews' : 'board'; }
+        else if (D.ws === 'individual') { P.at = D.view === 'control' ? 'control' : 'project'; P.tab = ['board', 'calendar', 'git', 'runs'].indexOf(D.view) >= 0 ? D.view : 'board'; P.scope = 'individual'; }
+        // Universal is the desktop's home, and the deck is the phone's.
+        else P.at = D.uv === 'inbox' ? 'control' : D.uv === 'calendar' ? 'calendar' : 'deck';
+        if (P.task && get(P.task)) P.col = get(P.task).state;
+      } else {
+        D.task = P.task; D.ptab = P.ptab; D.sheet = P.sheet && ['merge', 'new', 'workflow-report'].indexOf(P.sheet.kind) >= 0 ? P.sheet : null;
+        if (P.at === 'team') { D.ws = 'team'; D.tv = P.teamTab; }
+        else if (P.at === 'project') { D.ws = 'individual'; D.view = P.tab; }
+        else if (P.at === 'mywork') { D.ws = 'universal'; D.uv = 'mywork'; }
+        else if (P.at !== 'deck' && P.at !== 'projects') { D.ws = 'individual'; D.view = P.at === 'agents' ? 'runs' : P.at === 'reviews' ? 'board' : ['control', 'calendar', 'git'].indexOf(P.at) >= 0 ? P.at : 'control'; }
+      }
+      G.left = { to: w, saved: saved, landed: navSig(w) };
+      var reopen = w === 'desk' && !!swWs && swWs === D.ws;
+      D.pal = null; D.sw = reopen;
+      setOverlay(deskRoot, ''); setOverlay(phoneRoot, '');
+      renderDesk(); renderPhone();
+      if (AS.open) renderAsst(true);
+      else if (reopen) setOverlay(deskRoot, switcherHTML(), '.w-menu [aria-current="true"]');
+      else { var target = w === 'phone' ? P : D; if (target.sheet) { if (w === 'phone' && ['decklibrary', 'wfpick', 'wfconfig'].indexOf(target.sheet.kind) >= 0) workflowSheet(target.sheet.kind); else setOverlay(w === 'phone' ? phoneRoot : deskRoot, sheetHTML(target.sheet, w === 'phone')); } }
+    }
+    if (fields) (w === 'phone' ? phoneRoot : deskRoot).querySelectorAll('.w-sheet input, .w-sheet select, .w-sheet textarea').forEach(function (el, i) { var f = fields[i]; if (f && f.name === el.name) { el.value = f.value; if (el.type === 'radio' || el.type === 'checkbox') el.checked = f.checked; } });
+    // The redraws above moved what the surface shows, so its target is brought into view again, from where it now is.
+    if (G.where && G.where !== w) revealed = '';
     G.where = w;
     var before = guideSection.querySelector('.demo-stage');
     if (guideEl.nextElementSibling !== before) guideSection.insertBefore(guideEl, before);
@@ -1898,22 +2243,23 @@
     G.floor = ch; D.task = null; D.pick = null;
     if (ch === 0) { D.ws = 'universal'; D.uv = 'mywork'; }
     if (ch === 1) { D.ws = 'individual'; D.view = 'board'; }
-    if (ch === 2) { D.ws = 'team'; D.tv = 'board'; G.f.team = true; }
+    if (ch === 2) { [story(1), story(2)].forEach(function (t) { if (!t.run) startTask(t.id, true); finish(t); }); D.ws = 'individual'; D.view = 'board'; }
     render();
   }
   function guideReset() {
+    G.active = true; G.mode = 'core';
     halt(); asstFresh(); clearTimeout(toastTimer);
     var fresh = JSON.parse(initialState);
     Object.keys(S).forEach(function (k) { S[k] = fresh[k]; });
-    G.f = {}; G.s = {}; G.floor = 0; G.hide = null; revealed = '';
+    G.f = {}; G.s = {}; G.floor = 0; G.hide = null; G.left = null; G.deskSw = null; revealed = ''; placed = {};
     AS.open = false;
     [D, P].forEach(function (v) { v.task = null; v.sheet = null; v.scroll = {}; });
     D.ws = 'universal'; D.uv = 'mywork'; D.tv = 'board'; D.view = 'control'; D.sw = false; D.pal = null; D.pick = null; D.week = 0;
-    P.at = 'deck'; P.tab = 'board'; P.col = 'backlog'; P.day = TODAY; P.cc = 'all';
+    P.deckAdded = false; P.repo = null; P.scope = 'individual'; P.at = 'deck'; P.tab = 'board'; P.col = 'backlog'; P.day = TODAY; P.cc = 'all'; P.wf = null; P.af = 'all';
     [deskRoot, phoneRoot].forEach(function (root) { setOverlay(root, ''); root.querySelector('.w-toast').classList.remove('show'); });
     render(); go();
   }
-  /* Escape closes the top layer of the surface on screen: a sheet, the menu or the palette, then the assistant, then the task
+  /* Escape closes the top layer of the surface on screen: a sheet, the menu or the palette, then Salie, then the task
      panel. Returns false when there was nothing to close. */
   function closeTop(where) {
     var root = where === 'desk' ? deskRoot : phoneRoot, V = where === 'desk' ? D : P;
@@ -1937,6 +2283,8 @@
     if (key === 'next' && G.cur) { G.f[G.cur.id] = true; guideRefresh(); }
     else if (key === 'hide') { G.hide = G.cur ? G.cur.id : 'end'; guideRefresh(); }
     else if (key === 'restart') guideReset();
+    else if (key === 'phone-tour') startPhoneTour();
+    else if (key === 'phone-resume') window.dispatchEvent(new CustomEvent('wb-demo-view', { detail: 'phone' }));
   });
   small.addEventListener('change', guideLayout);
   /* Escape works while focus is in the demo, or has fallen back to the page. It leaves the waitlist's keys alone. */
@@ -1953,7 +2301,13 @@
   fit();
   render();
   guideLayout();
-  if ('ResizeObserver' in window) new ResizeObserver(fit).observe(document.body); else window.addEventListener('resize', fit);
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(fit).observe(document.body);
+    // A surface that changes size (the note docked above a phone grows, say) can push the guide's target out of view.
+    var reflow = 0, sized = new ResizeObserver(function () { if (!reflow) reflow = requestAnimationFrame(function () { reflow = 0; guideRefresh(); }); });
+    [deskRoot, phoneRoot].forEach(function (r) { if (r) sized.observe(r); });
+  }
+  window.addEventListener('resize', function () { fit(); guideLayout(); });
   window.addEventListener('themechange', function () { render(); });
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (es) {
@@ -1968,6 +2322,7 @@
   window.WBApp = {
     state: S,
     refit: function () { fit(); guideLayout(); },
-    guide: function () { guideLayout(); }
+    guide: function () { guideLayout(); },
+    startGuide: guideReset
   };
 })();

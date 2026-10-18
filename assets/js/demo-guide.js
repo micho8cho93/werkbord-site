@@ -68,21 +68,37 @@
     note.classList.remove('is-new'); void note.offsetWidth; note.classList.add('is-new');
   }
 
-  /* What of the element can be seen: its box, cut by every ancestor that clips it (a scrolling list, the window). */
+  /* What of the element can be seen: its box, cut by every ancestor that clips it (a scrolling list, the window), and by
+     the bars that float over the app's content (spec.cover: the phone's tab bar), unless the element is in one of them. */
   function seen(n) {
     var r = n.getBoundingClientRect(), x0 = r.left, y0 = r.top, x1 = r.right, y1 = r.bottom;
     for (var a = n.parentElement; a && a !== document.body; a = a.parentElement) {
       var cs = getComputedStyle(a);
       if (/(auto|scroll|hidden|clip)/.test(cs.overflowX + cs.overflowY)) {
         var b = a.getBoundingClientRect();
-        x0 = Math.max(x0, b.left); y0 = Math.max(y0, b.top); x1 = Math.min(x1, b.right); y1 = Math.min(y1, b.bottom);
+        if (/(auto|scroll|hidden|clip)/.test(cs.overflowX)) { x0 = Math.max(x0, b.left); x1 = Math.min(x1, b.right); }
+        if (/(auto|scroll|hidden|clip)/.test(cs.overflowY)) { y0 = Math.max(y0, b.top); y1 = Math.min(y1, b.bottom); }
       }
     }
+    ((spec && spec.cover) || []).forEach(function (c) {
+      if (!c || !c.isConnected || c.contains(n)) return;
+      var b = c.getBoundingClientRect();
+      if (b.left > x0 + 1 || b.right < x1 - 1 || b.bottom <= y0 || b.top >= y1) return;
+      if (b.top > y0) y1 = Math.min(y1, b.top); else y0 = Math.max(y0, b.bottom);
+    });
     return { left: x0, top: y0, right: x1, bottom: y1, width: x1 - x0, height: y1 - y0 };
   }
   function rectOf(n, H) {
     var r = seen(n);
-    return { x: r.left - H.left, y: r.top - H.top, w: Math.max(0, r.width), h: Math.max(0, r.height) };
+    return { x: (r.left - H.left) / H.sx, y: (r.top - H.top) / H.sy, w: Math.max(0, r.width) / H.sx, h: Math.max(0, r.height) / H.sy };
+  }
+  /* The target's own corner radius, as drawn on screen (the desktop window is scaled), so the ring follows its shape:
+     round on a round Back button, the key's curve on a deck key. */
+  function radiusOf(n, H) {
+    var cs = getComputedStyle(n), v = cs.borderTopLeftRadius, b = n.getBoundingClientRect();
+    var scale = n.offsetWidth ? b.width / n.offsetWidth : 1, px = parseFloat(v) || 0;
+    if (/%$/.test(v)) px = px / 100 * Math.min(n.offsetWidth, n.offsetHeight);
+    return Math.min(px, Math.min(n.offsetWidth, n.offsetHeight) / 2) * scale / H.sx;
   }
   function union(rs) {
     var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -99,20 +115,23 @@
     var hit = document.elementFromPoint(Math.min(Math.max(cx, 1), innerWidth - 1), Math.min(Math.max(cy, 1), innerHeight - 1));
     return !!hit && (n.contains(hit) || !!hit.closest('.guide-note'));
   }
-  function setRing(n, r, pad, kind, on) {
+  function setRing(n, r, pad, kind, on, radius) {
     n.className = 'guide-ring ' + kind + (on ? ' is-on' : '');
     if (!on) return;
     n.style.width = (r.w + pad * 2) + 'px';
     n.style.height = (r.h + pad * 2) + 'px';
     n.style.transform = 'translate(' + (r.x - pad) + 'px,' + (r.y - pad) + 'px)';
+    n.style.borderRadius = radius == null ? '' : Math.max(4, radius + pad) + 'px';
   }
 
   function place() {
     frame = 0;
     if (!spec || !layer || !layer.parentNode) return;
-    var host = layer.parentNode, H = host.getBoundingClientRect();
+    var H = layer.getBoundingClientRect();
+    H.sx = H.width / (layer.clientWidth || H.width) || 1;
+    H.sy = H.height / (layer.clientHeight || H.height) || 1;
     var live = (spec.els || []).filter(function (n) { return n && n.isConnected && onShow(n, H); });
-    var kind = spec.kind === 'area' ? 'area' : 'press', pad = kind === 'area' ? 5 : 3;
+    var kind = spec.kind === 'area' ? 'area' : 'press', pad = 2;
     var rects = live.map(function (n) { return rectOf(n, H); });
     var has = rects.length > 0;
     // A target that exists but is not on show yet (the page is still arriving, or something sits over it): wait for it, quietly.
@@ -121,22 +140,27 @@
     if (waiting && misses++ < 60) { clearTimeout(retry); retry = setTimeout(schedule, 250); }
     var wasOn = ring.classList.contains('is-on');
     if (!wasOn) ring.style.transition = 'none';
-    setRing(ring, has ? (kind === 'area' ? union(rects) : rects[0]) : null, pad, kind, has);
+    // One area keeps the area's own corners; several areas together get the ring's default.
+    var radius = has && (kind === 'press' || rects.length === 1) ? radiusOf(live[0], H) : null;
+    setRing(ring, has ? (kind === 'area' ? union(rects) : rects[0]) : null, pad, kind, has, radius);
     if (!wasOn) { void ring.offsetWidth; ring.style.transition = ''; }
     // Further press targets get a ring of their own, with no line.
     while (extra.length < Math.max(0, rects.length - 1) && kind === 'press') extra.push(el('div', 'guide-ring press', layer));
-    extra.forEach(function (n, i) { setRing(n, rects[i + 1], pad, 'press', kind === 'press' && !!rects[i + 1]); });
+    extra.forEach(function (n, i) { setRing(n, rects[i + 1], pad, 'press', kind === 'press' && !!rects[i + 1], rects[i + 1] ? radiusOf(live[i + 1], H) : null); });
 
     var dockNow = note.classList.contains('is-dock');
-    if (dockNow) { line.removeAttribute('d'); dot.setAttribute('r', '0'); return; }
-    var hw = H.width, hh = H.height, W = note.offsetWidth || NOTE_W, Nh = note.offsetHeight || 80;
+    if (dockNow) { note.style.width = ''; note.style.transform = 'none'; line.removeAttribute('d'); dot.setAttribute('r', '0'); return; }
+    var hw = layer.clientWidth, hh = layer.clientHeight;
+    var K = spec.keep && spec.keep.isConnected ? rectOf(spec.keep, H) : null;
+    var available = K ? Math.max(K.x, hw - K.x - K.w) - GAP - MARGIN : NOTE_W;
+    note.style.width = Math.min(NOTE_W, Math.max(150, available)) + 'px';
+    var W = note.offsetWidth || NOTE_W, Nh = note.offsetHeight || 80;
     var R = has ? { x: (kind === 'area' ? union(rects) : rects[0]).x - pad, y: (kind === 'area' ? union(rects) : rects[0]).y - pad, w: (kind === 'area' ? union(rects) : rects[0]).w + pad * 2, h: (kind === 'area' ? union(rects) : rects[0]).h + pad * 2 } : null;
     var x, y, side = '';
     var top = MARGIN + ((spec.inset && spec.inset.top) || 0);
     function cx(v) { return Math.max(MARGIN, Math.min(v, hw - W - MARGIN)); }
     function cy(v) { return Math.max(top, Math.min(v, hh - Nh - MARGIN)); }
     // Beside the phone, never on it: the note keeps clear of the device and reaches in with its line.
-    var K = spec.keep && spec.keep.isConnected ? rectOf(spec.keep, H) : null;
     function clear(px, py) { return !K || px + W <= K.x - 6 || px >= K.x + K.w + 6 || py + Nh <= K.y || py >= K.y + K.h; }
     function fits(px, py) { return px >= MARGIN - 1 && py >= top - 1 && px + W <= hw - MARGIN + 1 && py + Nh <= hh - MARGIN + 1 && clear(px, py); }
     if (R) {
@@ -174,11 +198,14 @@
     } else { line.removeAttribute('d'); dot.setAttribute('r', '0'); }
   }
 
-  function schedule() { if (!frame) frame = requestAnimationFrame(place); }
+  // Track layout shifts, scaled devices and scrolling in the same coordinate space as the ring.
+  function track() { place(); if (spec) frame = requestAnimationFrame(track); }
+  function schedule() { if (spec && !frame) frame = requestAnimationFrame(track); }
 
   window.WBGuide = {
     /* s: { id, kicker, text, els: [elements, the first is the one the line goes to], kind: 'press' | 'area', actions: [{key, label, primary, href}],
-            host: where the layer lives, dock: an element to dock the note in (small screens) or null } */
+            host: where the layer lives, dock: an element to dock the note in (small screens) or null,
+            cover: bars that float over the app's content, which a ring must not run under } */
     show: function (s) {
       spec = s; misses = 0;
       build(s.host);
@@ -191,7 +218,7 @@
       schedule();
     },
     hide: function () {
-      spec = null; shown = '';
+      spec = null; shown = ''; cancelAnimationFrame(frame); frame = 0; clearTimeout(retry);
       if (layer) layer.classList.add('is-off');
       if (note && note.classList.contains('is-dock') && layer) layer.appendChild(note);
       if (ring) ring.classList.remove('is-on');

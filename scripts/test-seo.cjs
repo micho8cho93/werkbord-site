@@ -105,7 +105,7 @@ test('the sitemap lists the home page only, and the public pages are exactly tho
 
 test('llms.txt describes the launch page and only links to pages that exist', () => {
   const t = read('llms.txt');
-  assert.ok(t.startsWith('# Werkbord'));
+  assert.ok(t.startsWith('# werkbord'));
   for (const m of t.matchAll(/\]\((https:\/\/micho8cho93\.github\.io\/werkbord-site\/[^)]*)\)/g)) {
     const rel = m[1].slice(SITE.length) || 'index.html';
     assert.ok(exists(rel), 'llms.txt links to a missing page: ' + m[1]);
@@ -133,7 +133,7 @@ test('the page links to no removed page', () => {
 test('the footer holds a copyright line and no navigation or logo', () => {
   const footer = read('index.html').match(/<footer[\s\S]*?<\/footer>/)[0];
   assert.doesNotMatch(footer, /<a\b|<img\b/);
-  assert.match(footer, /©\s*\d{4} Werkbord/);
+  assert.match(footer, /©\s*\d{4} werkbord/);
 });
 
 test('the waitlist asks for an email and an optional team size of 2 to 6+, and uses the three database functions', () => {

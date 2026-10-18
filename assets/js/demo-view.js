@@ -20,6 +20,7 @@
     views.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-view-button') === name)); });
     WBApp.refit();
   }
+  window.addEventListener('wb-demo-view', function (e) { setView(e.detail); if (small.matches) openFull(); });
   views.forEach(function (b) {
     b.addEventListener('click', function () { setView(b.getAttribute('data-view-button')); });
   });
@@ -30,7 +31,7 @@
     phone.classList.add('is-full');
     phone.setAttribute('role', 'dialog');
     phone.setAttribute('aria-modal', 'true');
-    phone.setAttribute('aria-label', 'Werkbord demo on a phone');
+    phone.setAttribute('aria-label', 'werkbord demo on a phone');
     behind.forEach(function (el) { el.setAttribute('inert', ''); });
     document.body.classList.add('demo-locked');
     WBApp.refit();
@@ -50,8 +51,41 @@
     if (restoreFocus) openBtn.focus();
   }
 
-  openBtn.addEventListener('click', openFull);
+  var welcome = section.querySelector('.demo-welcome-wrap');
+  var welcomed = false;
+  try { welcomed = sessionStorage.getItem('wb-demo-welcomed') === 'yes'; } catch (e) {}
+  var demoControls = section.querySelectorAll('.demo-panel, .demo-switch, [data-guide]');
+  function showWelcome(show) {
+    welcome.hidden = !show;
+    demoControls.forEach(function (el) { el.inert = show; });
+  }
+  function dismissWelcome() {
+    welcomed = true;
+    try { sessionStorage.setItem('wb-demo-welcomed', 'yes'); } catch (e) {}
+    showWelcome(false);
+  }
+  if (welcome) {
+    if (!welcomed) showWelcome(true);
+    welcome.querySelector('[data-welcome-start]').addEventListener('click', function () {
+      dismissWelcome();
+      if (small.matches) openFull();
+      WBApp.startGuide();
+      if (!small.matches) section.querySelector('[data-guide-restart]').focus({ preventScroll: true });
+    });
+    welcome.querySelector('[data-welcome-explore]').addEventListener('click', function () {
+      dismissWelcome();
+      (small.matches ? openBtn : section.querySelector('[data-guide-restart]')).focus({ preventScroll: true });
+    });
+    welcome.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { dismissWelcome(); openBtn.getClientRects().length ? openBtn.focus() : section.querySelector('[data-guide-restart]').focus(); }
+    });
+  }
+  openBtn.addEventListener('click', function () {
+    if (welcome && !welcome.hidden) { welcome.scrollIntoView({ block: 'center' }); welcome.querySelector('[data-welcome-start]').focus({ preventScroll: true }); }
+    else openFull();
+  });
   backBtn.addEventListener('click', function () { closeFull(true); });
+  section.querySelector('[data-phone-guide]').addEventListener('click', function () { WBApp.startGuide(); });
 
   /* Escape closes the open layer of the demo first (app-demo.js does that and stops the key there). With nothing open, it returns to the launch page. */
   document.addEventListener('keydown', function (e) {
