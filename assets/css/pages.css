@@ -198,6 +198,7 @@ html:not(.js) .demo-guide { display: none; }
 .demo-welcome h2 { margin: 22px 0 12px; font-size: 28px; line-height: 1.15; letter-spacing: -.03em; }
 .demo-welcome p { color: var(--t2); font-size: 15px; line-height: 1.6; }
 .demo-welcome .demo-welcome-note { margin-top: 16px; font-size: 13px; }
+.demo-welcome .demo-welcome-about { margin: 0 0 12px; }
 .demo-welcome-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .demo-welcome-actions .btn { min-height: 44px; }
 @media (max-width: 479px) { .demo-welcome { padding: 24px; } .demo-welcome-actions { flex-direction: column; } }

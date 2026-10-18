@@ -162,7 +162,7 @@
   // Start with a clean project so the visitor sees an idea become a working board.
   S.tasks = []; S.log = []; S.finding = false;
   var initialState = JSON.stringify(S);
-  var G = { mode: 'core', active: false, f: {}, s: {}, floor: 0, cur: null, where: null, hide: null };
+  var G = { mode: 'core', active: false, f: {}, s: {}, floor: 0, cur: null, where: null, hide: null, exitAsk: false };
 
   function get(id) { for (var i = 0; i < S.tasks.length; i++) if (S.tasks[i].id == id) return S.tasks[i]; }
   function isActive(t) { return t.run && ['running', 'needs', 'blocked', 'idle'].indexOf(t.run.st) > -1; }
@@ -2130,7 +2130,7 @@
   function startPhoneTour() {
     dropOverlay(); clearTimeout(toastTimer);
     [deskRoot, phoneRoot].forEach(function (root) { root.querySelector('.w-toast').classList.remove('show'); });
-    G.mode = 'phone'; G.active = true; G.floor = 0; G.hide = null; G.left = null; G.deskSw = null;
+    G.mode = 'phone'; G.active = true; G.exitAsk = false; G.floor = 0; G.hide = null; G.left = null; G.deskSw = null;
     Object.keys(G.f).forEach(function (key) { if (key.indexOf('phone-') === 0) delete G.f[key]; });
     Object.keys(G.s).forEach(function (key) { if (key.indexOf('phone-') === 0) delete G.s[key]; });
     window.dispatchEvent(new CustomEvent('wb-demo-view', { detail: 'phone' }));
@@ -2176,7 +2176,8 @@
     var key = step ? step.id : 'end', tip = guideEl.querySelector('[data-guide-tip]');
     if (tip) tip.hidden = G.hide !== key;
     if (G.hide === key) { WBGuide.hide(); return; }
-    var spec = G.mode === 'phone' && w === 'desk' && step ? { id: 'phone-resume', kicker: 'Desktop and phone, paired', text: P.wf ? 'The same Find Bugs run shows here, at the top of the window: one computer does the work, and either screen follows it. The phone demo carries on on the phone.' : 'The phone demo carries on on the phone. Anything you start there shows here too.', els: [], actions: [{ key: 'phone-resume', label: 'Back to the phone', primary: true }] } : step ? stepSpec(step, w, surface) : endSpec(w);
+    // The X on a note asks first: leaving the walkthrough ends the guided steps, so it is confirmed before it happens.
+    var spec = G.exitAsk ? { id: 'exit-ask', kicker: 'Exit the walkthrough', text: 'By clicking X, you exit the walkthrough. Are you sure you want to exit it?', els: [], kind: 'area', actions: [{ key: 'exit-yes', label: 'Yes, exit', primary: true }, { key: 'exit-no', label: 'No, keep going' }] } : G.mode === 'phone' && w === 'desk' && step ? { id: 'phone-resume', kicker: 'Desktop and phone, paired', text: P.wf ? 'The same Find Bugs run shows here, at the top of the window: one computer does the work, and either screen follows it. The phone demo carries on on the phone.' : 'The phone demo carries on on the phone. Anything you start there shows here too.', els: [], actions: [{ key: 'phone-resume', label: 'Back to the phone', primary: true }] } : step ? stepSpec(step, w, surface) : endSpec(w);
     [deskRoot, phoneRoot].forEach(function (r) { r.querySelectorAll('[aria-describedby="demo-guide-note"]').forEach(function (n) { n.removeAttribute('aria-describedby'); }); });
     var open = deskRoot.querySelector('.w-asst');
     if (open) open.classList.toggle('room', w === 'desk');
@@ -2251,7 +2252,7 @@
     render();
   }
   function guideReset() {
-    G.active = true; G.mode = 'core';
+    G.active = true; G.mode = 'core'; G.exitAsk = false;
     halt(); asstFresh(); clearTimeout(toastTimer);
     var fresh = JSON.parse(initialState);
     Object.keys(S).forEach(function (k) { S[k] = fresh[k]; });
@@ -2285,7 +2286,9 @@
   }
   WBGuide.onAction(function (key) {
     if (key === 'next' && G.cur) { G.f[G.cur.id] = true; guideRefresh(); }
-    else if (key === 'hide') { G.hide = G.cur ? G.cur.id : 'end'; guideRefresh(); }
+    else if (key === 'hide') { G.exitAsk = true; guideRefresh(); }
+    else if (key === 'exit-no') { G.exitAsk = false; guideRefresh(); }
+    else if (key === 'exit-yes') { G.exitAsk = false; G.active = false; guideRefresh(); toast('You have exited the walkthrough. Explore freely, or press Start walkthrough to begin again.'); }
     else if (key === 'restart') guideReset();
     else if (key === 'phone-tour') startPhoneTour();
     else if (key === 'phone-resume') window.dispatchEvent(new CustomEvent('wb-demo-view', { detail: 'phone' }));
