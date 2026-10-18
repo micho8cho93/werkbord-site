@@ -1133,11 +1133,8 @@
   function sheetHTML(sh, phone) {
     if (!sh) return '';
     if (sh.kind === 'workflow-report' && P.wf) {
-      var findings = {
-        'my-app': [['An empty report crashes the CSV export', 'Return a file with the header row only when no rows match.'], ['A comma inside a field splits the CSV row', 'Quote every field, and double any quote inside one.']],
-        'api-server': [['An empty request body returns a 500', 'Answer with a 400 and a validation message.'], ['Rate limits reset a second late at the window edge', 'Measure from the window’s start, not from the last request.']],
-        'marketing-site': [['Signup errors are not announced to screen readers', 'Put the message in a polite live region.'], ['The theme resets after navigating', 'Read the saved theme before the first paint.']] }[P.wf.repo];
-      return '<div class="w-scrim" data-a="sheetx"></div><section class="w-sheet" role="dialog" aria-label="Find Bugs report"><header><h2>Find Bugs · ' + esc(P.wf.repo) + '</h2><button class="w-btn ic" type="button" data-a="sheetx" aria-label="Close report">' + ic('close') + '</button></header><div class="body"><p>Finished on MacBook-Pro: two bugs it could reproduce, each with a suggested fix. No files were changed.</p><p class="w-mm">A scripted report in this demo · Claude Code</p><ol class="w-workflows">' + findings.map(function (f) { return '<li class="w-card w-pn"><strong>' + esc(f[0]) + '</strong><p class="w-mm">Suggested fix: ' + esc(f[1]) + '</p></li>'; }).join('') + '</ol></div><footer><button class="w-btn pri" type="button" data-a="sheetx">' + (phone ? 'Back to the deck' : 'Close') + '</button></footer></section>';
+      var findings = wfFindings();
+      return '<div class="w-scrim" data-a="sheetx"></div><section class="w-sheet" role="dialog" aria-label="Find Bugs report"><header><h2>Find Bugs · ' + esc(P.wf.repo) + '</h2><button class="w-btn ic" type="button" data-a="sheetx" aria-label="Close report">' + ic('close') + '</button></header><div class="body"><p>Finished on MacBook-Pro: two bugs it could reproduce, each with a suggested fix. No files were changed.</p><p class="w-mm">A scripted report in this demo · Claude Code</p><ol class="w-workflows">' + findings.map(function (f) { return '<li class="w-card w-pn"><strong>' + esc(f[0]) + '</strong><p class="w-mm">Suggested fix: ' + esc(f[1]) + '</p></li>'; }).join('') + '</ol></div><footer><button class="w-btn" type="button" data-a="wfx">Dismiss report</button><button class="w-btn pri" type="button" data-a="wftasks">Create ' + plural(findings.length, 'task') + ' to fix ' + (findings.length === 1 ? 'it' : 'them') + '</button></footer></section>';
     }
     if (sh.kind === 'new') {
       return '<div class="w-scrim" data-a="sheetx"></div><form class="w-sheet" data-form="new" role="dialog" aria-label="New task in my-app" style="--w:640px"><header><h2>New task in my-app</h2><button class="w-btn quiet sm ic" type="button" data-a="sheetx" aria-label="Close">' + ic('close') + '</button></header>' +
@@ -1283,6 +1280,12 @@
     }
     setOverlay(phoneRoot, '<div class="w-scrim" data-a="sheetx"></div><section class="w-sheet" role="dialog" aria-label="' + title + '"><header><h2>' + title + '</h2><button class="w-btn ic" type="button" data-a="sheetx" aria-label="Close">' + ic('close') + '</button></header><div class="body">' + body + '</div>' + foot + '</section>', focus);
   }
+  function wfFindings() {
+    return {
+        'my-app': [['An empty report crashes the CSV export', 'Return a file with the header row only when no rows match.'], ['A comma inside a field splits the CSV row', 'Quote every field, and double any quote inside one.']],
+        'api-server': [['An empty request body returns a 500', 'Answer with a 400 and a validation message.'], ['Rate limits reset a second late at the window edge', 'Measure from the window’s start, not from the last request.']],
+        'marketing-site': [['Signup errors are not announced to screen readers', 'Put the message in a polite live region.'], ['The theme resets after navigating', 'Read the saved theme before the first paint.']] }[P.wf.repo];
+  }
   function wfRunning() { return !!P.wf && !wfLines().ended; }
   function saveWorkflow() {
     var select = phoneRoot.querySelector('[data-workflow-repo]');
@@ -1321,7 +1324,7 @@
       '<button class="w-btn ic" type="button" data-a="help" aria-label="Help and shortcuts">' + ic('help') + '</button>' +
       '<button class="w-btn ic" type="button" data-a="settings" aria-label="Settings">' + ic('settings') + '</button></nav></header>' +
       wfBanner() +
-      '<section class="w-housing" aria-label="Control Deck"><div class="w-keys">' + keys + '</div></section>' + (P.wf ? '<section class="w-deckhistory" aria-label="Workflow executions"><h2>Workflow executions</h2><p>Find Bugs · ' + esc(P.wf.repo) + '</p><p class="w-mm" data-wf="count">Claude Code · ' + wfLines().count + '</p><p data-wf="stage">' + wfLines().stage + ' · ' + esc(P.wf.repo) + '</p>' + (P.wf.ended && !P.wf.stopped ? '<p>2 bugs found · 2 suggested fixes · no files changed</p><button class="w-btn" type="button" data-a="wfreport">View report</button>' : '') + '</section>' : '') + '</div>';
+      '<section class="w-housing" aria-label="Control Deck"><div class="w-keys">' + keys + '</div></section>' + (P.wf && !P.wf.dismissed ? '<section class="w-deckhistory" aria-label="Workflow executions"><h2>Workflow executions</h2><p>Find Bugs · ' + esc(P.wf.repo) + '</p><p class="w-mm" data-wf="count">Claude Code · ' + wfLines().count + '</p><p data-wf="stage">' + wfLines().stage + ' · ' + esc(P.wf.repo) + '</p>' + (P.wf.ended && !P.wf.stopped ? '<p>2 bugs found · 2 suggested fixes · no files changed</p>' : '') + '</section>' : '') + '</div>';
   }
   /* A page under the deck: Back, its name, and one line on how its subject stands (the app's subtitle.ts). */
   function pageHead(title, sub, back, tone) {
@@ -1600,7 +1603,8 @@
         case 'wfsave': saveWorkflow(); dropOverlay(); render(); break;
         case 'wfreport': V.sheet = { kind: 'workflow-report' }; G.f['phone-report'] = true; setOverlay(root, sheetHTML(V.sheet, where === 'phone')); break;
         case 'wfstop': if (P.wf) { P.wf.stopped = true; render(); } break;
-        case 'wfx': if (P.wf) P.wf.dismissed = true; render(); break;
+        case 'wfx': if (P.wf) P.wf.dismissed = true; dropOverlay(); render(); break;
+        case 'wftasks': if (P.wf) { var found = wfFindings(); found.forEach(function (f) { newTask('Fix: ' + f[0], 'Claude Code', 'normal'); }); P.wf.dismissed = true; dropOverlay(); toast(plural(found.length, 'task') + ' added to Backlog, each with its suggested fix.'); render(); } break;
         case 'af': P.af = id; render(); break;
         case 'pdeck': P.at = 'deck'; P.task = null; dropOverlay(); render(); break;
         case 'pback': P.at = parentOf(P.at); P.task = null; render(); break;
@@ -1987,7 +1991,7 @@
       },
       done: function () { return !!P.wf && wfLines().ended && !P.wf.stopped; } },
     { id: 'phone-report', ch: 2, kind: 'press', kick: 'The result', sticky: true, hops: true,
-      need: function () { return { at: 'deck', sheet: wfSheet('workflow-report') }; }, aim: function () { return [['.w-wfb [data-a="wfreport"]', '.w-deckhistory [data-a="wfreport"]']]; },
+      need: function () { return { at: 'deck', sheet: wfSheet('workflow-report') }; }, aim: function () { return ['.w-wfb [data-a="wfreport"]']; },
       text: function (h) { return h ? (h.kind === 'deck' ? 'Find Bugs is done. Back to the Control Deck for its report.' : '') : 'Done. Open the report: what it found, with a fix for each.'; },
       done: function () { return !!G.f['phone-report']; } }
   ];
