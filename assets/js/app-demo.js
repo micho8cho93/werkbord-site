@@ -45,16 +45,22 @@
   function mark(h) { var w = Math.round(h * 130 / 94); return '<span class="w-mark"><img class="mark-l" src="assets/img/mark-light.svg" alt="" width="' + w + '" height="' + h + '"><img class="mark-d" src="assets/img/mark-dark.svg" alt="" width="' + w + '" height="' + h + '"></span>'; }
   function dot(tone, cls) { return '<span class="w-dot' + (cls ? ' ' + cls : '') + '" data-tone="' + tone + '"></span>'; }
 
-  /* ---------- time: Wednesday 7 October 2026, a little before eleven ---------- */
+  /* ---------- time: today, a little before eleven ----------
+     Day 0 is the visitor's own today, read from their clock when the page loads. The calendar shows seven days from today, so
+     "tomorrow" is always on screen, whatever day of the week the visitor arrives. */
   var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  var TODAY = 2, HOUR = 48, H0 = 7, H1 = 19, LIMIT = 3;
+  var TODAY = 0, HOUR = 48, H0 = 7, H1 = 19, LIMIT = 3;
+  // Pace of the scripted work: agents, the Find Bugs run and Salie's replies all take 75% of their former time.
+  var PACE = 0.75, TICK = 1000 * PACE;
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function clock(m) { m = Math.floor(m); m = ((m % 1440) + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
   function dur(min) { min = Math.max(0, Math.floor(min)); return min < 1 ? 'just now' : min < 60 ? min + 'm' : Math.floor(min / 60) + 'h ' + pad(min % 60) + 'm'; }
   function ago(min) { min = Math.max(0, Math.floor(min)); return min < 1 ? 'just now' : min < 60 ? min + 'm ago' : min < 1440 ? Math.floor(min / 60) + 'h ago' : Math.floor(min / 1440) + 'd ago'; }
-  function dateOf(d) { return new Date(2026, 9, 5 + d); }
-  function dayLabel(d) { var x = dateOf(d); return DAYS[(d % 7 + 7) % 7] + ' ' + MONTHS[x.getMonth()] + ' ' + x.getDate(); }
+  var DAY0 = new Date(); DAY0 = new Date(DAY0.getFullYear(), DAY0.getMonth(), DAY0.getDate());
+  function dateOf(d) { return new Date(DAY0.getFullYear(), DAY0.getMonth(), DAY0.getDate() + d); }
+  function dayName(d) { return DAYS[(dateOf(d).getDay() + 6) % 7]; }
+  function dayLabel(d) { var x = dateOf(d); return dayName(d) + ' ' + MONTHS[x.getMonth()] + ' ' + x.getDate(); }
   function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 34).replace(/-$/, ''); }
 
   /* ---------- the controller's state ---------- */
@@ -67,18 +73,20 @@
       ask: { id: 'x2', title: 'Fix flaky auth test', project: 'api-server', agent: 'Claude Code', prio: 'high', st: 'needs', asked: 9 * 60 + 52,
         q: 'The session test passes alone and fails in the full suite. Fix the shared clock, or skip the test for now?', choices: ['Fix the shared clock', 'Skip it for now'] },
       cal: [
-        { title: 'Audit dependencies for advisories', project: 'api-server', tag: 'Individual', d: 2, s: 15 * 60, dur: 90 },
-        { title: 'WB-44 Rate-limit login attempts', project: 'storefront', tag: 'Northwind', d: 3, s: 10 * 60, dur: 120 }
+        { title: 'Audit dependencies for advisories', project: 'api-server', tag: 'Individual', d: 0, s: 15 * 60, dur: 90 },
+        { title: 'WB-44 Rate-limit login attempts', project: 'storefront', tag: 'Northwind', d: 1, s: 10 * 60, dur: 120 }
       ]
     },
     team: {
       name: 'Northwind', project: 'storefront', role: 'Admin', nextN: 47,
-      members: [['Sam Okafor', 'Owner', 'Runner online'], ['You', 'Admin', 'This computer'], ['Maya Chen', 'Member', 'Runner online'], ['Jonas Weber', 'Member', 'Runner online'], ['Priya Nair', 'Member', 'Writes tickets from the browser']],
+      members: [['Sam Okafor', 'Owner', '1 runner connected', 'Phone connected'], ['You', 'Admin', '1 runner connected', 'No phone paired'], ['Maya Chen', 'Member', '1 runner connected', 'Phone disconnected · access paired'], ['Jonas Weber', 'Member', '1 runner connected', 'Phone connection unknown'], ['Priya Nair', 'Member', 'No runners connected', 'No phone paired']],
       tickets: [
         { n: 36, title: 'Upgrade the payments client', st: 'done', who: 'Jonas Weber', branch: 'wb-36-upgrade-the-payments-client', ahead: 2, pr: { n: 205, state: 'merged' } },
         { n: 40, title: 'Add audit log filters', st: 'progress', who: 'You', branch: 'wb-40-add-audit-log-filters', ahead: 2, pr: { n: 212, state: 'open' }, exec: 'running' },
-        { n: 42, title: 'Show cart total with tax', st: 'review', who: 'Maya Chen', reviewer: 'You', branch: 'wb-42-show-cart-total-with-tax', ahead: 4, pr: { n: 216, state: 'merged' } },
-        { n: 44, title: 'Rate-limit login attempts', st: 'progress', who: 'Jonas Weber', branch: 'wb-44-rate-limit-login-attempts', ahead: 3, pr: { n: 219, state: 'draft' } },
+        { n: 42, title: 'Show cart total with tax', st: 'review', who: 'Maya Chen', reviewer: 'You', branch: 'wb-42-show-cart-total-with-tax', ahead: 4, pr: { n: 216, state: 'merged' },
+          comments: [{ by: 'Jonas Weber', at: 9 * 60 + 31, text: 'I checked the rounding on the tax line. It matches the invoice.' }, { by: 'Maya Chen', at: 9 * 60 + 48, text: '@You this one is ready. The pull request is merged, so it only needs your sign-off.', mentions: ['You'], unread: true }] },
+        { n: 44, title: 'Rate-limit login attempts', st: 'progress', who: 'Jonas Weber', branch: 'wb-44-rate-limit-login-attempts', ahead: 3, pr: { n: 219, state: 'draft' },
+          comments: [{ by: 'Jonas Weber', at: 10 * 60 + 20, text: '@Maya Chen can you look at the rate window once the draft pull request is up?', mentions: ['Maya Chen'] }] },
         { n: 45, title: 'Landing page copy for reports', st: 'available', by: 'Priya Nair' },
         { n: 46, title: 'Pick a date range on reports', st: 'backlog', by: 'Priya Nair' }
       ]
@@ -86,12 +94,12 @@
     tasks: [
       T(1, 'Fix flaky auth test', 'doing', 'Claude Code', 'high', {
         desc: 'The session test fails about one run in ten. Find the race, fix it, and keep the test.',
-        sched: { d: 2, s: 600, dur: 60 },
+        sched: { d: 0, s: 600, dur: 60 },
         run: run('running', 14, { left: 13, logs: ['Reading internal/auth/session_test.go', 'The test reads time.Now twice; the second read can cross a second boundary', 'Editing internal/auth/session.go to take an injected clock', 'Running go test ./internal/auth -run Session -count=50', '50 passed in 4.1s', 'Running go test ./...'] })
       }),
       T(2, 'Migrate runs table to WAL', 'doing', 'Claude Code', 'high', {
         desc: 'Readers block while the scheduler writes. Switch the runs table to write-ahead logging.',
-        sched: { d: 2, s: 630, dur: 60 },
+        sched: { d: 0, s: 630, dur: 60 },
         run: run('needs', 9, { asked: 10 * 60 + 38, q: 'Two callers still read the old 24-hour session TTL. Keep it for them, or move both to the new 12-hour default?', choices: ['Keep 24 hours', 'Move both to 12 hours'], left: 8,
           logs: ['Reading internal/store/sqlite/open.go', 'The runs table is opened in rollback-journal mode', 'Searching for callers of SessionTTL'],
           after: ['Enabling WAL in internal/store/sqlite/open.go', 'Running go test ./internal/store/...', '31 passed in 2.7s', 'Checking that readers no longer wait on the scheduler'] })
@@ -107,16 +115,16 @@
       T(5, 'Fix date picker off-by-one', 'review', 'Codex', 'normal', {
         run: run('completed', 11, { branch: 'fix-date-picker-off-by-one', ahead: 1, files: 2, add: 12, del: 3, commit: 'Count the picker’s days from local midnight', ended: 9 * 60 + 48 })
       }),
-      T(6, 'Add CSV export to reports', 'backlog', 'Claude Code', 'normal', { sched: { d: 3, s: 540, dur: 60 },
+      T(6, 'Add CSV export to reports', 'backlog', 'Claude Code', 'normal', { sched: { d: 1, s: 540, dur: 60 },
         script: { work: 12, ask: { at: 5, q: 'Two of your largest customers open these files in German Excel. Use semicolons instead of commas?', choices: ['Use semicolons', 'Keep commas'] },
           logs: ['Reading internal/reports/export.go', 'Adding a CSV writer beside the PDF one', 'Writing tests for quoting and line endings', 'Running go test ./internal/reports/...', '18 passed'] } }),
-      T(7, 'Upgrade vite to the latest minor', 'backlog', 'Claude Code', 'low', { deps: [1], sched: { d: 4, s: 840, dur: 60 },
+      T(7, 'Upgrade vite to the latest minor', 'backlog', 'Claude Code', 'low', { deps: [1], sched: { d: 2, s: 840, dur: 60 },
         script: { work: 9, logs: ['Reading package.json', 'vite 5.3.1 → 5.4.8: no breaking changes listed', 'Running npm install', 'Running npm run build', 'Build passed in 6.2s'] } }),
       T(8, 'Write onboarding copy for setup', 'backlog', 'Claude Code', 'low', {
         script: { work: 10, logs: ['Reading web/src/routes/Onboarding.svelte', 'Rewriting the three setup steps in plain language', 'Checking each sentence fits the card', 'Running npm test', '42 passed'] } }),
       T(9, 'Investigate slow search on large repos', 'backlog', 'Codex', 'normal', {
         script: { work: 14, logs: ['Profiling search on a 40,000-file repository', 'Most of the time goes to re-reading ignored folders', 'Caching ignore rules per directory', 'Running go test -bench ./internal/search', 'Search is 6.1× faster on the large fixture'] } }),
-      T(10, 'Audit dependencies for advisories', 'backlog', 'Codex', 'low', { sched: { d: 2, s: 900, dur: 90 },
+      T(10, 'Audit dependencies for advisories', 'backlog', 'Codex', 'low', { sched: { d: 0, s: 900, dur: 90 },
         script: { work: 10, logs: ['Running npm audit', 'Running govulncheck ./...', 'One advisory, in a dev dependency only', 'Writing docs/advisories.md'] } }),
       T(11, 'Add project switcher', 'done', 'Claude Code', 'normal', { doneAt: 8 * 60 + 30, run: run('merged', 18, { branch: 'add-project-switcher', ahead: 2, tokens: '44.9k', cost: '$0.37', ended: 8 * 60 + 20 }) }),
       T(12, 'Verify installer checksums', 'done', 'Codex', 'normal', { doneAt: -600, run: run('merged', 7, { branch: 'verify-installer-checksums', ahead: 1, ended: -640 }) })
@@ -156,7 +164,7 @@
   });
 
   /* ---------- views: each surface has its own navigation ---------- */
-  var D = { ws: 'universal', uv: 'mywork', tv: 'board', view: 'control', sw: false, task: null, ptab: 'activity', sheet: null, pal: null, week: 0, mode: 'week', pick: null, cc: 'all', drag: null, scroll: {} };
+  var D = { ws: 'universal', uv: 'mywork', tv: 'board', view: 'control', set: null, alerts: false, share: 0, mine: false, sw: false, task: null, ptab: 'activity', sheet: null, pal: null, week: 0, mode: 'week', pick: null, cc: 'all', drag: null, scroll: {} };
   var P = { scope: 'individual', teamTab: 'board', deckAdded: false, repo: null, at: 'deck', tab: 'board', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', wf: null, af: 'all', scroll: {} };
 
   // Start with a clean project so the visitor sees an idea become a working board.
@@ -340,13 +348,14 @@
     AS.msgs.forEach(function (m) { (m.cards || []).forEach(function (c) { if (!c.state) n++; }); });
     return n;
   }
+  var NEXT_Q = 'What should I do next on my-app?';
   function rootOpts() {
-    return ['What is on my plate this week?', 'Plan CSV export for reports', 'What needs me today?'];
+    return ['What is on my plate this week?', 'Plan CSV export for reports', NEXT_Q, 'What needs me today?'];
   }
   function backOpts(extra) {
-    var o = (extra || []).concat(['What is on my plate this week?', 'What needs me today?']);
+    var o = (extra || []).concat(['What is on my plate this week?', NEXT_Q, 'What needs me today?']);
     if (!planned()) o.unshift('Plan CSV export for reports');
-    return o.filter(function (l, i) { return o.indexOf(l) === i; }).slice(0, 3);
+    return o.filter(function (l, i) { return o.indexOf(l) === i; }).slice(0, 4);
   }
   function optsNow() { return AS.opts || rootOpts(); }
 
@@ -458,16 +467,45 @@
       ok: function () { return S.ext.ask.st === 'needs'; }, run: function () { answerExt(v); } };
   }
 
+  /* "What should I do next?" At most two suggestions, from fixed rules rather than from the model (the app's recommend_next_actions):
+     what the app and your policy require first, then your own decisions, then Git and task state, then habit. A suggestion only
+     names a place to go; every action opens an existing screen, where the usual confirmation applies. Memory enters as sources
+     Salie cites. The records are scripted for the demo (see MEM). */
+  function nextRecs() {
+    var ask = S.tasks.filter(function (t) { return t.run && (t.run.st === 'needs' || t.run.st === 'blocked'); })[0];
+    var fin = S.tasks.filter(function (t) { return t.run && t.run.st === 'completed'; })[0];
+    var wait = S.tasks.filter(function (t) { return t.state === 'backlog' && !waitingFor(t).length && !t.run; })[0];
+    var out = [];
+    if (ask) out.push({ intent: 'Continue', basis: 'evidence', title: 'Answer the question on “' + ask.title + '”', detail: ask.agent + ' is waiting, and its worktree is kept while you decide.', label: 'Open task', open: { task: ask.id },
+      applied: [], rests: [['Current state', 'The agent has waited ' + dur(S.now - ask.run.asked) + ' for an answer.', 'Task']] });
+    if (fin) out.push({ intent: 'Branch', basis: 'required', title: 'Review “' + fin.title + '” before it merges', detail: branchOf(fin) + ' is ' + fin.run.ahead + ' commit' + (fin.run.ahead === 1 ? '' : 's') + ' ahead of main, and nothing has been pushed.', label: 'Open task', open: { task: fin.id },
+      applied: [['Your decision', 'You merge after reading the diff, on this computer, and share through a pull request.']],
+      rests: [['Current state', branchOf(fin) + ' is not on any remote.', 'Git'], ['Your decision', MEM[0].text, MEM[0].id]] });
+    if (!out.length && wait) out.push({ intent: 'Next up', basis: 'evidence', title: 'Start “' + wait.title + '”', detail: 'It has no unfinished dependency, so an agent can start it now.', label: 'Open task', open: { task: wait.id },
+      applied: [], rests: [['Current state', 'No task it depends on is still open.', 'Task']] });
+    if (!out.length) out.push({ intent: 'Find Bugs', basis: 'preference', title: 'Run Find Bugs on my-app', detail: 'The repository has not been scanned in nine days. The report leaves every file unchanged.', label: 'Show on Deck', open: { deck: true },
+      applied: [], rests: [['Habit', 'You ran Find Bugs before each of your last three releases.', 'Run']] });
+    return out.slice(0, 2);
+  }
+  function nextText() {
+    var r = nextRecs()[0];
+    if (r.intent === 'Continue') return 'An agent in my-app is waiting on you, so that comes first. I also read your saved merge policy, which applies once its work is ready to merge.';
+    if (r.intent === 'Branch') return 'Finished work is waiting in my-app. Your saved policy is to read the diff before merging, so reviewing it is the next step. I only point you to it: nothing merges from here.';
+    if (r.intent === 'Next up') return 'Nothing is waiting on you in my-app, and one task is ready to start. I read your saved policy and decisions too, and none of them stands in its way.';
+    return 'Nothing in my-app is waiting on you yet, so I would start with a scan. I also read your saved merge policy, which will matter once there is work to merge. I only suggest: you decide what happens.';
+  }
+
   /* Each key is a message the person can pick. text: the scripted reply (a string, or a function that reads the state).
      next: the messages offered after it. ok and gone: the message is only open while ok() holds. ui: generated interface.
      cards: changes to confirm. */
   var REPLY = {
-    'What is on my plate this week?': { reads: 'Read My Work, the schedules and Needs you in Individual and Northwind', text: plateText, ui: plateUI,
+    'What is on my plate this week?': { reads: 'Read My Work, the schedules and what is waiting in Individual and Northwind', text: plateText, ui: plateUI,
       next: function () { return backOpts(); } },
     'Plan CSV export for reports': { reads: 'Read the reports tasks and project context',
       ok: function () { return !story(1); }, gone: 'The CSV export is already planned. You will find it in Backlog.',
       text: function () { return 'Let’s split this into three scoped tasks for my-app: the endpoint, an export button and tests. ' + ('The API reference needs a page too, so I will add a ticket for ' + S.team.name + '. ') + 'Each task has an agent and clear acceptance criteria, and the tests wait for the other two.'; },
       cards: planCards },
+    'What should I do next on my-app?': { reads: 'Read your saved policy and decisions, the repository and the tasks in my-app', text: nextText, recs: nextRecs, memory: true, next: function () { return backOpts(); } },
     'What needs me today?': { reads: 'Read the attention lists', text: needsText,
       next: function () { return backOpts(S.ext.ask.st === 'needs' ? ['Answer the auth test question'] : []); } },
     'What is planned for this week?': { reads: 'Read the schedules in Individual', text: agendaText, next: function () { return backOpts(); } },
@@ -483,6 +521,7 @@
     if (!e || AS.busy) return;
     if (label === 'What is on my plate this week?') G.f.plate = true;
     if (label === 'Plan CSV export for reports') G.f.planAsk = true;
+    if (label === NEXT_Q) G.f.nextAsk = true;
     AS.msgs.push({ r: 'me', x: label });
     AS.opts = [];
     if (e.ok && !e.ok()) { replyAsst({ text: e.gone, next: backOpts }); return; }
@@ -493,9 +532,9 @@
   function replyAsst(e) {
     var as = AS, text = typeof e.text === 'function' ? e.text() : e.text;
     var m = { r: 'ai', x: '', reads: e.reads || '', done: false, cards: null, ui: null, open: false, stage: 'Reading workspace context…' };
-    var words = text.split(' '), events = [], complex = !!(e.ui || e.cards);
+    var words = text.split(' '), events = [], complex = !!(e.ui || e.cards || e.recs), recs = e.recs ? e.recs() : null;
     as.msgs.push(m); as.busy = true;
-    function at(time, fn) { events.push({ time: time, fn: fn }); }
+    function at(time, fn) { events.push({ time: time * PACE, fn: fn }); }
     function redraw() {
       var chat = guideSurface().querySelector('.w-achat');
       var stick = !chat || chat.scrollHeight - chat.scrollTop - chat.clientHeight < 90;
@@ -524,7 +563,12 @@
         m.cards.push(c); m.stage = 'Preparing proposed changes · ' + (j + 1) + ' of ' + cards.length; redraw();
       }); });
     }
-    at(complex ? 35000 : textEnd + 800, function () {
+    if (recs) {
+      m.recs = [];
+      recs.forEach(function (r, j) { at(12500 + j * 3000, function () { m.recs.push(r); m.stage = 'Weighing your policy and the repository…'; redraw(); }); });
+      at(12500 + recs.length * 3000, function () { m.mem = true; m.stage = 'Citing what I read…'; redraw(); });
+    }
+    at(e.ui || e.cards ? 35000 : recs ? 12500 + recs.length * 3000 + 3500 : textEnd + 800, function () {
       as.busy = false; as.timer = null; m.done = true; m.x = text;
       if (m.ui) delete m.ui.progress;
       as.opts = e.cards ? [] : typeof e.next === 'function' ? e.next() : (e.next || backOpts());
@@ -595,6 +639,7 @@
     var m = AS.msgs[mi], c = m && m.cards && m.cards[ci];
     AS.open = false; renderAsst(false);
     if (where === 'desk') {
+      D.set = null;
       if (c && c.op === 'ticket') { D.ws = 'team'; D.tv = 'board'; } else { D.ws = 'individual'; D.view = 'board'; D.task = null; }
     } else { P.at = c && c.op === 'ticket' ? 'team' : 'project'; P.teamTab = 'board'; P.tab = 'board'; P.task = null; P.col = 'backlog'; }
     render();
@@ -621,9 +666,9 @@
       : '<button class="w-btn quiet sm" type="button" data-a="asst-x" aria-label="Close Salie">' + ic('close', 14) + 'Close<kbd class="w-key">Esc</kbd></button>';
     var top = '<header class="w-atop"><div class="w-awho"><h2>Salie</h2><button class="w-amodel" type="button" data-a="asst-model">Claude Code<span>· Default</span>' + ic('down', 14) + '</button></div><div class="w-aacts">' + newBtn + closeBtn + '</div></header>';
     return '<div class="w-asst" role="dialog" aria-modal="true" aria-label="Salie">' + top +
-      '<div class="w-achat" data-keep="achat"><div class="w-acol">' + chatHTML() + '</div></div>' + dockHTML() + '</div>';
+      '<div class="w-achat" data-keep="achat"><div class="w-acol">' + chatHTML(phone) + '</div></div>' + dockHTML() + '</div>';
   }
-  function chatHTML() {
+  function chatHTML(phone) {
     if (!AS.msgs.length) return '<div class="w-aempty">' + mark(40) + '<h2>What can I help with?</h2><p>Pick a message below. I will ask you before I change anything.</p></div>';
     return AS.msgs.map(function (m, i) {
       if (m.r === 'me') return '<div class="w-ame"><p>' + esc(m.x) + '</p></div>';
@@ -632,10 +677,34 @@
       var cards = m.cards ? m.cards.map(function (c, ci) { return assistCardHTML(c, i, ci); }).join('') : '';
       var left = m.done && m.cards ? m.cards.filter(function (c) { return !c.state; }).length : 0;
       var bar = left >= 2 ? '<div class="w-aall" role="group" aria-label="All the changes waiting"><span>' + left + ' changes are waiting for you.</span><button class="w-btn pri sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="yes">Confirm all ' + left + '</button><button class="w-btn sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="no">Not now</button></div>' : '';
-      return '<div class="w-aai" data-m="' + i + '"><p class="w-atext">' + words + '</p>' + (m.ui ? uiHTML(m.ui, i) : '') +
+      var sugs = m.recs && m.recs.length ? '<section class="w-sugs" aria-label="Suggested next steps">' + m.recs.map(function (r, ri) { return recHTML(r, i, ri, phone); }).join('') + '</section>' : '';
+      var mem = m.mem ? '<details class="w-reads w-mem" data-j="' + i + '"' + (m.memOpen ? ' open' : '') + '><summary>Memory sources (' + MEM.slice(0, 2).length + ')</summary><ul>' + MEM.slice(0, 2).map(function (r) {
+        return '<li><strong>' + r.id + '</strong> · Your private memory · ' + r.kind + ' · ' + r.ver + ' · current<p>' + esc(r.text) + '</p><p class="w-mm">' + esc(r.ref) + ' · Updated ' + r.upd + '</p></li>'; }).join('') + '</ul></details>' : '';
+      return '<div class="w-aai" data-m="' + i + '"><p class="w-atext">' + words + '</p>' + (m.ui ? uiHTML(m.ui, i) : '') + sugs + mem +
         (m.reads ? '<details class="w-reads" data-i="' + i + '"' + (m.open ? ' open' : '') + '><summary>What I looked at</summary><p>' + esc(m.reads) + '</p></details>' : '') +
         '<p class="w-astat">' + (m.done ? 'Reply finished.' : esc(m.stage || 'Working on it…')) + '</p>' + cards + bar + (m.result ? '<p class="w-aresult" role="status">' + esc(m.result) + '</p>' : '') + '</div>';
     }).join('');
+  }
+  /* One suggestion: what to do, why, where it leads, and a way to say whether it helped. */
+  var BASIS = { required: ['ask', 'Needed first'], evidence: ['work', 'From current state'], preference: ['idle', 'From how you work'] };
+  function recHTML(r, mi, ri, phone) {
+    if (r.fb === 'dismissed' || r.fb === 'not_useful') return '<p class="w-sugnote" role="status">' + (r.fb === 'dismissed' ? 'Dismissed. It stays hidden for now.' : 'Noted as not useful.') + '</p>';
+    var b = BASIS[r.basis];
+    var act = r.open.deck ? (phone ? '<button class="w-btn pri sm" type="button" data-a="sug-open" data-id="' + mi + '" data-v="' + ri + '">' + r.label + '</button>' : '<span class="w-muted fine">Start it from the Control Deck on your phone.</span>')
+      : '<button class="w-btn pri sm" type="button" data-a="sug-open" data-id="' + mi + '" data-v="' + ri + '">' + r.label + '</button><span class="w-muted fine">Nothing starts until you decide there.</span>';
+    var why = '<details class="w-why"><summary>Why this</summary>' + (r.applied.length ? '<p class="w-lab">What shaped it</p><ul>' + r.applied.map(function (a) { return '<li><span class="w-chip">' + a[0] + '</span> ' + esc(a[1]) + '</li>'; }).join('') + '</ul>' : '') +
+      '<p class="w-lab">What it rests on</p><ul>' + r.rests.map(function (e) { return '<li><span class="w-chip">' + e[0] + '</span> ' + esc(e[1]) + ' <span class="w-mm">' + esc(e[2]) + '</span></li>'; }).join('') + '</ul>' +
+      '<p class="w-muted fine">' + (r.basis === 'preference' ? 'Part of this is inferred from how you work' : 'Everything here is verified and current') + '. Habits and feedback only choose between ways that policy, permissions and the repository already allow.</p></details>';
+    var fb = r.fb === 'useful' ? '<p class="w-muted fine" role="status">Noted as useful.</p>' : '<div class="w-sugfb" role="group" aria-label="Was this useful?">' + [['useful', 'Useful'], ['not_useful', 'Not useful'], ['dismissed', 'Dismiss']].map(function (o) { return '<button class="w-btn quiet sm" type="button" data-a="sug-fb" data-id="' + mi + '" data-v="' + ri + ':' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>';
+    return '<article class="w-sug" data-basis="' + r.basis + '"><p class="kick">' + dot(b[0]) + '<b>' + b[1] + '</b><span class="w-mm">' + r.intent + '</span></p><h3>' + esc(r.title) + '</h3><p class="detail">' + esc(r.detail) + '</p><div class="acts">' + act + '</div>' + why + fb + '</article>';
+  }
+  function openSuggestion(where, mi, ri) {
+    var r = AS.msgs[mi] && AS.msgs[mi].recs && AS.msgs[mi].recs[ri]; if (!r) return;
+    AS.open = false; renderAsst(false); D.set = null;
+    if (r.open.deck) { P.at = 'deck'; P.task = null; toast('Find Bugs is a workflow button. Add it to an empty position on the deck, then tap it.'); }
+    else if (where === 'desk') { D.ws = 'individual'; D.view = 'board'; D.task = r.open.task; D.ptab = 'activity'; }
+    else { P.at = 'project'; P.tab = 'board'; P.task = r.open.task; P.ptab = 'activity'; }
+    render();
   }
   function assistCardHTML(c, mi, ci) {
     var label = ({ task: 'Create task', ticket: 'Create ticket', answer: 'Answer a question' })[c.op];
@@ -656,6 +725,9 @@
 
   /* ---------- toasts ---------- */
   var toastTimer;
+  // A message stays up for as long as it takes to read: a base time plus a little per character, so a longer note lingers
+  // proportionally longer (about 3.9s at 40 characters, 5.8s at 100, 8s at 170) and never more than 9s.
+  function toastTime(m) { return Math.min(9000, 2600 + 32 * String(m).length); }
   function toast(m) {
     [deskMount, phoneMount].forEach(function (root) {
       var el = root && root.querySelector('.w-toast');
@@ -663,7 +735,7 @@
       el.textContent = m; el.classList.add('show');
     });
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { document.querySelectorAll('.w-toast').forEach(function (el) { el.classList.remove('show'); }); }, 3600);
+    toastTimer = setTimeout(function () { document.querySelectorAll('.w-toast').forEach(function (el) { el.classList.remove('show'); }); }, toastTime(m));
   }
 
   /* ---------- the other workspaces: the story's backdrop ----------
@@ -679,7 +751,7 @@
   function initials(n) { return n.split(' ').map(function (w) { return w.charAt(0); }).join('').slice(0, 2).toUpperCase(); }
   function execOf(r) { return !r ? null : ({ running: 'running', needs: 'needs_input', blocked: 'blocked', queued: 'queued', completed: 'completed' })[r.st] || null; }
 
-  /* api-server has two agents beside my-app. The question is answered from Needs you, from Universal or by Salie. */
+  /* api-server has two agents beside my-app. The question is answered from Workspace, from Universal or by Salie. */
   function extTask() {
     var a = S.ext.ask;
     return { id: a.id, title: a.title, agent: a.agent, project: a.project, prio: a.prio, state: 'doing', run: { st: a.st, q: a.q, choices: a.choices, asked: a.asked, el: S.now - a.asked } };
@@ -718,9 +790,32 @@
 
   /* Team actions. Claiming is one guarded step; a reviewer cannot sign off their own work; Done waits for a merged pull request. */
   function claim(n) {
-    var k = tix(n); if (!k || (k.st !== 'backlog' && k.st !== 'available')) return;
-    k.st = 'progress'; k.who = ME; k.fresh = true; k.branch = 'wb-' + k.n + '-' + slug(k.title);
-    toast('Claimed. Your branch will be ' + k.branch + '. Open it in your runner to start.');
+    var k = tix(n); if (!k || k.who || (k.st !== 'backlog' && k.st !== 'available')) return;
+    k.st = 'available'; k.who = ME; k.claimedAt = S.now; k.fresh = true; k.branch = 'wb-' + k.n + '-' + slug(k.title);
+    toast('Claimed. It is yours, and stays in Available until you start work. Your branch will be ' + k.branch + '.');
+  }
+  function startWork(n) {
+    var k = tix(n); if (!k || k.st !== 'available' || k.who !== ME) return;
+    k.st = 'progress'; k.fresh = true;
+    toast('Work started. Open it in your runner when you are ready.');
+  }
+  /* A ticket's conversation. Only an explicit @mention of a member notifies anyone, and the mention is bound to the member. */
+  function unreadMentions() {
+    var out = [];
+    S.team.tickets.forEach(function (k) { (k.comments || []).forEach(function (c, i) { if (c.unread && (c.mentions || []).indexOf(ME) > -1) out.push({ k: k, c: c, i: i }); }); });
+    return out;
+  }
+  function commentHTML(text) {
+    var out = esc(text);
+    S.team.members.forEach(function (m) { out = out.split('@' + esc(m[0])).join('<span class="w-mention">@' + esc(m[0]) + '</span>'); });
+    return out;
+  }
+  function postComment(n, text) {
+    var k = tix(n); text = (text || '').trim(); if (!k || !text) return false;
+    var named = S.team.members.map(function (m) { return m[0]; }).filter(function (name) { return name !== ME && text.indexOf('@' + name) > -1; });
+    (k.comments = k.comments || []).push({ by: ME, at: S.now, text: text, mentions: named });
+    toast(named.length ? named.join(' and ') + (named.length === 1 ? ' is' : ' are') + ' notified. Only an explicit mention notifies anyone.' : 'Posted. Nobody is notified unless you mention them.');
+    return true;
   }
   function signoff(n) {
     var k = tix(n); if (!k || k.st !== 'review' || !k.pr || k.pr.state !== 'merged') return;
@@ -739,13 +834,13 @@
       '<div class="w-ask"><button class="w-askbtn" type="button" data-a="asst-open" aria-haspopup="dialog">' + ic('assistant') + '<span class="w-askl">Salie</span>' + (waitingChanges() ? '<span class="w-num pend">' + waitingChanges() + '</span>' : '') + '</button></div>';
     var body = '';
     if (D.ws === 'universal') {
-      body = [['mywork', 'My Work', 'check', 0], ['calendar', 'Calendar', 'calendar', 0], ['inbox', 'Needs you', 'control', needsAll()]].map(function (p) {
+      body = [['mywork', 'My Work', 'check', 0], ['inbox', 'Workspaces', 'control', needsAll()], ['calendar', 'Calendar', 'calendar', 0]].map(function (p) {
         return navBtn('data-a="uv" data-id="' + p[0] + '"', p[2], p[1], D.uv === p[0], p[3]);
       }).join('');
     } else if (D.ws === 'individual') {
       var ask = S.ext.ask.st === 'needs';
       body = '<div class="w-sec"><span>Individual</span></div>' +
-        navBtn('data-a="view" data-id="control"', 'overview', 'Needs you', D.view === 'control', ni) +
+        navBtn('data-a="view" data-id="control"', 'overview', 'Workspace', D.view === 'control', ni) +
         navBtn('data-a="other"', 'folder', 'Projects', false, 0) +
         '<button class="w-nav proj" type="button" data-a="other"><span class="sq"></span><span class="name">api-server</span>' + (ask ? '<span class="w-num pend">1</span>' : '<span class="n">2</span>') + '</button>' +
         '<button class="w-nav proj" type="button" data-a="other"><span class="sq"></span><span class="name">marketing-site</span></button>' +
@@ -753,17 +848,19 @@
         '<button class="w-nav proj add" type="button" data-a="other">' + ic('plus', 14) + 'Add project</button>' +
         navBtn('data-a="toast" data-v="Analytics shows where agent time and cost go. It is not part of this demo."', 'analytics', 'Analytics', false, 0);
     } else {
-      var reviews = rowsTeam().length;
+      var reviews = rowsTeam().length + unreadMentions().length;
       body = '<div class="w-sec"><span>' + esc(S.team.name) + '</span></div>' +
-        navBtn('data-a="tv" data-id="home"', 'overview', 'Needs you', D.tv === 'home', reviews) +
+        navBtn('data-a="tv" data-id="home"', 'overview', 'Workspace', D.tv === 'home', reviews) +
         navBtn('data-a="tvp"', 'folder', 'Projects', false, 0) +
         '<button class="w-nav proj" type="button" data-a="tv" data-id="board"' + (D.tv === 'board' ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">' + esc(S.team.project) + '</span></button>' +
         navBtn('data-a="tv" data-id="reviews"', 'merge', 'Reviews', D.tv === 'reviews', reviews) +
         navBtn('data-a="tv" data-id="members"', 'people', 'Members', D.tv === 'members', 0) +
         navBtn('data-a="toast" data-v="Analytics shows how work moves through the Team. It is not part of this demo."', 'analytics', 'Analytics', false, 0);
     }
-    var foot = '<div class="w-rfoot">' + (D.ws !== 'universal' ? '<button class="w-nav" type="button" data-a="settings">' + ic('settings') + 'Settings</button>' : '') +
-      '<div class="w-rrow"><button class="w-nav w-devices" type="button" data-a="toast" data-v="Workspaces &amp; Devices lists each workspace, this computer and the runners you have paired."><span class="w-ic">' + ic('runner') + '</span><span>Workspaces &amp; Devices</span></button>' +
+    // Settings is a page of its own: while it is open, no other place in the sidebar is current.
+    if (D.set !== null) body = body.replace(/ aria-current="page"/g, '');
+    var foot = '<div class="w-rfoot"><button class="w-nav" type="button" data-a="settings"' + (D.set ? ' aria-current="page"' : '') + '>' + ic('settings') + 'Settings</button>' +
+      '<div class="w-rrow"><button class="w-nav w-devices" type="button" data-a="toast" data-v="Devices &amp; Hosting lists this computer, the runners you have paired and the Teams it hosts. Closing the window stops nothing."><span class="w-ic">' + ic('runner') + '</span><span>Devices &amp; Hosting</span></button>' +
       '<button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div>';
     return '<aside class="w-rail" aria-label="werkbord">' + head + body + foot + '</aside>';
   }
@@ -779,12 +876,13 @@
   }
   function goWs(id) {
     dropOverlay();
-    D.ws = id; D.task = null; D.pick = null;
+    D.ws = id; D.task = null; D.pick = null; D.set = null;
     render();
   }
   /* Where a row of Universal opens: the place it lives in. */
   function jump(dest) {
     dropOverlay();
+    D.set = null;
     if (dest === 'other') { toast('This demo opens one project. In the app, every repository you add gets its own board, calendar and Git view.'); return; }
     if (dest.indexOf('ind:') === 0) { D.ws = 'individual'; D.view = 'board'; D.task = +dest.slice(4); D.ptab = 'activity'; }
     else if (dest === 'team:reviews') { D.ws = 'team'; D.tv = 'reviews'; }
@@ -792,7 +890,7 @@
     render();
   }
 
-  /* ================= Universal: My Work, Calendar and Needs you across workspaces ================= */
+  /* ================= Universal: My Work, Workspaces and Calendar across workspaces ================= */
   function wsTag(kind, name) { return '<span class="w-ws" data-kind="' + kind + '" title="' + (kind === 'team' ? 'A Team workspace' : 'Your own werkbord on this computer') + '">' + esc(name) + '</span>'; }
   function upage(h, lede, body, head) {
     return '<header class="w-ghead"><div class="w-uh"><h1>' + h + '</h1><p class="w-lede">' + lede + '</p></div>' + (head || '') + '</header><main class="w-main" data-keep="main-u-' + D.uv + '"><div class="w-upage">' + body + '</div></main>';
@@ -826,7 +924,7 @@
   }
   function inboxHTML() {
     var rows = rowsAll();
-    return upage('Needs you', 'Questions, blockers and reviews from all your workspaces',
+    return upage('Workspaces', 'Questions, blockers, reviews and warnings from all your workspaces',
       rows.length ? '<section class="w-ugroup" aria-label="Action needed"><h2>Action needed<span class="count">' + rows.length + '</span></h2><ul class="w-ulist">' + rows.map(inboxRowHTML).join('') + '</ul></section>' : '<p class="w-uempty">Nothing needs you.</p>');
   }
   function ucalHTML() {
@@ -838,12 +936,15 @@
   var TCOLS = [['backlog', 'Backlog'], ['available', 'Available'], ['progress', 'In Progress'], ['review', 'Review'], ['done', 'Done']];
   function tcardHTML(k) {
     var mine = k.who === ME, acts = '';
-    if (k.st === 'backlog' || k.st === 'available') acts = '<button class="w-btn sm' + (k.story ? ' pri' : '') + '" type="button" data-a="claim" data-id="' + k.n + '" aria-label="Claim WB-' + k.n + ' ' + esc(k.title) + '">Claim</button>';
+    if (!k.who && (k.st === 'backlog' || k.st === 'available')) acts = '<button class="w-btn sm' + (k.story ? ' pri' : '') + '" type="button" data-a="claim" data-id="' + k.n + '" aria-label="Claim WB-' + k.n + ' ' + esc(k.title) + '">Claim</button>';
+    else if (mine && k.st === 'available') acts = '<button class="w-btn sm pri" type="button" data-a="tstart" data-id="' + k.n + '">Start work</button>';
     else if (mine && k.st === 'progress') acts = '<button class="w-btn sm" type="button" data-a="runner" data-id="' + k.n + '">' + ic('runner', 14) + 'Open in my runner</button>';
-    var who = k.who ? '<span class="w-av' + (mine ? ' me' : '') + '" aria-hidden="true">' + initials(k.who) + '</span>' + esc(k.who) : '<span class="w-muted">Unclaimed · ' + esc(k.by) + ' wrote it</span>';
+    var who = k.who ? '<span class="w-av' + (mine ? ' me' : '') + '" aria-hidden="true">' + initials(k.who) + '</span>' + esc(k.who) + (k.claimedAt != null && k.st === 'available' ? '<span class="w-mm">· claimed ' + ago(S.now - k.claimedAt) + '</span>' : '') : '<span class="w-muted">Unclaimed · ' + esc(k.by) + ' wrote it</span>';
+    var cs = k.comments || [], unread = cs.some(function (c) { return c.unread; });
+    var talk = cs.length ? '<button class="w-comment-chip' + (unread ? ' unread' : '') + '" type="button" data-a="tticket" data-id="' + k.n + '" aria-label="' + plural(cs.length, 'comment') + (unread ? ', one mentions you' : '') + ' on WB-' + k.n + '">' + ic('reply', 12) + (unread ? 'Mentions you' : plural(cs.length, 'comment')) + '</button>' : '';
     var git = k.branch ? '<p class="w-tbranch">' + esc(k.branch) + '</p><p class="w-tchips">' + (k.ahead ? '<span class="w-chip">' + k.ahead + ' commits</span>' : '<span class="w-chip">no commits yet</span>') + (k.pr ? '<span class="w-chip">' + ic('pr', 12) + '#' + k.pr.n + ' ' + k.pr.state + '</span>' : '') + '</p>' : '';
     var tone = k.st === 'review' ? 'ask' : k.st === 'progress' ? 'work' : k.st === 'done' ? 'ok' : 'neutral';
-    return '<li class="w-card w-task w-tix' + (k.st === 'done' ? ' settled' : '') + (k.fresh ? ' fresh' : '') + '" data-tone="' + tone + '" data-ticket="' + k.n + '"><p class="w-tid">WB-' + k.n + '</p><p class="w-ttitle">' + esc(k.title) + '</p><p class="w-st">' + who + '</p>' + git + (acts ? '<div class="acts">' + acts + '</div>' : '') + '</li>';
+    return '<li class="w-card w-task w-tix' + (k.st === 'done' ? ' settled' : '') + (k.fresh ? ' fresh' : '') + '" data-tone="' + tone + '" data-ticket="' + k.n + '"><p class="w-tid">WB-' + k.n + '</p><button class="w-ttitle" type="button" data-a="tticket" data-id="' + k.n + '">' + esc(k.title) + '</button><p class="w-st">' + who + '</p>' + git + talk + (acts ? '<div class="acts">' + acts + '</div>' : '') + '</li>';
   }
   function teamHeadHTML() {
     return '<header class="w-head"><div class="w-where"><span class="w-pname"><h1>' + esc(S.team.project) + '</h1></span><p class="w-path">' + esc(S.team.name) + ' · Team workspace · early access</p></div>' +
@@ -853,9 +954,10 @@
   function navTab(attrs, label, cur) { return '<button class="w-tab" type="button" ' + attrs + (cur ? ' aria-current="page"' : '') + '>' + label + '</button>'; }
   function teamBoardHTML() {
     var tk = S.team.tickets, n = function (s) { return tk.filter(function (k) { return k.st === s; }).length; };
+    var mineN = tk.filter(function (k) { return k.who === ME; }).length;
     var legend = '<ul class="w-legend" aria-label="The team at a glance"><li>' + dot('work') + n('progress') + ' in progress</li><li>' + dot('ask') + n('review') + ' in review</li><li>' + dot('ok') + n('done') + ' done</li></ul>';
-    return teamHeadHTML() + '<main class="w-main" style="overflow:hidden"><div class="w-bview"><div class="w-bar"><div class="w-filters"><label class="w-pick"><span>Owner</span><select aria-label="Filter by owner"><option>anyone</option><option>You</option></select></label></div>' + legend + '</div><div class="w-cols five">' + TCOLS.map(function (c) {
-      var ts = tk.filter(function (k) { return k.st === c[0]; }).sort(function (a, b) { return Number(!!b.story) - Number(!!a.story) || b.n - a.n; });
+    return teamHeadHTML() + '<main class="w-main" style="overflow:hidden"><div class="w-bview"><div class="w-bar"><div class="w-filters"><div class="w-seg" role="group" aria-label="Whose tickets">' + [['0', 'All tickets', ''], ['1', 'My tickets', mineN]].map(function (o) { return '<button type="button" data-a="tmine" data-id="' + o[0] + '" aria-pressed="' + (D.mine === (o[0] === '1')) + '">' + o[1] + (o[2] !== '' ? ' <span class="w-mm">' + o[2] + '</span>' : '') + '</button>'; }).join('') + '</div></div>' + legend + '</div><div class="w-cols five">' + TCOLS.map(function (c) {
+      var ts = tk.filter(function (k) { return k.st === c[0] && (!D.mine || k.who === ME); }).sort(function (a, b) { return Number(!!b.story) - Number(!!a.story) || b.n - a.n; });
       return '<section class="w-col w-tray" data-col="' + c[0] + '" aria-label="' + c[1] + '"><header class="w-ch"><h2>' + c[1] + '</h2><span class="w-chip">' + ts.length + '</span></header><ul class="w-list" data-keep="tcol-' + c[0] + '">' + (ts.length ? ts.map(tcardHTML).join('') : '<li class="w-none">Nothing here.</li>') + '</ul></section>';
     }).join('') + '</div></div></main>';
   }
@@ -863,23 +965,115 @@
     var rs = S.team.tickets.filter(function (k) { return k.st === 'review'; }).sort(function (a, b) { return Number(b.reviewer === ME) - Number(a.reviewer === ME); });
     var list = rs.length ? '<ul class="w-ulist">' + rs.map(function (k) {
       var asked = k.reviewer === ME && k.who !== ME;
-      return '<li class="w-rv"><div class="tx"><p class="w-tid">WB-' + k.n + '</p><p class="w-ttitle">' + esc(k.title) + '</p><p class="w-mm">' + esc(k.who) + ' · ' + esc(k.branch) + ' · ' + k.ahead + ' commits</p><p class="w-mm">' + ic('pr', 12) + 'Pull request #' + k.pr.n + ' · ' + k.pr.state + ' on the Git host · no conflicts</p></div><div class="acts">' +
+      return '<li class="w-rv"><div class="tx"><p class="w-tid">WB-' + k.n + '</p><p class="w-ttitle">' + esc(k.title) + '</p><p class="w-mm">' + esc(k.who) + ' · ' + esc(k.branch) + ' · ' + k.ahead + ' commits</p><p class="w-mm">' + ic('pr', 12) + 'Pull request #' + k.pr.n + ' · ' + k.pr.state + ' on the Git host · no conflicts</p>' + (k.comments && k.comments.length ? '<button class="w-comment-chip" type="button" data-a="tticket" data-id="' + k.n + '">' + ic('reply', 12) + plural(k.comments.length, 'comment') + '</button>' : '') + '</div><div class="acts">' +
         (asked ? '<button class="w-btn sm" type="button" data-a="toast" data-v="Request changes sends the ticket back to its author with your note.">Request changes</button><button class="w-btn sm pri" type="button" data-a="signoff" data-id="' + k.n + '">Mark done</button>' : '<span class="w-mm">Waiting for ' + esc(k.reviewer || 'a reviewer') + '</span>') + '</div></li>';
     }).join('') + '</ul>' : '<p class="w-uempty">Nothing is waiting for review.</p>';
     return '<header class="w-ghead"><div class="w-uh"><h1>Reviews</h1><p class="w-lede">Tickets in review, those asked of you first. The diff itself is on your Git host.</p></div></header><main class="w-main" data-keep="main-t-reviews"><div class="w-upage">' + list + '</div></main>';
   }
   function teamHomeHTML() {
-    var rs = rowsTeam();
-    return '<header class="w-ghead"><div class="w-uh"><h1>Needs you</h1><p class="w-lede">' + esc(S.team.name) + ' · what is waiting for you in this Team</p></div></header><main class="w-main" data-keep="main-t-home"><div class="w-upage">' +
-      (rs.length ? '<section class="w-ugroup"><h2>Action needed<span class="count">' + rs.length + '</span></h2><ul class="w-ulist">' + rs.map(inboxRowHTML).join('') + '</ul></section>' : '<p class="w-uempty">Nothing needs you in ' + esc(S.team.name) + '.</p>') + '</div></main>';
+    var rs = rowsTeam(), ms = unreadMentions();
+    var heard = ms.length ? '<section class="w-ugroup" aria-label="Mentions"><h2>Mentions<span class="count">' + ms.length + '</span></h2><ul class="w-ulist">' + ms.map(function (m) {
+      return '<li><div class="w-irow"><i class="w-dot" data-tone="ask"></i><span class="tx"><span class="ti">' + esc(m.c.by) + ' mentioned you on WB-' + m.k.n + '</span><span class="cx"><span>' + esc(S.team.project) + '</span><span>' + esc(m.k.title) + '</span></span><span class="dt">' + commentHTML(m.c.text) + '</span></span><span class="ac"><button class="w-btn sm pri" type="button" data-a="tticket" data-id="' + m.k.n + '">Open comment</button><button class="w-btn sm" type="button" data-a="mread" data-id="' + m.k.n + '" data-v="' + m.i + '">Mark read</button></span></div></li>';
+    }).join('') + '</ul></section>' : '';
+    return '<header class="w-ghead"><div class="w-uh"><h1>Workspace</h1><p class="w-lede">' + esc(S.team.name) + ' · what is waiting for you in this Team</p></div></header><main class="w-main" data-keep="main-t-home"><div class="w-upage">' +
+      (rs.length ? '<section class="w-ugroup"><h2>Action needed<span class="count">' + rs.length + '</span></h2><ul class="w-ulist">' + rs.map(inboxRowHTML).join('') + '</ul></section>' : (heard ? '' : '<p class="w-uempty">Nothing needs you in ' + esc(S.team.name) + '.</p>')) + heard + '</div></main>';
   }
   function teamMembersHTML() {
-    return '<header class="w-ghead"><div class="w-uh"><h1>Members</h1><p class="w-lede">One Owner, any number of Admins, and Members. Each person keeps their own computer, runner and credentials.</p></div></header><main class="w-main" data-keep="main-t-members"><div class="w-upage"><ul class="w-ulist">' +
-      S.team.members.map(function (m) { return '<li><div class="w-irow"><span class="w-av' + (m[0] === ME ? ' me' : '') + '" aria-hidden="true">' + initials(m[0]) + '</span><span class="tx"><span class="ti">' + esc(m[0]) + (m[0] === ME ? ' <span class="w-mm">(you)</span>' : '') + '</span><span class="dt">' + esc(m[2]) + '</span></span><span class="ac"><span class="w-chip">' + m[1] + '</span></span></div></li>'; }).join('') + '</ul></div></main>';
+    return '<header class="w-ghead"><div class="w-uh"><h1>Members</h1><p class="w-lede">One Owner, any number of Admins, and Members. Each person keeps their own computer, runner and credentials; connections are what each computer reports.</p></div></header><main class="w-main" data-keep="main-t-members"><div class="w-upage"><ul class="w-ulist">' +
+      S.team.members.map(function (m) { return '<li><div class="w-irow"><span class="w-av' + (m[0] === ME ? ' me' : '') + '" aria-hidden="true">' + initials(m[0]) + '</span><span class="tx"><span class="ti">' + esc(m[0]) + (m[0] === ME ? ' <span class="w-mm">(you)</span>' : '') + '</span><span class="dt">' + esc(m[2]) + '</span><span class="dt">' + esc(m[3]) + '</span></span><span class="ac"><span class="w-chip">' + m[1] + '</span></span></div></li>'; }).join('') + '</ul></div></main>';
   }
   function teamMain() {
     return ({ board: teamBoardHTML, reviews: teamReviewsHTML, home: teamHomeHTML, members: teamMembersHTML })[D.tv]();
   }
+
+
+  /* ================= Settings: one screen, scoped to Universal, Individual or a Team =================
+     Appearance and Alerts belong to the window; the rest belong to the workspace they change. Universal lists every
+     workspace's sections, a workspace at a time. The records under Individual memory are scripted for the demo. */
+  var MEM = [
+    { id: 'mem_3f9a', label: 'Saved policy', kind: 'approved policy', ver: 'verified', upd: '2 days ago', by: 'Confirmed by you', text: 'Merge a finished branch into main on this computer after reading its diff. Share it through a pull request.', ref: 'Policy saved in my-app settings' },
+    { id: 'mem_71c2', label: 'Decision', kind: 'explicit decision', ver: 'verified', upd: '5 days ago', by: 'Verified by controller', text: 'Tests take an injected clock instead of reading time.Now.', ref: 'Run run-5e1f on “Fix flaky auth test”' },
+    { id: 'mem_a8d4', label: 'Verified fact', kind: 'fact', ver: 'verified', upd: '9 days ago', by: 'Verified by controller', text: 'Report exports go through internal/reports, and the PDF writer already quotes its fields.', ref: 'Commit 4be91d2 on main' }
+  ];
+  function setGroups() {
+    var u = D.ws === 'universal', out = [{ label: 'General', sections: [['general/appearance', 'Appearance'], ['general/alerts', 'Alerts']] }];
+    if (u || D.ws === 'individual') out = out.concat([
+      { owner: 'Individual', label: 'Work', sections: [['personal/defaults', 'Task defaults'], ['personal/routing', 'Routing rules'], ['personal/time', 'Time format']] },
+      { owner: 'Individual', label: 'Machines', sections: [['personal/runners', 'Runners'], ['personal/agents', 'Agents'], ['personal/computer', 'This computer']] },
+      { owner: 'Individual', label: 'Connections', sections: [['personal/phones', 'Phones'], ['personal/github', 'GitHub'], ['personal/mcp', 'MCP services'], ['personal/memory', 'Individual memory']] }]);
+    if (u || D.ws === 'team') out = out.concat([
+      { owner: S.team.name, label: 'Work', sections: [['team/labels', 'Labels']] },
+      { owner: S.team.name, label: 'Machines', sections: [['team/computer', 'This computer'], ['team/devices', 'Devices'], ['team/hosts', 'Workspace Hosts'], ['team/connectivity', 'Connectivity']] },
+      { owner: S.team.name, label: 'Connections', sections: [['team/phones', 'Phones'], ['team/mcp', 'MCP clients'], ['team/memory', 'Team memory']] },
+      { owner: S.team.name, label: 'Workspace', sections: [['team/backups', 'Backups'], ['team/license', 'License']] }]);
+    return out;
+  }
+  function setCurrent() {
+    var all = [];
+    setGroups().forEach(function (g) { g.sections.forEach(function (s) { all.push(s); }); });
+    for (var i = 0; i < all.length; i++) if (all[i][0] === D.set) return all[i];
+    return all[0];
+  }
+  var SET_NOTE = {
+    'personal/defaults': 'The agent, priority and interaction a new task starts with.', 'personal/routing': 'Send a task to an agent and a runner by its label or its project.',
+    'personal/time': 'Twelve or twenty-four hours, and each project’s own timezone.', 'personal/runners': 'The computers that run your agents. This one is registered, and you can pair more.',
+    'personal/agents': 'The coding agents Werkbord found on this computer, signed in the way you already signed them in.', 'personal/computer': 'This computer’s service, its data and its sign-ins.',
+    'personal/github': 'Connect GitHub to create repositories and read pull requests. It is optional.', 'personal/mcp': 'Services Salie can call, each off until you turn it on.',
+    'team/labels': 'The labels everyone in the Team can put on a ticket.', 'team/computer': 'The Team service this computer hosts for the workspace.', 'team/devices': 'The computers your members have paired.',
+    'team/hosts': 'Where the workspace’s data lives.', 'team/connectivity': 'How members reach the workspace host.', 'team/mcp': 'Clients that may read the workspace.',
+    'team/backups': 'Backups of the workspace, and how to restore one.', 'team/license': 'The workspace’s offline license.', 'team/phones': 'Phones paired with this Team. A Team phone shows a summary of the workspace.'
+  };
+  function setPanel(cur) {
+    var id = cur[0], label = cur[1];
+    if (id === 'general/appearance') {
+      var dark = WB.theme() === 'dark', stored = ''; try { stored = localStorage.getItem('wb-theme') || ''; } catch (x) {}
+      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Theme</h3><p class="w-muted">Light or dark for the whole window and every workspace in it. It follows your Mac unless you choose.</p></div><div class="w-seg" role="group" aria-label="Theme">' +
+        [['', 'Device'], ['light', 'Light'], ['dark', 'Dark']].map(function (o) { return '<button type="button" data-a="settheme" data-v="' + o[0] + '" aria-pressed="' + (stored === o[0]) + '">' + o[1] + '</button>'; }).join('') + '</div><p class="w-mm">Showing ' + (dark ? 'dark' : 'light') + '</p></section>';
+    }
+    if (id === 'general/alerts') {
+      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Alerts</h3><p class="w-muted">When an agent asks you a question, gets blocked or fails, or finishes work for you to review while you are in another app, Werkbord shows a notification and bounces its icon in the Dock. Nothing is sent anywhere: they come from this computer.</p></div>' +
+        '<div class="w-setrow"><button class="w-btn' + (D.alerts ? '' : ' pri') + '" type="button" data-a="setalerts" aria-pressed="' + D.alerts + '">' + (D.alerts ? 'Turn alerts off' : 'Turn alerts on') + '</button><span class="w-mm">' + dot(D.alerts ? 'ok' : 'neutral') + (D.alerts ? 'On' : 'Off') + '</span>' +
+        (D.alerts ? '<button class="w-btn" type="button" data-a="settest">Send a test alert</button>' : '') + '</div></section>';
+    }
+    if (id === 'personal/phones' || id === 'team/phones') {
+      var team = id === 'team/phones';
+      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Phones</h3><p class="w-muted">' + (team ? 'A phone paired with ' + esc(S.team.name) + ' shows a summary of the workspace.' : 'Scan a code with your phone and it pairs with this computer. Each phone has its own credential, which you can rename or revoke here.') + '</p></div>' +
+        (team ? '<p class="w-muted" data-testid="phones-empty">No phone yet.</p>' : '<ul class="w-setlist"><li><span class="tx"><b>Michel’s iPhone</b><span class="w-mm">' + dot('ok') + 'Connected · paired 3 days ago</span></span><span class="ac"><button class="w-btn sm" type="button" data-a="toast" data-v="Rename changes the name shown here. It is not part of this demo.">Rename</button><button class="w-btn sm" type="button" data-a="toast" data-v="Revoke signs that phone out for good. It is not part of this demo.">Revoke</button></span></li></ul>') +
+        '<div><button class="w-btn pri" type="button" data-a="toast" data-v="Add a phone shows a code to scan. It is not part of this demo.">Add a phone</button></div></section>';
+    }
+    if (id === 'personal/memory') {
+      var shared = D.share === 2;
+      var rec = D.share === 0 ? '<div class="w-setrow"><span class="w-mm">my-app → ' + esc(S.team.name) + ' · ' + esc(S.team.project) + ' · awaiting your approval</span><button class="w-btn sm" type="button" data-a="setshare" data-v="1">Review proposed text</button></div>'
+        : D.share === 1 ? '<label class="w-field"><span class="w-lab">Text to share</span><textarea class="w-input" rows="3" readonly>' + esc(MEM[1].text) + '</textarea></label><p class="w-muted">Write only the implementation conclusion you intend to share. ' + esc(S.team.name) + ' still requires another authorised person to approve publication.</p><div class="w-setrow"><button class="w-btn pri sm" type="button" data-a="setshare" data-v="2">Approve this exact text for sharing</button><button class="w-btn sm" type="button" data-a="setshare" data-v="0">Cancel</button></div>'
+        : '<div class="w-setrow"><span class="w-mm">' + dot('work') + 'Sent to ' + esc(S.team.name) + ' · waiting for a Team approver</span><button class="w-btn sm" type="button" data-a="setshare" data-v="0">Revoke publication</button></div>';
+      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Individual memory</h3><p class="w-muted">What Werkbord remembers about your projects, on this computer. Salie reads it and cites it, and never changes it. Personal preferences, private sessions, transcripts, source code, credentials and local paths are never exported automatically.</p></div>' +
+        '<ul class="w-setlist">' + MEM.map(function (m) { return '<li class="w-memrow"><span class="tx"><span class="w-mm"><b>' + m.label + '</b> · my-app · ' + m.by + ' · Current</span><span>' + esc(m.text) + '</span><span class="w-mm">' + m.id + ' · ' + esc(m.ref) + '</span></span></li>'; }).join('') + '</ul></section>' +
+        '<section class="w-pn" aria-label="Proposed and shared memories"><div class="head"><h3>Proposed and shared memories</h3><p class="w-muted">' + esc(MEM[1].text) + '</p></div>' + rec +
+        '<p class="w-muted fine">Revocation removes active Team access when acknowledged. It cannot erase copies already read.</p></section>';
+    }
+    if (id === 'team/memory') {
+      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Team memory</h3><p class="w-muted">Records members publish from their own Individual memory, after a second person approves them. Everyone on the project can read them, and Salie cites them as Team memory.</p></div><ul class="w-setlist">' +
+        '<li class="w-memrow"><span class="tx"><span class="w-mm"><b>Saved policy</b> · ' + esc(S.team.project) + ' · Approved by Sam Okafor</span><span>Every change goes through a pull request and one review before it merges.</span><span class="w-mm">tmem_20b7 · Policy in ' + esc(S.team.project) + ' settings</span></span></li>' +
+        (D.share === 2 ? '<li class="w-memrow"><span class="tx"><span class="w-mm"><b>Decision</b> · ' + esc(S.team.project) + ' · ' + dot('work') + 'Waiting for a Team approver</span><span>' + esc(MEM[1].text) + '</span><span class="w-mm">Published by You from Individual memory</span></span></li>' : '') + '</ul></section>';
+    }
+    if (id === 'personal/runners') {
+      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Runners</h3><p class="w-muted">' + SET_NOTE[id] + '</p></div><ul class="w-setlist"><li><span class="tx"><b>MacBook-Pro · this computer</b><span class="w-mm">' + dot('ok') + 'Online · darwin/arm64 · Claude Code, Codex</span></span></li></ul></section>';
+    }
+    return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">' + esc(label) + '</h3><p class="w-muted">' + esc(SET_NOTE[id] || '') + '</p></div><p class="w-mm">This part of Settings is in the app. It is not part of this demo.</p></section>';
+  }
+  function settingsHTML() {
+    var cur = setCurrent(), prev = null, u = D.ws === 'universal';
+    var nav = setGroups().map(function (g) {
+      var own = u && g.owner && g.owner !== prev ? '<p class="w-setown">' + esc(g.owner) + '</p>' : '';
+      prev = g.owner || null;
+      return own + '<div class="w-setgrp" role="group" aria-label="' + esc((g.owner ? g.owner + ' ' : '') + g.label) + '"><h2>' + g.label + '</h2>' + g.sections.map(function (s) {
+        return '<button class="w-setitem" type="button" data-a="setsec" data-id="' + s[0] + '"' + (s[0] === cur[0] ? ' aria-current="page"' : '') + '>' + s[1] + '</button>';
+      }).join('') + '</div>';
+    }).join('');
+    var scope = u ? 'Universal · every workspace' : D.ws === 'individual' ? 'Individual · this computer' : S.team.name + ' · Team workspace';
+    return '<header class="w-ghead"><div class="w-uh"><h1>Settings</h1><p class="w-lede">' + esc(scope) + '</p></div></header><main class="w-main" style="overflow:hidden"><div class="w-set"><nav class="w-setnav" aria-label="Settings sections" data-keep="setnav">' + nav + '</nav><div class="w-setbody" data-keep="setbody">' + setPanel(cur) + '</div></div></main>';
+  }
+  function helpHTML() { return '<button class="w-help" type="button" data-a="help" aria-label="Help and keyboard shortcuts"><span aria-hidden="true">' + ic('help', 15) + '</span>Help</button>'; }
 
   /* ================= desktop ================= */
   function bannerHTML() {
@@ -890,7 +1084,7 @@
   function headHTML() {
     return '<header class="w-head"><div class="w-where"><button class="w-pname" type="button" data-a="pal"><h1>my-app</h1><span class="chev">' + ic('down', 14) + '</span></button><p class="w-path">~/code/my-app · main</p></div>' +
       '<div class="w-acts"><button class="w-btn" type="button" data-a="pal">' + ic('search') + 'Jump to<kbd class="w-key">⌘ K</kbd></button>' +
-      '<button class="w-btn ic" type="button" data-a="settings" aria-label="Project settings">' + ic('settings') + '</button>' +
+      '<button class="w-btn ic" type="button" data-a="toast" data-v="Project settings cover agents, defaults, labels and the project’s memory. They are not part of this demo." aria-label="Project settings">' + ic('settings') + '</button>' +
       '<button class="w-btn pri" type="button" data-a="new">' + ic('plus') + 'New task</button></div></header>' +
       '<nav class="w-tabs" aria-label="my-app sections">' + [['overview', 'Overview'], ['board', 'Board'], ['calendar', 'Calendar'], ['git', 'Git'], ['runs', 'Runs']].map(function (s) {
         var badge = s[0] === 'git' && gitItems().length ? '<span class="w-num pend">' + gitItems().length + '</span>' : '';
@@ -909,7 +1103,7 @@
       '<label class="w-pick"><span>Priority</span><select aria-label="Filter by priority"><option>any</option><option>high</option><option>normal</option><option>low</option></select></label>' +
       '<button class="w-btn sm" type="button" data-a="archive">Archive (0)</button><button class="w-btn sm" type="button" data-a="cleardone">Clear Done</button></div>';
   }
-  var COLS = [['backlog', 'Backlog'], ['doing', 'Doing'], ['review', 'Review'], ['done', 'Done']];
+  var COLS = [['backlog', 'Backlog'], ['doing', 'In progress'], ['review', 'Review'], ['done', 'Done']];
   var ORDER = { high: 0, normal: 1, low: 2 };
   function inCol(c) {
     return S.tasks.filter(function (t) { return t.state === c; }).sort(function (a, b) {
@@ -950,7 +1144,7 @@
         var w = waitingFor(t);
         return '<li class="w-line"><div class="top">' + ic('calendar') + '<button style="border:0;background:none;padding:0;font-weight:500;color:var(--text);text-align:left" type="button" data-a="open" data-id="' + t.id + '">' + esc(t.title) + '</button></div><p class="w-mm sub">my-app · ' + (t.run && t.run.st === 'queued' ? 'Waiting for Capacity' : w.length ? 'Waiting on Dependency' : 'Scheduled ' + dayLabel(t.sched.d) + ' ' + clock(t.sched.s)) + '</p></li>';
       }).join('') : '<li class="w-mm">Nothing planned.</li>') + '</ul></section>';
-    if (!phone) side += '<section class="w-pn" aria-label="Runners"><div class="w-ph">Runners <span class="w-chip">1</span><a class="end" href="#" data-a="settings">Manage</a></div><div class="w-line" style="border:0;padding:0"><div class="top">' + dot('ok') + '<b style="font-weight:500">MacBook-Pro · this computer</b><span class="w-mm" style="margin-left:auto" data-conc>' + (active() + 1) + '/' + (LIMIT + 1) + '</span></div><p class="w-mm">darwin/arm64 · Claude Code, Codex</p></div></section>';
+    if (!phone) side += '<section class="w-pn" aria-label="Runners"><div class="w-ph">Runners <span class="w-chip">1</span><a class="end" href="#" data-a="settings" data-id="personal/runners">Manage</a></div><div class="w-line" style="border:0;padding:0"><div class="top">' + dot('ok') + '<b style="font-weight:500">MacBook-Pro · this computer</b><span class="w-mm" style="margin-left:auto" data-conc>' + (active() + 1) + '/' + (LIMIT + 1) + '</span></div><p class="w-mm">darwin/arm64 · Claude Code, Codex</p></div></section>';
     if (phone) return { seg: seg, list: list, side: side, n: items.length, running: running.length + 1 };
     return '<div class="w-split w-cc"><div class="w-pane" data-keep="cc-l"><div class="w-ccbar">' + seg + '<div class="w-filters"><label class="w-pick"><span>Project</span><select><option>all</option><option>my-app</option><option>api-server</option><option>marketing-site</option></select></label><label class="w-pick"><span>Agent</span><select><option>all</option><option>Claude Code</option><option>Codex</option></select></label></div></div>' + list + '</div><div class="w-pane" data-keep="cc-r">' + side + '</div></div>';
   }
@@ -990,7 +1184,7 @@
       '<label class="w-pick"><span>State</span><select><option>any</option><option>running</option><option>needs input</option><option>completed</option></select></label><span class="w-mm">' + rs.length + ' of ' + rs.length + '</span></div>' +
       '<section class="w-pn" style="padding:4px 16px"><div class="w-tbl" style="--cols:84px minmax(0,1.5fr) 100px 96px 120px 92px 60px 64px 56px"><div class="w-tr th" style="padding-top:12px"><span>Run</span><span>Task</span><span>Agent</span><span>Runner</span><span>State</span><span>Started</span><span class="r">Time</span><span class="r">Tokens</span><span class="r">Cost</span></div>' + rs.map(function (t) {
         var st = RUNSTATE[t.run.st], d = t.run.started;
-        return '<div class="w-tr"><span class="w-mm">' + t.run.id + '</span><button style="border:0;background:none;padding:0;text-align:left;font-weight:500;color:var(--text)" type="button" data-a="open" data-id="' + t.id + '">' + esc(t.title) + '</button><span>' + t.agent + '</span><span class="w-mm">this computer</span><span class="w-badge">' + dot(st[0]) + st[1] + '</span><span class="w-mm">' + (d < 0 ? 'Tue ' + clock(d) : 'Wed ' + clock(d)) + '</span><span class="w-mm r" data-el="' + t.id + '">' + dur(t.run.el) + '</span><span class="w-mm r">' + (t.run.tokens || '–') + '</span><span class="w-mm r">' + (t.run.cost || '–') + '</span></div>';
+        return '<div class="w-tr"><span class="w-mm">' + t.run.id + '</span><button style="border:0;background:none;padding:0;text-align:left;font-weight:500;color:var(--text)" type="button" data-a="open" data-id="' + t.id + '">' + esc(t.title) + '</button><span>' + t.agent + '</span><span class="w-mm">this computer</span><span class="w-badge">' + dot(st[0]) + st[1] + '</span><span class="w-mm">' + (d < 0 ? dayName(-1) + ' ' + clock(d) : dayName(0) + ' ' + clock(d)) + '</span><span class="w-mm r" data-el="' + t.id + '">' + dur(t.run.el) + '</span><span class="w-mm r">' + (t.run.tokens || '–') + '</span><span class="w-mm r">' + (t.run.cost || '–') + '</span></div>';
       }).join('') + '</div></section></div>';
   }
 
@@ -1053,7 +1247,7 @@
     // With the test task picked, tomorrow at 09:00 is offered as a slot, so a click is enough to plan it.
     var t3 = story(3), slot = !uni && D.pick && t3 && D.pick === t3.id && !t3.sched && d === TODAY + 1 ?
       '<button class="w-slot" type="button" data-a="slot" data-day="' + d + '" data-m="540" style="top:' + ((540 - H0 * 60) / 60 * HOUR + 1) + 'px;height:' + (HOUR - 3) + 'px">' + ic('calendar', 14) + 'Tomorrow, 09:00</button>' : '';
-    return '<div class="w-dcol' + ((d % 7 + 7) % 7 > 4 ? ' weekend' : '') + (D.pick ? ' pickable' : '') + (extra || '') + '" data-day="' + d + '" style="height:' + ((H1 - H0) * HOUR) + 'px">' + lanes(calEvents(d, uni)).map(evHTML).join('') + slot + now + '</div>';
+    return '<div class="w-dcol' + ([0, 6].indexOf(dateOf(d).getDay()) > -1 ? ' weekend' : '') + (D.pick ? ' pickable' : '') + (extra || '') + '" data-day="' + d + '" style="height:' + ((H1 - H0) * HOUR) + 'px">' + lanes(calEvents(d, uni)).map(evHTML).join('') + slot + now + '</div>';
   }
   function hoursHTML() { var h = ''; for (var i = H0; i < H1; i++) h += '<span style="top:' + ((i - H0) * HOUR + (i === H0 ? 8 : 0)) + 'px">' + pad(i) + ':00</span>'; return '<div class="w-hours">' + h + '</div>'; }
   function weekTitle(w) { var a = dateOf(7 * w), b = dateOf(7 * w + 6); return MONTHS[a.getMonth()] + ' ' + a.getDate() + ' – ' + (a.getMonth() === b.getMonth() ? '' : MONTHS[b.getMonth()] + ' ') + b.getDate() + ', ' + b.getFullYear(); }
@@ -1062,7 +1256,7 @@
     for (var i = 0; i < 7; i++) days.push(base + i);
     return '<div class="w-calmain"><div class="w-calbar"><div class="l"><button class="w-btn" type="button" data-a="today">Today</button><button class="w-btn ic" type="button" data-a="wk" data-id="-1" aria-label="Previous week">' + ic('left') + '</button><button class="w-btn ic" type="button" data-a="wk" data-id="1" aria-label="Next week">' + ic('right') + '</button><span class="w-caltitle">' + weekTitle(D.week) + '</span></div>' +
       '<div class="r"><button class="w-btn" type="button" data-a="tz"><span class="w-mm" style="color:var(--text);font-size:12px">Europe/Amsterdam</span></button><div class="w-seg"><button type="button" data-a="mode" data-id="day" aria-pressed="false">Day</button><button type="button" aria-pressed="true">Week</button></div></div></div>' +
-      '<div class="w-calhead"><div></div>' + days.map(function (d) { return '<div class="w-dh">' + DAYS[(d % 7 + 7) % 7].toUpperCase() + '<b' + (d === TODAY ? ' class="today"' : '') + '>' + dateOf(d).getDate() + '</b></div>'; }).join('') + '</div>' +
+      '<div class="w-calhead"><div></div>' + days.map(function (d) { return '<div class="w-dh">' + dayName(d).toUpperCase() + '<b' + (d === TODAY ? ' class="today"' : '') + '>' + dateOf(d).getDate() + '</b></div>'; }).join('') + '</div>' +
       '<div class="w-calscroll" data-keep="cal' + (uni ? '-u' : '') + '"><div class="w-calgrid">' + hoursHTML() + days.map(function (d) { return dayColHTML(d, '', uni); }).join('') + '</div></div></div>';
   }
   /* Universal's calendar: every project of every workspace on one week, read only. */
@@ -1073,7 +1267,7 @@
     var waiting = S.tasks.filter(function (t) { return t.state === 'backlog' && waitingFor(t).length; });
     return '<div class="w-cal">' + calGridHTML(false) +
       '<aside class="w-calside" data-keep="calside" aria-label="Unscheduled and queue"><h3>Unscheduled <span class="w-chip">' + unsched.length + '</span></h3>' +
-      unsched.map(function (t) { return '<div class="w-card w-unit" role="button" tabindex="0" draggable="true" data-un="' + t.id + '" data-a="pick" data-id="' + t.id + '" aria-pressed="' + (D.pick == t.id) + '"><span class="grip">' + ic('grip') + '</span><span><span class="t">' + esc(t.title) + '</span><span class="w-mm">' + ({ backlog: 'Backlog', doing: 'Doing', review: 'Review' })[t.state] + (t.prio !== 'normal' ? ' · ' + t.prio : '') + '</span></span></div>'; }).join('') +
+      unsched.map(function (t) { return '<div class="w-card w-unit" role="button" tabindex="0" draggable="true" data-un="' + t.id + '" data-a="pick" data-id="' + t.id + '" aria-pressed="' + (D.pick == t.id) + '"><span class="grip">' + ic('grip') + '</span><span><span class="t">' + esc(t.title) + '</span><span class="w-mm">' + ({ backlog: 'Backlog', doing: 'In progress', review: 'Review' })[t.state] + (t.prio !== 'normal' ? ' · ' + t.prio : '') + '</span></span></div>'; }).join('') +
       '<p class="w-mm" style="line-height:1.6">' + (D.pick ? 'Now click a time in the week.' : 'Drag onto the week, or pick one and click a time.') + '</p>' +
       '<h3>Queue <span class="w-chip">' + queue.length + '</span></h3>' + queue.map(function (t) {
         var w = waitingFor(t), dt = dateOf(t.sched.d);
@@ -1095,7 +1289,7 @@
     return '<div class="out"><p>' + esc(e.x) + '</p><time>' + clock(e.t) + '</time></div>';
   }
   function panelInner(t, tab, phone) {
-    var r = t.run, st = status(t), stateLabel = { backlog: 'Backlog', doing: 'Doing', review: 'Review', done: 'Done' }[t.state];
+    var r = t.run, st = status(t), stateLabel = { backlog: 'Backlog', doing: 'In progress', review: 'Review', done: 'Done' }[t.state];
     var stTone = { backlog: 'neutral', doing: 'work', review: 'ask', done: 'ok' }[t.state];
     var top = '<div class="top">' + (phone ? '<button class="w-btn quiet ic" type="button" data-a="close" aria-label="Back">' + ic('left', 18) + '</button>' : '') + '<span class="w-pill">' + dot(stTone) + stateLabel + '</span><span class="sp"></span>' +
       (isActive(t) ? '<button class="w-btn' + (phone ? ' sm' : '') + ' danger" type="button" data-a="stop" data-id="' + t.id + '">' + ic('stop', 14) + 'Stop agent</button>' : '') +
@@ -1136,6 +1330,20 @@
       var findings = wfFindings();
       return '<div class="w-scrim" data-a="sheetx"></div><section class="w-sheet" role="dialog" aria-label="Find Bugs report"><header><h2>Find Bugs · ' + esc(P.wf.repo) + '</h2><button class="w-btn ic" type="button" data-a="sheetx" aria-label="Close report">' + ic('close') + '</button></header><div class="body"><p>Finished on MacBook-Pro: two bugs it could reproduce, each with a suggested fix. No files were changed.</p><p class="w-mm">A scripted report in this demo · Claude Code</p><ol class="w-workflows">' + findings.map(function (f) { return '<li class="w-card w-pn"><strong>' + esc(f[0]) + '</strong><p class="w-mm">Suggested fix: ' + esc(f[1]) + '</p></li>'; }).join('') + '</ol></div><footer><button class="w-btn" type="button" data-a="wfx">Dismiss report</button><button class="w-btn pri" type="button" data-a="wftasks">Create ' + plural(findings.length, 'task') + ' to fix ' + (findings.length === 1 ? 'it' : 'them') + '</button></footer></section>';
     }
+    if (sh.kind === 'ticket') {
+      var k = tix(sh.n); if (!k) return '';
+      var cs = k.comments || [], people = S.team.members.map(function (m) { return m[0]; }).filter(function (name) { return name !== ME; });
+      var col = TCOLS.filter(function (c) { return c[0] === k.st; })[0][1];
+      return '<div class="w-scrim" data-a="sheetx"></div><form class="w-sheet" data-form="comment" data-n="' + k.n + '" role="dialog" aria-label="WB-' + k.n + ' ' + esc(k.title) + '" style="--w:620px"><header><h2>WB-' + k.n + ' ' + esc(k.title) + '</h2><button class="w-btn quiet sm ic" type="button" data-a="sheetx" aria-label="Close">' + ic('close') + '</button></header>' +
+        '<div class="body"><p class="w-mm">' + esc(S.team.name) + ' · ' + esc(S.team.project) + ' · ' + col + (k.who ? ' · ' + esc(k.who) : '') + (k.pr ? ' · pull request #' + k.pr.n + ' ' + k.pr.state : '') + '</p>' +
+        '<section class="w-comments" aria-label="Comments"><div class="w-cmhead"><h3>Comments</h3><span class="w-chip">' + cs.length + '</span></div>' +
+        (cs.length ? '<ul class="w-cmlist">' + cs.map(function (c, i) {
+          return '<li class="w-cm' + (c.unread ? ' unread' : '') + '"><span class="w-av' + (c.by === ME ? ' me' : '') + '" aria-hidden="true">' + initials(c.by) + '</span><div><p class="w-cmwho"><b>' + esc(c.by) + '</b><span class="w-mm">' + clock(c.at) + '</span>' + (c.unread ? '<span class="w-chip warn">Mentions you</span><button class="w-btn quiet sm" type="button" data-a="mread" data-id="' + k.n + '" data-v="' + i + '">Mark read</button>' : (c.mentions || []).indexOf(ME) > -1 ? '<span class="w-mm">Mentioned you · read</span>' : '') + '</p><p>' + commentHTML(c.text) + '</p></div></li>';
+        }).join('') + '</ul>' : '<p class="w-muted">No comments yet. Start the conversation, or mention someone to ask them something.</p>') +
+        '<label class="w-field"><span class="w-lab">Write a comment</span><textarea class="w-input" name="text" rows="3" placeholder="Write a comment…"></textarea></label>' +
+        '<div class="w-mentions" role="group" aria-label="Mention a member"><span class="w-mm">Mention</span>' + people.map(function (name) { return '<button class="w-btn sm" type="button" data-a="mention" data-v="' + esc(name) + '">@' + esc(name) + '</button>'; }).join('') + '</div></section></div>' +
+        '<footer><button class="w-btn" type="button" data-a="sheetx">Close</button><button class="w-btn pri" type="submit">Post comment</button></footer></form>';
+    }
     if (sh.kind === 'new') {
       return '<div class="w-scrim" data-a="sheetx"></div><form class="w-sheet" data-form="new" role="dialog" aria-label="New task in my-app" style="--w:640px"><header><h2>New task in my-app</h2><button class="w-btn quiet sm ic" type="button" data-a="sheetx" aria-label="Close">' + ic('close') + '</button></header>' +
         '<div class="body"><label class="w-field"><span class="w-lab">What should an agent do?</span><input class="w-input big" name="title" maxlength="200" placeholder="Fix the flaky auth test" autocomplete="off" required></label>' +
@@ -1156,7 +1364,7 @@
   }
   function palItems(q) {
     q = (q || '').toLowerCase();
-    var items = [['view', 'control', 'Needs you', 'everywhere'], ['view', 'overview', 'Overview', 'my-app'], ['view', 'board', 'Board', 'my-app'], ['view', 'calendar', 'Calendar', 'my-app'], ['view', 'git', 'Git', 'my-app'], ['view', 'runs', 'Runs', 'my-app'], ['new', '', 'New task', 'action']]
+    var items = [['view', 'control', 'Workspace', 'everywhere'], ['view', 'overview', 'Overview', 'my-app'], ['view', 'board', 'Board', 'my-app'], ['view', 'calendar', 'Calendar', 'my-app'], ['view', 'git', 'Git', 'my-app'], ['view', 'runs', 'Runs', 'my-app'], ['new', '', 'New task', 'action']]
       .concat(S.tasks.filter(function (t) { return t.state !== 'done'; }).map(function (t) { return ['open', t.id, t.title, 'task']; }));
     return items.filter(function (i) { return i[2].toLowerCase().indexOf(q) > -1; }).slice(0, 9);
   }
@@ -1180,15 +1388,17 @@
     keepScroll(deskRoot, D.scroll);
     var fk = focusKey(deskRoot);
     var main, panel = '';
-    if (D.ws === 'universal') main = ({ mywork: myWorkHTML, calendar: ucalHTML, inbox: inboxHTML })[D.uv]();
+    if (D.set !== null) main = settingsHTML();
+    else if (D.ws === 'universal') main = ({ mywork: myWorkHTML, calendar: ucalHTML, inbox: inboxHTML })[D.uv]();
     else if (D.ws === 'team') main = teamMain();
     else {
-      if (D.view === 'control') main = '<header class="w-ghead"><h1>Needs you</h1><button class="w-btn" type="button" data-a="pal">' + ic('search') + 'Jump to</button></header><main class="w-main" data-keep="main-cc">' + controlHTML(false) + '</main>';
+      if (D.view === 'control') main = '<header class="w-ghead"><h1>Workspace</h1><button class="w-btn" type="button" data-a="pal">' + ic('search') + 'Jump to</button></header><main class="w-main" data-keep="main-cc">' + controlHTML(false) + '</main>';
       else main = headHTML() + bannerHTML() + '<main class="w-main" data-keep="main-' + D.view + '"' + (D.view === 'runs' ? '' : ' style="overflow:hidden"') + '>' + ({ board: boardHTML, overview: overviewHTML, calendar: calendarHTML, git: gitHTML, runs: runsHTML })[D.view]() + '</main>';
       panel = D.task && get(D.task) && D.view !== 'control' ? '<section class="w-panel" role="dialog" aria-label="Task">' + panelInner(get(D.task), D.ptab, false) + '</section>' : '';
     }
+    if (D.set !== null) panel = '';
     // Sheets, the switcher and toasts live outside this part, so an open form keeps what was typed.
-    deskRoot.querySelector('[data-app]').innerHTML = '<div class="w-shell">' + railHTML() + '<div class="w-mainarea">' + (P.wf ? wfBanner() : '') + main + panel + '</div></div>';
+    deskRoot.querySelector('[data-app]').innerHTML = '<div class="w-shell">' + railHTML() + '<div class="w-mainarea">' + (P.wf ? wfBanner() : '') + main + panel + (panel ? '' : helpHTML()) + '</div></div>';
     restoreScroll(deskRoot, D.scroll);
     S.tasks.forEach(function (t) { t.fresh = false; });
     S.team.tickets.forEach(function (k) { k.fresh = false; });
@@ -1219,7 +1429,7 @@
      The phone opens on the Control Deck (web/src/lib/mobile/): nine keys you set up yourself (a workflow key starts an agent on a repository), a row of tools for editing the deck, search, help
      and Settings, and a bottom bar with two places, the deck and Salie. Everything else is a page reached from a key, with Back. A
      project is under Projects and keeps its own sections as a row of tabs. It reads the same state as the desktop window. */
-  var PLACES = { bugs: 'Find Bugs', control: 'Needs you', calendar: 'Calendar', projects: 'Projects', mywork: 'My Work', agents: 'Agents', analytics: 'Analytics', reviews: 'Reviews', git: 'Git', runners: 'Runners' };
+  var PLACES = { bugs: 'Find Bugs', control: 'Workspace', calendar: 'Calendar', projects: 'Projects', mywork: 'My Work', agents: 'Agents', analytics: 'Analytics', reviews: 'Reviews', git: 'Git', runners: 'Runners' };
   /* Eight navigation keys and one empty position, where the visitor adds a workflow key. */
   var KEYS = [['control', 'control', 'wait'], ['calendar', 'calendar'], ['projects', 'folder'], ['mywork', 'check'], ['agents', 'activity', 'work'], ['analytics', 'analytics'], ['reviews', 'merge', 'work'], ['git', 'git', 'wait'], ['bugs', 'bug']];
   /* The product's workflow buttons (web/src/lib/mobile/layout.ts WORKFLOWS). The demo runs Find Bugs only. */
@@ -1343,9 +1553,9 @@
   }
   function phoneCalendar() {
     var d = P.day, x = dateOf(d);
-    var head = '<div class="w-mcal"><div class="bar"><button class="w-btn" type="button" data-a="pday" data-id="0">Today</button><button class="w-btn ic" type="button" data-a="pday" data-id="-1" aria-label="Previous day">' + ic('left') + '</button><button class="w-btn ic" type="button" data-a="pday" data-id="1" aria-label="Next day">' + ic('right') + '</button><span class="w-caltitle">' + DAYS[(d % 7 + 7) % 7] + ', ' + MONTHS[x.getMonth()] + ' ' + x.getDate() + ', 2026</span></div>' +
+    var head = '<div class="w-mcal"><div class="bar"><button class="w-btn" type="button" data-a="pday" data-id="0">Today</button><button class="w-btn ic" type="button" data-a="pday" data-id="-1" aria-label="Previous day">' + ic('left') + '</button><button class="w-btn ic" type="button" data-a="pday" data-id="1" aria-label="Next day">' + ic('right') + '</button><span class="w-caltitle">' + dayName(d) + ', ' + MONTHS[x.getMonth()] + ' ' + x.getDate() + ', ' + x.getFullYear() + '</span></div>' +
       '<div class="bar"><button class="w-btn" type="button" data-a="tz"><span class="w-mm" style="color:var(--text);font-size:13px">Europe/Amsterdam</span></button><div class="w-seg"><button type="button" aria-pressed="true">Day</button><button type="button" data-a="toast" data-v="Week and Month are in the app. The demo shows the day.">Week</button></div></div>' +
-      '<div class="w-dh" style="padding-left:52px">' + DAYS[(d % 7 + 7) % 7].toUpperCase() + '<b' + (d === TODAY ? ' class="today"' : '') + '>' + x.getDate() + '</b></div>' +
+      '<div class="w-dh" style="padding-left:52px">' + dayName(d).toUpperCase() + '<b' + (d === TODAY ? ' class="today"' : '') + '>' + x.getDate() + '</b></div>' +
       '<div class="w-mday">' + hoursHTML() + dayColHTML(d) + '</div></div>';
     var task = story(3);
     return '<div class="w-mpage">' + (task && !task.sched ? '<section class="w-card w-pn"><p>' + esc(task.title) + '</p><button class="w-btn" type="button" data-a="pschedule">Schedule tomorrow at 09:00</button></section>' : '') + head + '</div>';
@@ -1482,7 +1692,7 @@
     });
   }
 
-  /* ---------- shared demo clock: six real seconds per simulated minute ---------- */
+  /* ---------- shared demo clock: 4.5 real seconds per simulated minute (one tick per TICK ms) ---------- */
   function wfLive() {
     if (P.wf && !P.wf.stopped && phoneRoot) { var wl = wfLines(); if (wl.ended && !P.wf.ended) { P.wf.ended = true; render(); return; } ['status', 'stage', 'count'].forEach(function (k) { document.querySelectorAll('.wbx [data-wf="' + k + '"]').forEach(function (el) { el.textContent = k === 'status' ? wl.status : k === 'stage' ? wl.stage + ' · ' + P.wf.repo : 'Claude Code · ' + wl.count; }); }); }
   }
@@ -1506,7 +1716,7 @@
           if (beforeQuestion) {
             r.asked2 = true; r.st = 'needs'; r.q = r.ask.q; r.choices = r.ask.choices; r.asked = S.now; changed = true;
             feed(t, 'q', r.q); say(t.agent + ' asked a question on “' + t.title + '”');
-            toast('Your agent has a question on “' + t.title + '”. Open the task or Needs you to answer.');
+            toast('Your agent has a question on “' + t.title + '”. Open the task or Workspace to answer.');
           } else { finish(t); changed = true; }
         }
       }
@@ -1514,7 +1724,7 @@
     if (changed) render(); else updateLive();
   }
   var timer = null, seen = new Set();
-  function go() { if (!timer && !document.hidden && seen.size) timer = setInterval(tick, 1000); }
+  function go() { if (!timer && !document.hidden && seen.size) timer = setInterval(tick, TICK); }
   function halt() { clearInterval(timer); timer = null; }
 
   /* ---------- mounting and scaling ---------- */
@@ -1578,8 +1788,8 @@
       var a = b.dataset.a, id = b.dataset.id, v = b.dataset.v;
       if (b.tagName === 'A') e.preventDefault();
       switch (a) {
-        case 'view': nav(where, id); D.ws = where === 'desk' ? 'individual' : D.ws; dropOverlay(); render(); break;
-        case 'open': openTask(where, id); dropOverlay(); render(); break;
+        case 'view': nav(where, id); D.ws = where === 'desk' ? 'individual' : D.ws; D.set = null; dropOverlay(); render(); break;
+        case 'open': D.set = null; openTask(where, id); dropOverlay(); render(); break;
         case 'close': V.task = null; render(); break;
         case 'ptab': V.ptab = id; render(); break;
         case 'start': startTask(+id); render(); break;
@@ -1627,15 +1837,22 @@
         case 'asst-no': decideCard(+id, +v, false); break;
         case 'asst-all': decideAll(+id, v === 'yes'); break;
         case 'asst-opentask': openFromAssistant(where, +id, +v); break;
+        case 'sug-open': openSuggestion(where, +id, +v.split(':')[0]); break;
+        case 'sug-fb': var sr = AS.msgs[+id] && AS.msgs[+id].recs[+v.split(':')[0]]; if (sr) { sr.fb = v.split(':')[1]; renderAsst(false); } break;
         case 'ui-sort': var u = AS.msgs[+id].ui, c = +v; if (u.sort === c) u.dir = -u.dir; else { u.sort = c; u.dir = 1; } renderAsst(false); break;
         case 'sw': var was = D.sw; dropOverlay(); if (!was) { D.sw = true; setOverlay(root, switcherHTML(), '.w-menu [aria-current="true"]'); } render(); break;
         case 'swx': dropOverlay(); render(); break;
         case 'ws': goWs(id); break;
-        case 'uv': D.uv = id; render(); break;
-        case 'tv': D.tv = id; render(); break;
-        case 'tvp': D.tv = 'board'; render(); break;
+        case 'uv': D.uv = id; D.set = null; render(); break;
+        case 'tv': D.tv = id; D.set = null; render(); break;
+        case 'tvp': D.tv = 'board'; D.set = null; render(); break;
         case 'go': jump(v); break;
         case 'claim': claim(+id); G.f.claimed = true; render(); break;
+        case 'tstart': startWork(+id); render(); break;
+        case 'tmine': D.mine = id === '1'; render(); break;
+        case 'tticket': D.set = null; V.sheet = { kind: 'ticket', n: +id }; G.f.mention = true; setOverlay(root, sheetHTML(V.sheet, where === 'phone'), 'textarea'); break;
+        case 'mread': var mk = tix(+id), mc = mk && mk.comments && mk.comments[+v]; if (mc) mc.unread = false; if (V.sheet && V.sheet.kind === 'ticket') setOverlay(root, sheetHTML(V.sheet, where === 'phone')); render(); break;
+        case 'mention': var box = root.querySelector('form[data-form="comment"] textarea'); if (box) { var at = box.selectionStart == null ? box.value.length : box.selectionStart, head = box.value.slice(0, at); box.value = head + (head && !/\s$/.test(head) ? ' ' : '') + '@' + v + ' ' + box.value.slice(at); box.focus(); } break;
         case 'signoff': signoff(+id); render(); break;
         case 'runner': toast('Open in my runner hands the ticket to your own werkbord. Team never runs anything.'); break;
         case 'addteam': toast('Adding a Team installs a small background service, after you approve it. It is not part of this demo.'); break;
@@ -1644,7 +1861,12 @@
         case 'help': toast('Help opens the product docs in the app. They are not part of this demo.'); break;
         case 'toast': toast(v); break;
         case 'other': toast('This demo opens one project. In the app, every repository you add gets its own board, calendar and Git view.'); break;
-        case 'settings': toast('Settings cover agents, runners, phone access and defaults. They are not part of this demo.'); break;
+        case 'settings': if (where === 'phone') { toast('Settings cover agents, runners, phone access and defaults. They are not part of this demo.'); break; } dropOverlay(); D.set = id || D.set || 'general/appearance'; G.f.settings = true; D.task = null; render(); break;
+        case 'setsec': D.set = id; render(); break;
+        case 'settheme': var chosen = v || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); document.documentElement.dataset.theme = chosen; try { if (v) localStorage.setItem('wb-theme', v); else localStorage.removeItem('wb-theme'); } catch (x) {} window.dispatchEvent(new Event('themechange')); render(); break;
+        case 'setalerts': D.alerts = !D.alerts; toast(D.alerts ? 'Alerts are on. Werkbord tells you from another app when an agent needs you.' : 'Alerts are off. Werkbord still marks what needs you in the sidebar.'); render(); break;
+        case 'settest': toast('Needs you · my-app · Migrate runs table to WAL. On a Mac this arrives as a notification, and the Dock icon bounces.'); break;
+        case 'setshare': D.share = +v; if (D.share === 2) toast('Sent to ' + S.team.name + '. It stays private until another authorised person approves it there.'); render(); break;
         case 'push': toast('Push shows what would leave this computer, and asks before anything does.'); break;
         case 'gnav': toast('Health, branches, pull requests, changes and history each open from here in the app.'); break;
         case 'archive': case 'cleardone': toast('Clear Done moves finished tasks into the Archive with their details intact.'); break;
@@ -1667,6 +1889,8 @@
         if (where === 'desk') { if (D.view === 'control') D.view = 'board'; } else { P.at = 'project'; P.tab = 'board'; P.task = null; P.col = startNow ? 'doing' : 'backlog'; }
         if (startNow) startTask(t.id); else toast('“' + title + '” is in Backlog. Start it now, or drag it onto the Calendar.');
         render();
+      } else if (f.dataset.form === 'comment') {
+        if (postComment(+f.dataset.n, f.elements.text.value)) { setOverlay(root, sheetHTML(V.sheet, where === 'phone'), 'textarea'); render(); } else f.elements.text.focus();
       } else if (f.dataset.form === 'msg') {
         var m = f.elements.m.value.trim(); if (!m) return;
         var tt = get(f.dataset.id);
@@ -1687,6 +1911,8 @@
     root.addEventListener('toggle', function (e) {
       var d = e.target, m = d.tagName === 'DETAILS' && d.dataset.i != null ? AS.msgs[+d.dataset.i] : null;
       if (m) m.open = d.open;
+      var mm = d.tagName === 'DETAILS' && d.dataset.j != null ? AS.msgs[+d.dataset.j] : null;
+      if (mm) mm.memOpen = d.open;
     }, true);
     root.addEventListener('keydown', function (e) {
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); return; }
@@ -1835,7 +2061,15 @@
       done: function () { return G.f.plate || G.f.planAsk || planned(); } },
     { id: 'ui', ch: 0, kind: 'area', next: true, kick: 'Generated interface', sticky: true, wait: true, nextOk: function () { return !AS.busy; },
       need: function () { return { asst: true }; }, aim: function () { return AS.busy ? [] : [{ last: '.w-ui' }]; },
-      text: function () { return AS.busy ? 'Salie is reading My Work, the schedules and Needs you in both workspaces, and building the answer as it goes.' : 'Salie can answer with interface, not only text (OpenUI). Sort it, filter it. It is read only, and stamped with when it was read.'; },
+      text: function () { return AS.busy ? 'Salie is reading My Work, the schedules and what is waiting in both workspaces, and building the answer as it goes.' : 'Salie can answer with interface, not only text (OpenUI). Sort it, filter it. It is read only, and stamped with when it was read.'; },
+      done: function () { return G.f.planAsk || planned() || !AS.open; } },
+    { id: 'memory', ch: 0, kind: 'press', kick: 'Memory', sticky: true,
+      need: function () { return { asst: true }; }, aim: function () { return AS.busy ? [] : ['.w-apill[data-v="' + NEXT_Q + '"]']; },
+      text: 'Salie also remembers your policies and decisions. Ask it what to do next.',
+      done: function () { return !!G.f.nextAsk || G.f.planAsk || planned(); } },
+    { id: 'memory-ui', ch: 0, kind: 'area', next: true, kick: 'Memory', sticky: true, wait: true, nextOk: function () { return !AS.busy; },
+      need: function () { return { asst: true }; }, aim: function () { return AS.busy ? [] : [{ last: '.w-sug' }]; },
+      text: function () { return AS.busy ? 'Salie is weighing your saved policy, the repository and your tasks.' : 'Each suggestion says why, and Memory sources lists exactly what Salie read. It only suggests: nothing starts until you decide.'; },
       done: function () { return G.f.planAsk || planned() || !AS.open; } },
     { id: 'plan', ch: 0, kind: 'press', kick: 'Salie', wait: true,
       need: function () { return { asst: true }; }, aim: function () { return AS.busy ? [] : ['.w-apill[data-v="Plan CSV export for reports"]']; },
@@ -1894,8 +2128,12 @@
       done: function () { return !!G.f.claimed; } },
     { id: 'claim', ch: 1, kind: 'press',
       need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { var k = claimTarget(); return k ? ['[data-a="claim"][data-id="' + k.n + '"]'] : []; },
-      text: function () { return (storyTicket() ? 'Claim the ticket Salie created.' : 'Claim a ticket.') + ' Claiming is one guarded step, so only one person gets it.'; },
+      text: function () { return (storyTicket() ? 'Claim the ticket Salie created.' : 'Claim a ticket.') + ' One guarded step, so only one person gets it. It waits in Available until you start work.'; },
       done: function () { return !!G.f.claimed; } },
+    { id: 'mention', ch: 1, kind: 'press', next: true, sticky: true, kick: 'Comments',
+      need: function () { return { ws: 'team', tv: 'board' }; }, aim: function () { return ['.w-comment-chip.unread']; },
+      text: 'Maya mentioned you on WB-42. Every ticket has its own conversation, and only an explicit @mention notifies anyone.',
+      done: function () { return !!G.f.mention || !!G.f.reviews || tix(42).st === 'done'; } },
     { id: 'reviews', ch: 1, kind: 'press', sticky: true, hops: true,
       need: function () { return { ws: 'team', tv: 'reviews' }; }, aim: function () { return []; },
       text: function (h) { return h && h.kind === 'nav' ? 'Maya finished a change, and it is waiting for you. Open Reviews.' : ''; },
@@ -1911,7 +2149,7 @@
     { id: 'answer', ch: 1, kind: 'press',
       need: function (w) { if (w === 'phone') return phoneNeed('control', 'board', 'doing'); var n = boardNeed(w, 'doing'); n.task = lead() ? lead().id : true; return n; },
       aim: function (w) { var t = lead(); return t ? [[(w === 'phone' ? '.w-mtask ' : '.w-panel ') + '[data-a="answer"][data-id="' + t.id + '"]', '.w-item [data-a="answer"][data-id="' + t.id + '"]', '.w-task [data-a="answer"][data-id="' + t.id + '"]']] : []; },
-      hops: true, text: function (h, w) { return h && h.kind === 'key' ? 'An agent needs a decision, and the deck says so. Open Needs you.' : h && h.kind === 'deck' ? 'An agent has a question. Back to the Control Deck.' : w === 'phone' ? 'An agent needs a decision. Answer from your phone, and the desktop window moves on too.' : 'Your agent has a question. Open its task, answer the separator question, and it will carry on.'; },
+      hops: true, text: function (h, w) { return h && h.kind === 'key' ? 'An agent needs a decision, and the deck says so. Open Workspace.' : h && h.kind === 'deck' ? 'An agent has a question. Back to the Control Deck.' : w === 'phone' ? 'An agent needs a decision. Answer from your phone, and the desktop window moves on too.' : 'Your agent has a question. Open its task, answer the separator question, and it will carry on.'; },
       done: function () { var t = lead(); return !t || !t.run || !(t.run.st === 'needs' || t.run.st === 'blocked'); } },
     { id: 'check-git', ch: 1, kind: 'area', next: true, sticky: true, wait: true,
       need: function (w) { return w === 'phone' ? phoneNeed('git', 'git') : { ws: 'individual', view: 'git' }; },
@@ -1940,7 +2178,11 @@
     { id: 'home', ch: 2, desk: true, kind: 'press', sticky: true, hops: true,
       need: function () { return { ws: 'universal', uv: 'mywork' }; }, aim: function () { return []; },
       text: function (h) { return h && h.kind === 'sw' ? 'Last stop: back to Universal. Open the switcher.' : ''; },
-      done: function () { return !!lead() && lead().state === 'done' && D.ws === 'universal'; } }
+      done: function () { return !!lead() && lead().state === 'done' && D.ws === 'universal'; } },
+    { id: 'settings', ch: 2, desk: true, kind: 'press', next: true, kick: 'Settings',
+      need: function () { return { ws: 'universal', settings: true }; }, aim: function () { return ['.w-rail [data-a="settings"]']; },
+      text: 'One last place. Settings is one screen for Universal, Individual and each Team. Alerts tell you from another app when an agent needs you.',
+      done: function () { return D.set !== null; } }
   ];
 
   /* The phone lesson, after the core story: only what is different on the phone. The deck is the way in, and a workflow key
@@ -1987,7 +2229,7 @@
       need: function () { return { at: 'deck' }; }, aim: function () { return P.wf && P.wf.stopped ? ['[data-key="bugs"]'] : ['.w-wfb']; },
       text: function (h) {
         if (h) return h.kind === 'deck' ? 'Back to the Control Deck to see how the scan is going.' : '';
-        return P.wf && P.wf.stopped ? 'You stopped Find Bugs. Tap it to run it again.' : 'Find Bugs is still at work on your computer, about 40 seconds in this demo. Your phone only had to start it.';
+        return P.wf && P.wf.stopped ? 'You stopped Find Bugs. Tap it to run it again.' : 'Find Bugs is still at work on your computer, about 30 seconds in this demo. Your phone only had to start it.';
       },
       done: function () { return !!P.wf && wfLines().ended && !P.wf.stopped; } },
     { id: 'phone-report', ch: 2, kind: 'press', kick: 'The result', sticky: true, hops: true,
@@ -2040,6 +2282,11 @@
     if (D.pal !== null) return null;
     if (need.ws && D.ws !== need.ws) return D.sw ? { sel: '.w-menu [data-a="ws"][data-id="' + need.ws + '"]', kind: 'ws', to: need.ws } : { sel: '.w-rail [data-a="sw"]', kind: 'sw', to: need.ws };
     if (D.sw) return null;
+    // Settings is a page of the window: a step that needs another place leaves it by the sidebar.
+    if (D.set !== null && !need.settings && (need.ws || need.uv || need.tv || need.view)) {
+      var out = need.ws === 'universal' ? ['uv', need.uv || 'mywork'] : need.ws === 'team' ? ['tv', need.tv || 'board'] : ['view', need.view && need.view !== 'control' ? 'board' : 'control'];
+      return { sel: '.w-rail [data-a="' + out[0] + '"][data-id="' + out[1] + '"]', kind: 'nav', to: out[1] };
+    }
     if (need.ws === 'universal' && need.uv && D.uv !== need.uv) return { sel: '.w-rail [data-a="uv"][data-id="' + need.uv + '"]', kind: 'nav', to: need.uv };
     if (need.ws === 'team' && need.tv && D.tv !== need.tv) return { sel: '.w-rail [data-a="tv"][data-id="' + need.tv + '"]', kind: 'nav', to: need.tv };
     if (need.ws === 'individual' && need.view) {
@@ -2048,7 +2295,7 @@
     }
     return null;
   }
-  var WSNAME = { universal: 'Universal', individual: 'Individual' }, VIEWNAME = { board: 'Board', calendar: 'Calendar', mywork: 'My Work', inbox: 'Needs you', reviews: 'Reviews', home: 'Needs you', review: 'Review', git: 'Git', doing: 'Doing', backlog: 'Backlog' };
+  var WSNAME = { universal: 'Universal', individual: 'Individual' }, VIEWNAME = { board: 'Board', calendar: 'Calendar', mywork: 'My Work', inbox: 'Workspaces', reviews: 'Reviews', home: 'Workspace', control: 'Workspace', review: 'Review', git: 'Git', doing: 'In progress', backlog: 'Backlog' };
   var HOP = { scope: function (h) { return 'Choose ' + h.to + ' projects.'; }, teamproject: 'Open your team’s shared project.', deck: 'Open the Control Deck.', key: function (h) { return 'Open ' + (PLACES[h.to] || 'the page') + '.'; }, 'close-asst': 'Close Salie to continue.', 'open-asst': 'Open Salie.', 'close-sheet': 'Close this to continue.', back: 'Go back to the board.', 'close-task': 'Close the task to see the board.',
     sw: function (h) { return 'Open the switcher to get to ' + (WSNAME[h.to] || S.team.name) + '.'; },
     ws: function (h) { return 'Choose ' + (WSNAME[h.to] || S.team.name) + '.'; },
@@ -2194,7 +2441,7 @@
     if (spec.shown) reveal.apply(null, spec.shown);
   }
   /* Where a surface is: enough to put the visitor back, and to tell whether they moved while they were there. */
-  var NAV = { desk: ['ws', 'uv', 'tv', 'view', 'task', 'ptab'], phone: ['at', 'tab', 'scope', 'teamTab', 'task', 'ptab', 'col'] };
+  var NAV = { desk: ['ws', 'uv', 'tv', 'view', 'set', 'task', 'ptab'], phone: ['at', 'tab', 'scope', 'teamTab', 'task', 'ptab', 'col'] };
   function navOf(w) { var V = w === 'phone' ? P : D, o = { sheet: V.sheet }; NAV[w].forEach(function (k) { o[k] = V[k]; }); return o; }
   function navSig(w) { var o = navOf(w); o.sheet = o.sheet ? o.sheet.kind + ':' + (o.sheet.id || '') : ''; return JSON.stringify(o); }
   function guideLayout() {
@@ -2217,7 +2464,7 @@
         else P.at = D.uv === 'inbox' ? 'control' : D.uv === 'calendar' ? 'calendar' : 'deck';
         if (P.task && get(P.task)) P.col = get(P.task).state;
       } else {
-        D.task = P.task; D.ptab = P.ptab; D.sheet = P.sheet && ['merge', 'new', 'workflow-report'].indexOf(P.sheet.kind) >= 0 ? P.sheet : null;
+        D.task = P.task; D.ptab = P.ptab; D.set = null; D.sheet = P.sheet && ['merge', 'new', 'workflow-report'].indexOf(P.sheet.kind) >= 0 ? P.sheet : null;
         if (P.at === 'team') { D.ws = 'team'; D.tv = P.teamTab; }
         else if (P.at === 'project') { D.ws = 'individual'; D.view = P.tab; }
         else if (P.at === 'mywork') { D.ws = 'universal'; D.uv = 'mywork'; }
@@ -2245,7 +2492,7 @@
     if (guideWhere() === 'phone') return;
     dropOverlay();
     if (ch >= 1) seedPlan();
-    G.floor = ch; D.task = null; D.pick = null;
+    G.floor = ch; D.task = null; D.pick = null; D.set = null;
     if (ch === 0) { D.ws = 'universal'; D.uv = 'mywork'; }
     if (ch === 1) { D.ws = 'individual'; D.view = 'board'; }
     if (ch === 2) { [story(1), story(2)].forEach(function (t) { if (!t.run) startTask(t.id, true); finish(t); }); D.ws = 'individual'; D.view = 'board'; }
@@ -2259,7 +2506,7 @@
     G.f = {}; G.s = {}; G.floor = 0; G.hide = null; G.left = null; G.deskSw = null; revealed = ''; placed = {};
     AS.open = false;
     [D, P].forEach(function (v) { v.task = null; v.sheet = null; v.scroll = {}; });
-    D.ws = 'universal'; D.uv = 'mywork'; D.tv = 'board'; D.view = 'control'; D.sw = false; D.pal = null; D.pick = null; D.week = 0;
+    D.ws = 'universal'; D.uv = 'mywork'; D.tv = 'board'; D.view = 'control'; D.set = null; D.alerts = false; D.share = 0; D.mine = false; D.sw = false; D.pal = null; D.pick = null; D.week = 0;
     P.deckAdded = false; P.repo = null; P.scope = 'individual'; P.at = 'deck'; P.tab = 'board'; P.col = 'backlog'; P.day = TODAY; P.cc = 'all'; P.wf = null; P.af = 'all';
     [deskRoot, phoneRoot].forEach(function (root) { setOverlay(root, ''); root.querySelector('.w-toast').classList.remove('show'); });
     render(); go();

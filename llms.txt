@@ -4,11 +4,12 @@
 
 ## Page
 
-- [werkbord](https://micho8cho93.github.io/werkbord-site/): the headline, a beta waitlist with a live count of the first 50 places, and a guided demo of the app at desktop and phone width: your work across workspaces in Universal, Salie, agents running in parallel, review and merge, and a Team; the phone demo follows the app's Control Deck layout.
+- [werkbord](https://micho8cho93.github.io/werkbord-site/): the headline, a beta waitlist with a live count of the first 50 places, and a guided demo of the app at desktop and phone width: your work across workspaces in Universal, Salie (with next-step suggestions that cite what it remembers), agents running in parallel, review and merge, and a Team (claims, comments and @mentions); the phone demo follows the app's Control Deck layout.
 
 ## Facts on the page
 
 - werkbord is a local-first team workspace for AI agents. People plan and approve the work on one board. Agents do the work in their own Git worktrees, one per task.
+- werkbord is a meta-harness: a layer between the person and all of their agents. Each agent is a harness around a model; werkbord coordinates them in one workspace, with tasks, Git branches and memory together.
 - Claude Code and Codex work with werkbord today, through their own command-line tools and the user's own accounts.
 - Nothing merges without a person. Agents do not merge their own work.
 - Beta: the first 50 people to sign up get beta access. It covers individual and team apps.

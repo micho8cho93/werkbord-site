@@ -167,3 +167,22 @@ test('house rule: the copy claims nothing that is not shipped or confirmed', () 
     }
   }
 });
+
+test('the demo welcome says what werkbord is, as a meta-harness, in a short dialog that names no tool', () => {
+  const h = read('index.html');
+  const dialog = h.match(/<section class="demo-welcome"[\s\S]*?<\/section>/)[0];
+  const copy = text(dialog.match(/<p id="demo-welcome-about"[\s\S]*?<\/p>/)[0] + dialog.match(/<p id="demo-welcome-copy"[\s\S]*?<\/p>/)[0]);
+  assert.match(copy, /werkbord is a meta-harness/);
+  assert.match(copy, /harness around a model/);
+  assert.ok(copy.split(' ').length <= 90, 'the welcome grew past 90 words: ' + copy.split(' ').length);
+  assert.ok(!/Claude Code|Codex/.test(copy), 'the welcome should not bind werkbord to a tool');
+  assert.match(dialog, /aria-describedby="demo-welcome-about demo-welcome-copy"/);
+});
+
+test('the demo uses the app\'s names for its places', () => {
+  const js = read('assets/js/app-demo.js');
+  for (const name of ["'Workspaces', 'control'", "Devices &amp; Hosting", "['doing', 'In progress']", "'Workspace', D.view === 'control'"]) {
+    assert.ok(js.includes(name), 'missing ' + name);
+  }
+  for (const old of ['Workspaces &amp; Devices', "['doing', 'Doing']"]) assert.ok(!js.includes(old), 'out of date: ' + old);
+});

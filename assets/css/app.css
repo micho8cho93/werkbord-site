@@ -549,7 +549,8 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .w-cols.five { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .w-tix { cursor: default; gap: 7px; }
 .w-tid { font-family: var(--mono); font-size: 11px; color: var(--text-2); }
-.w-ttitle { font-size: 14px; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
+.w-ttitle { padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 14px; font-weight: 500; line-height: 1.3; text-align: left; overflow-wrap: anywhere; }
+button.w-ttitle:hover { text-decoration: underline; text-underline-offset: 3px; }
 .w-av { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface-2); color: var(--text-2); font-family: var(--mono); font-size: 9.5px; font-weight: 600; }
 .w-av.me { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); background: var(--tint); color: var(--accent); }
 .w-tbranch { font-family: var(--mono); font-size: 10.5px; color: var(--text-2); overflow-wrap: anywhere; }
@@ -760,3 +761,68 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .w-phone-team .w-rv { flex-wrap: wrap; }
 .w-phone-team .w-main { overflow: visible; }
 @media (max-width: 359px) { .w-dtop .wm { font-size: 15px; } .w-dtop .status { font-size: 11px; } }
+
+/* ---------- Settings: one screen for Universal, Individual and a Team; and the window's Help button ---------- */
+.w-set { height: 100%; display: grid; grid-template-columns: 208px minmax(0, 1fr); }
+.w-setnav { padding: 16px 8px 24px; overflow-y: auto; border-right: 1px solid var(--border); background: var(--bg); }
+.w-setgrp + .w-setgrp, .w-setown + .w-setgrp { margin-top: 16px; }
+.w-setown { margin: 22px 8px 6px; padding-top: 14px; border-top: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 13px; font-weight: 600; }
+.w-setgrp h2 { padding: 0 10px 4px; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 500; color: var(--text-2); }
+.w-setitem { display: flex; align-items: center; width: 100%; min-height: 30px; padding: 0 10px; border: 0; border-radius: 5px; background: none; color: var(--text-2); font-size: 13px; font-weight: 500; text-align: left; }
+.w-setitem:hover { color: var(--text); }
+.w-setitem[aria-current="page"] { background: var(--surface-2); color: var(--text); box-shadow: var(--press-sh); }
+.w-setbody { min-width: 0; overflow-y: auto; padding: 22px clamp(20px, 3vw, 40px) 32px; display: flex; flex-direction: column; gap: 16px; }
+.w-setbody .w-pn { max-width: 720px; }
+.w-setbody h3 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.w-setbody .head { display: flex; flex-direction: column; gap: 4px; }
+.w-setbody .head p { font-size: 13px; line-height: 1.5; }
+.w-setbody .fine { font-size: 12px; }
+.w-setrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.w-setrow .w-mm { display: inline-flex; align-items: center; gap: 7px; }
+.w-setlist { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.w-setlist > li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; font-size: 13px; }
+.w-setlist > li + li { border-top: 1px solid var(--border); }
+.w-setlist .tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.w-setlist .tx .w-mm { display: inline-flex; align-items: center; gap: 7px; }
+.w-setlist .ac { display: flex; gap: 8px; flex: none; }
+.w-memrow .tx > span:not(.w-mm) { font-size: 13.5px; line-height: 1.45; color: var(--text); }
+.w-help { position: absolute; z-index: 6; right: 16px; bottom: 16px; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 10px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text); font-size: 13px; font-weight: 500; box-shadow: var(--card-sh); }
+.w-help:hover { background: var(--surface-2); }
+
+/* ---------- a ticket's comments and @mentions ---------- */
+.w-comment-chip { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; max-width: 100%; height: 22px; padding: 0 8px; white-space: nowrap; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text-2); font-size: 11px; font-weight: 500; }
+.w-comment-chip:hover { color: var(--text); }
+.w-comment-chip.unread { border-color: color-mix(in srgb, var(--amber) 55%, var(--border)); background: color-mix(in srgb, var(--amber) 14%, var(--bg)); color: var(--warn-text); }
+.w-chip.warn { background: color-mix(in srgb, var(--amber) 18%, var(--bg)); color: var(--warn-text); }
+.w-mention { padding: 0 3px; border-radius: 4px; background: var(--tint); color: var(--accent); font-weight: 500; }
+.w-comments { display: grid; gap: 12px; }
+.w-cmhead { display: flex; align-items: center; gap: 8px; }
+.w-cmhead h3 { font-size: 13px; font-weight: 600; letter-spacing: 0; }
+.w-cmlist { display: grid; gap: 12px; }
+.w-cm { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.w-cm.unread { border-left: 3px solid var(--amber); }
+.w-cm .w-av { margin-top: 1px; }
+.w-cmwho { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 2px; }
+.w-cmwho b { font-weight: 600; }
+.w-cm p:last-child { font-size: 13px; line-height: 1.5; }
+.w-mentions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+/* ---------- Salie's suggested next steps and the memory sources it cites ---------- */
+.w-sugs { display: flex; flex-direction: column; gap: 10px; margin: 4px 0; }
+.w-sug { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: var(--card-sh); animation: w-fade .3s var(--ease); }
+.w-sug[data-basis="required"] { border-color: color-mix(in srgb, var(--amber) 50%, var(--border)); }
+.w-sug .kick { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+.w-sug .kick b { font-weight: 600; color: var(--text); }
+.w-sug h3 { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; }
+.w-sug .detail { font-size: 13px; color: var(--text-2); }
+.w-sug .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.w-sug .fine { font-size: 12px; }
+.w-why summary { font-size: 12px; color: var(--text-2); cursor: pointer; }
+.w-why .w-lab { margin: 10px 0 4px; }
+.w-why ul { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--text-2); }
+.w-why .w-chip { height: 18px; margin-right: 4px; font-size: 10px; }
+.w-sugfb { display: flex; gap: 4px; margin-left: -10px; }
+.w-sugnote { font-size: 12.5px; color: var(--text-2); }
+.w-mem ul { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; font-size: 12.5px; color: var(--text-2); }
+.w-mem strong { color: var(--text); font-weight: 600; }
+.w-mem p { margin-top: 2px; }
