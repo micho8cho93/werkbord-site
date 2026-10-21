@@ -71,9 +71,9 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
 @media (min-width: 768px) {
   .demo-open { display: none; }
   .demo-section { padding-top: 64px; }
-  /* Each point is one line. The text shrinks, down to 14px, before it would wrap: the longest point is about 31em wide, and
+  /* Each point is one line. The text shrinks, down to 14px, before it would wrap: the longest point is about 34em wide, and
      the 9px square and its 12px gap take 21px of the column. Below 768px the points wrap, as they always did. */
-  .points { font-size: min(clamp(16px, 1.15vw, 20px), max(14px, calc((100cqi - 21px) / 31))); }
+  .points { font-size: min(clamp(16px, 1.15vw, 20px), max(14px, calc((100cqi - 21px) / 34))); }
   .points li { white-space: nowrap; }
   .demo-section { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 24px; }
   .demo-head, .demo-stage { flex: 0 0 100%; max-width: none; }
@@ -114,7 +114,7 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
    guide's note floats over the simulator, beside what it is about. */
 @media (min-width: 1200px) and (min-aspect-ratio: 1/1) {
   .top-in { height: 56px; }
-  .home { display: grid; grid-template-columns: minmax(452px, 35%) minmax(0, 1fr); gap: clamp(28px, 3.5vw, 48px); align-items: center; min-height: calc(100vh - 94px); padding: 14px 0; }
+  .home { display: grid; grid-template-columns: minmax(500px, 35%) minmax(0, 1fr); gap: clamp(28px, 3.5vw, 48px); align-items: center; min-height: calc(100vh - 94px); padding: 14px 0; }
   /* The headline also stops at the height of the screen, so the copy column fits beside the simulator. */
   .hero h1 { font-size: clamp(36px, min(calc(100cqi / 8.4), calc(24vh - 130px)), 112px); }
   .demo-section { --stage-h: calc(100vh - 122px); height: var(--stage-h); padding: 0; border-top: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 40px minmax(0, 1fr); grid-template-areas: "switch" "stage"; row-gap: 16px; column-gap: 0; align-items: stretch; justify-content: stretch; }
@@ -163,6 +163,10 @@ html:not(.js) .demo-guide { display: none; }
 .guide-line circle { fill: var(--ac); }
 .guide-note { position: absolute; left: 0; top: 0; width: 272px; pointer-events: auto; padding: 12px 14px 13px; background: var(--sf); border: 1px solid var(--bd); border-radius: 10px; box-shadow: var(--win-sh); transition: transform .3s var(--ease); }
 .guide-note.is-quiet { opacity: 0; pointer-events: none; }
+.guide-note { cursor: grab; touch-action: none; }
+.guide-note button, .guide-note a { cursor: pointer; }
+.guide-note.is-drag { cursor: grabbing; transition: none; user-select: none; -webkit-user-select: none; }
+.guide-note.is-dock { cursor: auto; touch-action: auto; }
 .guide-note.is-new .guide-text, .guide-note.is-new .guide-kicker { animation: guide-in .28s var(--ease); }
 @keyframes guide-in { from { opacity: 0; transform: translateY(3px); } }
 .guide-x { position: absolute; top: 7px; right: 7px; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 5px; background: none; color: var(--t2); }

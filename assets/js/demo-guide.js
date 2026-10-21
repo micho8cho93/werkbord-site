@@ -38,6 +38,7 @@
       x.type = 'button'; x.setAttribute('data-key', 'hide'); x.setAttribute('aria-label', 'Hide this note');
       x.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
       x.addEventListener('click', function () { onAction('hide'); });
+      note.addEventListener('pointerdown', startDrag);
       kicker = el('p', 'guide-kicker', note);
       text = el('p', 'guide-text', note);
       acts = el('div', 'guide-acts', note);
@@ -152,50 +153,239 @@
     if (dockNow) { note.style.width = ''; note.style.transform = 'none'; line.removeAttribute('d'); dot.setAttribute('r', '0'); return; }
     var hw = layer.clientWidth, hh = layer.clientHeight;
     var K = spec.keep && spec.keep.isConnected ? rectOf(spec.keep, H) : null;
-    var available = K ? Math.max(K.x, hw - K.x - K.w) - GAP - MARGIN : NOTE_W;
-    note.style.width = Math.min(NOTE_W, Math.max(150, available)) + 'px';
-    var W = note.offsetWidth || NOTE_W, Nh = note.offsetHeight || 80;
-    var R = has ? { x: (kind === 'area' ? union(rects) : rects[0]).x - pad, y: (kind === 'area' ? union(rects) : rects[0]).y - pad, w: (kind === 'area' ? union(rects) : rects[0]).w + pad * 2, h: (kind === 'area' ? union(rects) : rects[0]).h + pad * 2 } : null;
-    var x, y, side = '';
+    var R = null;
+    if (has) { var U = kind === 'area' ? union(rects) : rects[0]; R = { x: U.x - pad, y: U.y - pad, w: U.w + pad * 2, h: U.h + pad * 2 }; }
     var top = MARGIN + ((spec.inset && spec.inset.top) || 0);
+    var x, y, W, Nh, side = true;
+    if (K) {
+      // Beside the phone, never on it: the note keeps clear of the device and reaches in with its line.
+      var available = Math.max(K.x, hw - K.x - K.w) - GAP - MARGIN;
+      note.style.width = Math.min(NOTE_W, Math.max(150, available)) + 'px';
+      W = note.offsetWidth || NOTE_W; Nh = note.offsetHeight || 80;
+      var pos = besideDevice(R, K, W, Nh, hw, hh, top);
+      x = pos.x; y = pos.y; side = pos.side;
+    } else {
+      var obst = kind === 'area' ? [R] : rects.map(function (r) { return { x: r.x - pad, y: r.y - pad, w: r.w + pad * 2, h: r.h + pad * 2 }; });
+      obst = obst.filter(Boolean);
+      var now = Date.now(), c = cache;
+      var rc = R ? { x: R.x + R.w / 2, y: R.y + R.h / 2 } : null;
+      var picked = null, again = !c || c.id !== spec.id || c.hw !== hw || c.hh !== hh || c.top !== top;
+      if (!again) {
+        note.style.width = c.W + 'px';
+        var nh = note.offsetHeight || 80;
+        if (Math.abs(nh - c.Nh) > 2) again = true;
+        else if (obst.some(function (o) { return hits(c.x - 4, c.y - 4, c.W + 8, c.Nh + 8, o); })) again = true;
+        else if (!!rc !== !!c.rc || (rc && (Math.abs(rc.x - c.rc.x) > 40 || Math.abs(rc.y - c.rc.y) > 40))) again = true;
+      }
+      if (again || (stale && now - lastAt > 700)) {
+        picked = choose(R, obst, boxesOf(spec.surface, H), hw, hh, top);
+        lastAt = now; stale = false;
+        if (!picked) {
+          // Nowhere that clears the target: sit in the corner farthest from it, with no line.
+          note.style.width = NOTE_W + 'px';
+          var fw = note.offsetWidth || NOTE_W, fh = note.offsetHeight || 80;
+          var right = !R || R.x + R.w / 2 < hw / 2, low = !R || R.y + R.h / 2 < hh / 2;
+          picked = { x: right ? hw - fw - MARGIN : MARGIN, y: low ? hh - fh - MARGIN : top, W: fw, Nh: fh, cost: 1e9, near: false };
+        }
+        // A note that is already well placed stays put when the page changes under it a little.
+        if (!again && c && picked.cost + 6 >= scoreAt(c, R)) picked = null;
+        if (picked) cache = c = { id: spec.id, hw: hw, hh: hh, top: top, x: picked.x, y: picked.y, W: picked.W, Nh: picked.Nh, rc: rc, near: picked.near };
+      }
+      x = c.x; y = c.y; W = c.W; Nh = c.Nh; side = c.near; note.style.width = W + 'px';
+    }
+    if (manual && manual.id === spec.id) { x = manual.x; y = manual.y; side = true; }
+    note.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+    if (side && R && spec.line !== false) {
+      var l = link({ x: x, y: y, w: W, h: Nh }, R);
+      line.setAttribute('d', 'M' + l[0].toFixed(1) + ' ' + l[1].toFixed(1) + ' L' + l[2].toFixed(1) + ' ' + l[3].toFixed(1));
+      dot.setAttribute('cx', l[2].toFixed(1)); dot.setAttribute('cy', l[3].toFixed(1)); dot.setAttribute('r', '3');
+    } else { line.removeAttribute('d'); dot.setAttribute('r', '0'); }
+  }
+
+  /* The visitor can move the note out of the way: press anywhere on it but its buttons and drag. It stays where it was put until
+     the step changes. */
+  var manual = null, grab = null;
+  function startDrag(e) {
+    if (e.button !== 0 || !spec || note.classList.contains('is-dock') || e.target.closest('button, a')) return;
+    var H = layer.getBoundingClientRect(), sx = H.width / (layer.clientWidth || H.width) || 1, sy = H.height / (layer.clientHeight || H.height) || 1;
+    var r = note.getBoundingClientRect();
+    grab = { id: spec.id, dx: e.clientX - r.left, dy: e.clientY - r.top, sx: sx, sy: sy, pid: e.pointerId };
+    try { note.setPointerCapture(e.pointerId); } catch (x) {}
+    note.classList.add('is-drag');
+    note.addEventListener('pointermove', moveDrag);
+    note.addEventListener('pointerup', endDrag);
+    note.addEventListener('pointercancel', endDrag);
+    e.preventDefault();
+  }
+  function moveDrag(e) {
+    if (!grab || !spec) return;
+    var H = layer.getBoundingClientRect(), hw = layer.clientWidth, hh = layer.clientHeight, W = note.offsetWidth, Nh = note.offsetHeight;
+    var x = (e.clientX - grab.dx - H.left) / grab.sx, y = (e.clientY - grab.dy - H.top) / grab.sy;
+    manual = { id: grab.id, x: Math.max(0, Math.min(x, hw - W)), y: Math.max(0, Math.min(y, hh - Nh)) };
+    schedule();
+  }
+  function endDrag() {
+    grab = null;
+    note.classList.remove('is-drag');
+    note.removeEventListener('pointermove', moveDrag);
+    note.removeEventListener('pointerup', endDrag);
+    note.removeEventListener('pointercancel', endDrag);
+  }
+
+  /* ---- where the note goes ----
+     The note should sit close to what it is about and cover as little of the app as it can, because a visitor should be able to
+     read all of it. It looks at the text and controls the app is showing, scores every place around the target by how much of that
+     it would cover and how far it is from the target, and takes the best. It never covers a ring. The choice is made once per step
+     (and again if the target moves a long way, the note no longer fits, or the page changes and the note is clearly worse placed). */
+  var cache = null, stale = true, lastAt = 0, watcher = null, watching = null;
+  /* The app redraws as the visitor works; when it does, the note checks again that it is not in the way. */
+  function watch(root) {
+    if (root === watching) return;
+    if (watcher) watcher.disconnect();
+    watching = root;
+    if (!root || !('MutationObserver' in window)) return;
+    if (!watcher) watcher = new MutationObserver(function () { stale = true; schedule(); });
+    watcher.observe(root, { childList: true, subtree: true, characterData: true });
+  }
+
+  function hits(x, y, w, h, o) { return x < o.x + o.w && x + w > o.x && y < o.y + o.h && y + h > o.y; }
+  function gapOf(x, y, w, h, o) {
+    var dx = Math.max(o.x - (x + w), x - (o.x + o.w), 0), dy = Math.max(o.y - (y + h), y - (o.y + o.h), 0);
+    return Math.hypot(dx, dy);
+  }
+  /* Boxes of everything the app is showing that a person reads or presses, in the layer's coordinates, cut by what clips them. */
+  function boxesOf(root, H) {
+    var out = [], clips = new Map();
+    if (!root) return out;
+    layer.style.visibility = 'hidden';
+    try { return collect(); } finally { layer.style.visibility = ''; }
+    function collect() {
+    function clipOf(el) {
+      if (!el || el === root.parentNode) return null;
+      if (clips.has(el)) return clips.get(el);
+      var up = clipOf(el.parentElement), cs = getComputedStyle(el), c = up;
+      if (/(auto|scroll|hidden|clip)/.test(cs.overflowX + cs.overflowY)) {
+        var b = el.getBoundingClientRect(), r = { l: b.left, t: b.top, r: b.right, b: b.bottom };
+        c = up ? { l: Math.max(up.l, r.l), t: Math.max(up.t, r.t), r: Math.min(up.r, r.r), b: Math.min(up.b, r.b) } : r;
+      }
+      clips.set(el, c);
+      return c;
+    }
+    // Words count whole (a title with its first letters under the note cannot be read), controls only where they are touched.
+    // A control as big as a row is only a frame for words that are counted on their own.
+    // What lies under the assistant, a sheet or the palette is not on show, so it does not count. The note's own layer is looked through.
+    function shown(el, l, t, rr, b) {
+      var cx = (l + rr) / 2, cy = (t + b) / 2;
+      if (cx < 0 || cy < 0 || cx > innerWidth || cy > innerHeight) return true;
+      var hit = document.elementFromPoint(cx, cy);
+      return !hit || el.contains(hit);
+    }
+    function add(r, c, text, el) {
+      var l = r.left, t = r.top, rr = r.right, b = r.bottom;
+      if (c) { l = Math.max(l, c.l); t = Math.max(t, c.t); rr = Math.min(rr, c.r); b = Math.min(b, c.b); }
+      if (rr - l < 1 || b - t < 1) return;
+      var w = (rr - l) / H.sx, h = (b - t) / H.sy;
+      if (!text && w * h > 4000) return;
+      if (!shown(el, l, t, rr, b)) return;
+      out.push({ x: (l - H.left) / H.sx, y: (t - H.top) / H.sy, w: w, h: h, t: text ? 1 : 0 });
+    }
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), range = document.createRange(), n;
+    while ((n = walker.nextNode())) {
+      if (!n.nodeValue.trim()) continue;
+      var p = n.parentElement;
+      if (!p || p.closest('.w-toast, [hidden]')) continue;
+      range.selectNodeContents(n);
+      var rs = range.getClientRects(), c = clipOf(p);
+      for (var i = 0; i < rs.length; i++) add(rs[i], c, true, p);
+    }
+    root.querySelectorAll('button, select, input, textarea, svg, .w-chip, .w-dot, .w-av, .w-strip i').forEach(function (el) {
+      if (el.closest('.w-toast, [hidden]')) return;
+      add(el.getBoundingClientRect(), clipOf(el.parentElement), false, el);
+    });
+    return out;
+    }
+  }
+  /* What the note would cost the visitor, in points: twenty-four for each piece of text it covers (a few letters is enough to make it
+     unreadable), less for a control it only touches. */
+  function coverOf(x, y, w, h, boxes) {
+    var sum = 0;
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i], ox = Math.min(x + w, b.x + b.w) - Math.max(x, b.x);
+      if (ox <= 0) continue;
+      var oy = Math.min(y + h, b.y + b.h) - Math.max(y, b.y);
+      if (oy <= 0) continue;
+      var frac = ox * oy / (b.w * b.h);
+      sum += b.t ? (frac > 0.1 ? 24 : frac * 24) : frac * 12;
+    }
+    return sum;
+  }
+  var lastBoxes = null;
+  function choose(R, obst, boxes, hw, hh, top) {
+    lastBoxes = boxes;
+    var best = null, ref = R || { x: hw - 30, y: hh - 30, w: 0, h: 0 };
+    [NOTE_W, 216].forEach(function (W, wi) {
+      note.style.width = W + 'px';
+      var Nh = note.offsetHeight || 80;
+      function consider(x, y, canon) {
+        x = Math.max(MARGIN, Math.min(x, hw - W - MARGIN)); y = Math.max(top, Math.min(y, hh - Nh - MARGIN));
+        for (var i = 0; i < obst.length; i++) if (hits(x - 4, y - 4, W + 8, Nh + 8, obst[i])) return;
+        var gap = gapOf(x, y, W, Nh, ref);
+        if (R && gap > 340) return;
+        var cost = coverOf(x, y, W, Nh, boxes) + Math.max(gap, GAP) / 6 + (canon ? 0 : 1.5) + wi * 3;
+        if (!best || cost < best.cost) best = { x: x, y: y, W: W, Nh: Nh, cost: cost, near: !!R };
+      }
+      if (R) {
+        var mx = R.x + R.w / 2, my = R.y + R.h / 2;
+        for (var k = -3; k <= 3; k++) {
+          var oy = my - Nh / 2 + k * Nh * 0.35, ox = mx - W / 2 + k * W * 0.4;
+          consider(R.x + R.w + GAP, oy, true); consider(R.x - GAP - W, oy, true);
+          consider(ox, R.y + R.h + GAP, true); consider(ox, R.y - GAP - Nh, true);
+        }
+      } else consider(hw - W - MARGIN, hh - Nh - MARGIN, true);
+      for (var gx = MARGIN; gx <= hw - W - MARGIN; gx += 24) for (var gy = top; gy <= hh - Nh - MARGIN; gy += 24) consider(gx, gy, false);
+    });
+    return best;
+  }
+  function scoreAt(c, R) {
+    var boxes = lastBoxes || [];
+    var ref = R || { x: c.hw - 30, y: c.hh - 30, w: 0, h: 0 };
+    return coverOf(c.x, c.y, c.W, c.Nh, boxes) + Math.max(gapOf(c.x, c.y, c.W, c.Nh, ref), GAP) / 6;
+  }
+  /* The shortest straight line between the note and the ring, from the note's edge to a point inside the ring's edge. */
+  function link(N, R) {
+    var ox0 = Math.max(N.x, R.x), ox1 = Math.min(N.x + N.w, R.x + R.w), oy0 = Math.max(N.y, R.y), oy1 = Math.min(N.y + N.h, R.y + R.h);
+    var rcx = R.x + R.w / 2, rcy = R.y + R.h / 2;
+    function cl(v, a, b) { return Math.min(Math.max(v, a), b); }
+    if (ox1 > ox0 + 12) {
+      var vx = cl(rcx, ox0 + 6, ox1 - 6), below = N.y > R.y + R.h / 2;
+      return [vx, below ? N.y : N.y + N.h, vx, below ? R.y + R.h : R.y];
+    }
+    if (oy1 > oy0 + 12) {
+      var hy = cl(rcy, oy0 + 6, oy1 - 6), rightOf = N.x > R.x + R.w / 2;
+      return [rightOf ? N.x : N.x + N.w, hy, rightOf ? R.x + R.w : R.x, hy];
+    }
+    var nx = N.x > R.x ? N.x : N.x + N.w, ny = N.y > R.y ? N.y : N.y + N.h;
+    var tx = N.x > R.x ? R.x + R.w : R.x, ty = N.y > R.y ? R.y + R.h : R.y;
+    return [nx, ny, tx, ty];
+  }
+  /* The phone case: the note keeps to one side of the device. */
+  function besideDevice(R, K, W, Nh, hw, hh, top) {
+    var x, y, side = false;
     function cx(v) { return Math.max(MARGIN, Math.min(v, hw - W - MARGIN)); }
     function cy(v) { return Math.max(top, Math.min(v, hh - Nh - MARGIN)); }
-    // Beside the phone, never on it: the note keeps clear of the device and reaches in with its line.
-    function clear(px, py) { return !K || px + W <= K.x - 6 || px >= K.x + K.w + 6 || py + Nh <= K.y || py >= K.y + K.h; }
+    function clear(px, py) { return px + W <= K.x - 6 || px >= K.x + K.w + 6 || py + Nh <= K.y || py >= K.y + K.h; }
     function fits(px, py) { return px >= MARGIN - 1 && py >= top - 1 && px + W <= hw - MARGIN + 1 && py + Nh <= hh - MARGIN + 1 && clear(px, py); }
     if (R) {
       var mx = R.x + R.w / 2, my = R.y + R.h / 2;
-      var c = {
-        right: [R.x + R.w + GAP, cy(my - Nh / 2)], left: [R.x - GAP - W, cy(my - Nh / 2)],
-        below: [cx(mx - W / 2), R.y + R.h + GAP], above: [cx(mx - W / 2), R.y - GAP - Nh]
-      };
-      var order = mx > hw * 0.5 ? ['left', 'below', 'above', 'right'] : ['right', 'below', 'above', 'left'];
-      if (K) {
-        c.right = [K.x + K.w + GAP, cy(my - Nh / 2)]; c.left = [K.x - GAP - W, cy(my - Nh / 2)];
-        order = mx > K.x + K.w / 2 ? ['right', 'left'] : ['left', 'right'];
-      }
-      order.some(function (s) {
-        if (fits(c[s][0], c[s][1])) { side = s; x = c[s][0]; y = c[s][1]; return true; }
-      });
+      var c = { right: [K.x + K.w + GAP, cy(my - Nh / 2)], left: [K.x - GAP - W, cy(my - Nh / 2)] };
+      var order = mx > K.x + K.w / 2 ? ['right', 'left'] : ['left', 'right'];
+      order.some(function (s) { if (fits(c[s][0], c[s][1])) { side = true; x = c[s][0]; y = c[s][1]; return true; } });
     }
     if (!side) {
-      // Nowhere beside the target: sit in the corner farthest from it, with no line.
       var right = !R || R.x + R.w / 2 < hw / 2, low = !R || R.y + R.h / 2 < hh / 2;
       x = right ? hw - W - MARGIN : MARGIN; y = low ? hh - Nh - MARGIN : top;
     }
-    note.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
-    if (side && has && spec.line !== false) {
-      var x1, y1, x2, y2;
-      if (side === 'right' || side === 'left') {
-        y1 = Math.min(Math.max(my, y + 16), y + Nh - 16); x1 = side === 'right' ? x : x + W;
-        x2 = side === 'right' ? R.x + R.w : R.x; y2 = Math.min(Math.max(y1, R.y + 8), R.y + R.h - 8);
-      } else {
-        x1 = Math.min(Math.max(mx, x + 16), x + W - 16); y1 = side === 'below' ? y : y + Nh;
-        y2 = side === 'below' ? R.y + R.h : R.y; x2 = Math.min(Math.max(x1, R.x + 8), R.x + R.w - 8);
-      }
-      line.setAttribute('d', 'M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' L' + x2.toFixed(1) + ' ' + y2.toFixed(1));
-      dot.setAttribute('cx', x2.toFixed(1)); dot.setAttribute('cy', y2.toFixed(1)); dot.setAttribute('r', '3');
-    } else { line.removeAttribute('d'); dot.setAttribute('r', '0'); }
+    return { x: x, y: y, side: side };
   }
 
   // Track layout shifts, scaled devices and scrolling in the same coordinate space as the ring.
@@ -207,8 +397,10 @@
             host: where the layer lives, dock: an element to dock the note in (small screens) or null,
             cover: bars that float over the app's content, which a ring must not run under } */
     show: function (s) {
+      if (!spec || spec.id !== s.id) manual = null;
       spec = s; misses = 0;
       build(s.host);
+      watch(s.surface);
       layer.classList.remove('is-off');
       var wantDock = !!s.dock;
       if (wantDock) { if (note.parentNode !== s.dock.parent) s.dock.parent.insertBefore(note, s.dock.before); }
@@ -218,7 +410,7 @@
       schedule();
     },
     hide: function () {
-      spec = null; shown = ''; cancelAnimationFrame(frame); frame = 0; clearTimeout(retry);
+      spec = null; shown = ''; cancelAnimationFrame(frame); frame = 0; clearTimeout(retry); watch(null); cache = null;
       if (layer) layer.classList.add('is-off');
       if (note && note.classList.contains('is-dock') && layer) layer.appendChild(note);
       if (ring) ring.classList.remove('is-on');

@@ -186,3 +186,23 @@ test('the demo uses the app\'s names for its places', () => {
   }
   for (const old of ['Workspaces &amp; Devices', "['doing', 'Doing']"]) assert.ok(!js.includes(old), 'out of date: ' + old);
 });
+
+test('the first bullet says werkbord is a meta-harness that connects and controls all your agents', () => {
+  const h = read('index.html');
+  const first = text(h.match(/<ul class="points">[\s\S]*?<li>([\s\S]*?)<\/li>/)[1]);
+  assert.match(first, /meta-harness that connects and controls all your agents/);
+});
+
+test('the Team board follows the app: Available, In Progress, Review and Done, with no Backlog column', () => {
+  const js = read('assets/js/app-demo.js');
+  assert.ok(js.includes("var TCOLS = [['available', 'Available'], ['progress', 'In Progress'], ['review', 'Review'], ['done', 'Done']];"));
+  assert.ok(!/TCOLS = \[\['backlog'/.test(js), 'the Team board still has a Backlog column');
+});
+
+test('the demo opens every place in the sidebar, and turns adding off outside the walkthrough', () => {
+  const js = read('assets/js/app-demo.js');
+  for (const name of ['function analyticsHTML', 'function devicesPage', 'function helpPage', 'function projectsPage', 'function timelineHTML', 'function teamGitHTML', 'function archiveHTML', 'var NEW_OFF']) {
+    assert.ok(js.includes(name), 'missing ' + name);
+  }
+  assert.doesNotMatch(js, /It is not part of this demo/, 'a place in the demo still says it is not part of it');
+});
