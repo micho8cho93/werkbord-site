@@ -14,7 +14,7 @@ const meta = (h, attr, name) => {
   return m ? m[1] : null;
 };
 const SITE = 'https://micho8cho93.github.io/werkbord-site/';
-const COPY = ['index.html', '404.html', 'llms.txt', 'assets/js/waitlist.js', 'assets/js/demo-view.js', 'assets/js/demo-guide.js', 'assets/js/app-demo.js'];
+const COPY = ['index.html', '404.html', 'llms.txt', 'assets/js/waitlist.js', 'assets/js/demo-view.js', 'assets/js/demo-guide.js', 'assets/js/demo-motion.js', 'assets/js/app-demo.js'];
 
 test('the page has one H1 that names the category, and its rotating word is team, agent or project', () => {
   const h = read('index.html');
@@ -149,7 +149,7 @@ test('the waitlist asks for an email and an optional team size of 2 to 6+, and u
 test('the demo has its two mounts, and the scripts load in dependency order', () => {
   const h = read('index.html');
   assert.ok(h.includes('id="app-demo"') && h.includes('id="phone-demo"'));
-  const order = ['assets/js/common.js', 'assets/js/demo-guide.js', 'assets/js/app-demo.js', 'assets/js/waitlist.js', 'assets/js/demo-view.js']
+  const order = ['assets/js/common.js', 'assets/js/demo-guide.js', 'assets/js/demo-motion.js', 'assets/js/app-demo.js', 'assets/js/waitlist.js', 'assets/js/demo-view.js']
     .map((s) => h.indexOf('src="' + s + '"'));
   for (const i of order) assert.ok(i > -1, 'script missing from index.html');
   assert.deepStrictEqual([...order].sort((a, b) => a - b), order);
@@ -205,4 +205,33 @@ test('the demo opens every place in the sidebar, and turns adding off outside th
     assert.ok(js.includes(name), 'missing ' + name);
   }
   assert.doesNotMatch(js, /It is not part of this demo/, 'a place in the demo still says it is not part of it');
+});
+
+test('the demo moves as the app does: the six approved studies in order, the app\'s timings, and a still path under reduced motion', () => {
+  const motion = read('assets/js/demo-motion.js'), js = read('assets/js/app-demo.js'), css = read('assets/css/app.css');
+  assert.ok(motion.includes("['helix', 'wave', 'orbit', 'infinity', 'relay', 'domino']"), 'the studies are not the six approved ones, in order');
+  assert.ok(motion.includes('1000 / 30'), 'the mark is capped at 30 fps');
+  for (const ms of ['120)', '160)', '180)', '200)', '240)', '280 :', '420', '480', '350)']) assert.ok(motion.includes(ms), 'missing the app\'s timing ' + ms);
+  assert.match(motion, /M\.reduced = function \(\) \{ return document\.hidden \|\| query\.matches; \}/, 'reduced motion and a hidden page both stop motion');
+  assert.ok(/if \(M\.reduced\(\) \|\| !node/.test(motion) || motion.includes('if (M.reduced() ||'), 'animate() must refuse under reduced motion');
+  for (const part of ['New response below', 'data-a="asst-stop"', 'Daily values', "data-a=\"gfetch\"", "'View in ' + label", 'role="slider"']) assert.ok(js.includes(part), 'the demo lost ' + part);
+  assert.ok(/prefers-reduced-motion: reduce\) \{\s*\.wbx \*/.test(css), 'the demo\'s reduced-motion rule is gone');
+  assert.ok(!/animation: w-(slide|up|rise)/.test(css.split('.w-pal')[0]), 'layers are animated by demo-motion.js, once, with an exit');
+});
+
+test('a workflow key shows its icon and name only, as in the app', () => {
+  const js = read('assets/js/app-demo.js');
+  assert.ok(!js.includes('face targeted') && !js.includes('class="target"'), 'the key still prints where it runs');
+});
+
+test('on a phone the site is two pages: Try the demo is in the header, and it opens on the welcome card', () => {
+  const h = read('index.html'), css = read('assets/css/pages.css'), view = read('assets/js/demo-view.js');
+  const header = h.match(/<header class="top">[\s\S]*?<\/header>/)[0];
+  assert.ok(header.includes('data-open-phone') && header.includes('Try the demo'), 'Try the demo belongs in the header');
+  assert.strictEqual((h.match(/data-open-phone/g) || []).length, 1, 'there is one Try the demo button');
+  assert.ok(h.includes('data-welcome-back'), 'the welcome page needs a way back');
+  assert.match(css, /html\.js \.points li \{[^}]*white-space: nowrap/, 'each point stays on one line on a phone');
+  assert.match(css, /html\.js \.demo-section \{ display: contents; \}/, 'the first page does not carry the demo section');
+  assert.ok(/if \(welcome && !welcomed\) openWelcomePage\(\);\s*else openFull\(\);/.test(view), 'Try the demo opens the card first, and the demo once a choice was made');
+  assert.ok(!view.includes('scrollIntoView'), 'Try the demo must not scroll the page');
 });

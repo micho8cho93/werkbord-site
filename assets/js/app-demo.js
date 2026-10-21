@@ -5,6 +5,7 @@
 (function () {
   'use strict';
   var esc = WB.esc;
+  var M = WB.motion;
   var deskMount = document.getElementById('app-demo');
   var phoneMount = document.getElementById('phone-demo');
   if (!deskMount && !phoneMount) return;
@@ -106,6 +107,8 @@
         { n: 47, title: 'Export invoices as PDF', st: 'available', by: 'Sam Okafor', start: 1, due: 9 }
       ]
     },
+    // Git transfers: which request is out, and what came back (see "Git Fetch and Push" below).
+    xfer: { fetching: '', fetched: '', pushing: 0, last: null },
     tasks: [], log: []
   };
   function run(st, el, o) {
@@ -236,6 +239,14 @@
   }
   function curProj() { return VIEW.proj || 'my-app'; }
   function curTasks() { return projTasks(curProj()); }
+  /* What the lists show, as a short signature. A repaint that changes it is a real change (a task moved, a ticket was claimed) and
+     the motion layer animates it; any other repaint (a filter, a page, the theme) only sets a new baseline, as in the app. */
+  function revSig() {
+    return S.tasks.map(function (t) { return t.id + ':' + t.state + ':' + (t.archived != null ? 1 : 0) + ':' + (t.run ? t.run.st : ''); }).join('|') + '#' +
+      S.team.tickets.map(function (k) { return k.n + ':' + k.st + ':' + (k.who || '') + ':' + (k.arch != null ? 1 : 0); }).join('|') + '#' + S.ext.ask.st + ':' + (P.deckAdded ? 1 : 0);
+  }
+  /* A card that lands in Done is acknowledged where it lands. */
+  function landed(node, it) { if (/-done$/.test(it.part)) M.acknowledge(node); }
   function isMine(t) { return !t.ro; }
   function isActive(t) { return t.run && ['running', 'needs', 'blocked', 'idle'].indexOf(t.run.st) > -1; }
   function active() { return S.tasks.filter(isActive).length; }
@@ -279,7 +290,7 @@
       acts = '<button class="w-btn sm" type="button" data-a="start" data-id="' + t.id + '" aria-label="Start an agent on “' + esc(t.title) + '”">' + ic('play', 12) + (r ? 'Run again' : 'Start agent') + '</button>';
     }
     var drag = !t.ro && (t.state === 'backlog' || t.state === 'review' || (t.state === 'doing' && r && r.st === 'completed'));
-    return '<li class="w-card w-task' + (s.live ? ' live' : '') + (t.state === 'done' ? ' settled' : '') + (sel ? ' selected' : '') + (t.fresh ? ' fresh' : '') + '" data-tone="' + s.tone + '" data-card="' + t.id + '"' + (drag ? ' draggable="true"' : '') + '>' +
+    return '<li class="w-card w-task' + (s.live ? ' live' : '') + (t.state === 'done' ? ' settled' : '') + (sel ? ' selected' : '') + (t.fresh ? ' fresh' : '') + '" data-tone="' + s.tone + '" data-card="' + t.id + '" data-mk="c' + t.id + '"' + (drag ? ' draggable="true"' : '') + '>' +
       '<button class="title" type="button" data-a="open" data-id="' + t.id + '" draggable="false">' + esc(t.title) + '</button>' +
       '<p class="w-st">' + dot(s.tone, (s.tone === 'neutral' ? 'hollow' : '') + (s.tone === 'work' ? ' pulse' : '')) + '<span data-st="' + t.id + '">' + esc(s.text) + '</span></p>' +
       (s.detail ? '<p class="w-well detail" data-lg="' + t.id + '">' + esc(s.detail) + '</p>' : '') +
@@ -308,11 +319,11 @@
   function itemHTML(it, showProject) {
     var t = it.t, r = t.run;
     if (it.kind === 'review') {
-      return '<li class="w-card w-row">' + dot('ok') + '<div class="what"><button class="rtitle" type="button" data-a="open" data-id="' + t.id + '">' + esc(t.title) + '</button><p class="w-mm">Ready for review' + (showProject ? ' · ' + (t.project || 'my-app') : '') + ' · ' + t.agent + '</p></div>' +
+      return '<li class="w-card w-row" data-mk="r' + t.id + '">' + dot('ok') + '<div class="what"><button class="rtitle" type="button" data-a="open" data-id="' + t.id + '">' + esc(t.title) + '</button><p class="w-mm">Ready for review' + (showProject ? ' · ' + (t.project || 'my-app') : '') + ' · ' + t.agent + '</p></div>' +
         '<button class="w-btn sm" type="button" data-a="' + (t.state === 'review' ? 'merge' : 'toreview') + '" data-id="' + t.id + '">' + (t.state === 'review' ? 'Merge…' : 'Move to Review') + '</button></li>';
     }
     var label = it.kind === 'question' ? 'Needs input' : 'Blocked', tone = it.kind === 'question' ? 'ask' : 'block';
-    return '<li class="w-card w-item" data-kind="' + it.kind + '"><p class="w-kind">' + dot(tone) + '<b>' + label + '</b><span>' + (showProject ? (it.project || t.project || 'my-app') + ' · ' : '') + '<span data-wait="' + t.id + '">' + dur(S.now - r.asked).toUpperCase() + '</span></span><span class="agent">' + t.agent + '</span></p>' +
+    return '<li class="w-card w-item" data-kind="' + it.kind + '" data-mk="q' + t.id + '"><p class="w-kind">' + dot(tone) + '<b>' + label + '</b><span>' + (showProject ? (it.project || t.project || 'my-app') + ' · ' : '') + '<span data-wait="' + t.id + '">' + dur(S.now - r.asked).toUpperCase() + '</span></span><span class="agent">' + t.agent + '</span></p>' +
       '<button class="ititle" type="button" data-a="open" data-id="' + t.id + '">' + esc(t.title) + '</button>' +
       (it.kind === 'question' ? '<p class="w-q">' + esc(r.q) + '</p>' : '<p class="w-well">Stopped rather than guess.<br>' + esc(r.q) + '</p>') +
       '<div class="acts">' + r.choices.map(function (c) { return '<button class="w-btn sm" type="button" data-a="answer" data-id="' + t.id + '" data-v="' + esc(c) + '">' + esc(c) + '</button>'; }).join('') +
@@ -376,7 +387,7 @@
     var t = get(id); if (!t || !t.run) return;
     t.state = 'done'; t.run.st = 'merged'; t.doneAt = S.now; t.fresh = true;
     say('You merged ' + branchOf(t) + ' into main');
-    toast('Merged into main on this computer. Nothing was pushed.');
+    toast('Merged into main on this computer. Nothing was pushed.', viewIn('done', 'Done'));
   }
   function stopTask(id) {
     var t = get(id); if (!t || !isActive(t)) return;
@@ -411,8 +422,8 @@
      a phone sees Individual only. The replies read the demo's current state. */
   var CARD_LEAD = 'Here is what I will do. Nothing changes until you confirm.';
   var NOT_OPEN = 'That is already settled, so nothing needs to change.';
-  var AS = { msgs: [], opts: null, busy: false, timer: null, open: false };
-  function asstFresh() { clearTimeout(AS.timer); AS.msgs = []; AS.opts = null; AS.busy = false; AS.timer = null; }
+  var AS = { msgs: [], opts: null, busy: false, timer: null, open: false, cur: null, away: { desk: false, phone: false }, behind: { desk: false, phone: false } };
+  function asstFresh() { clearTimeout(AS.timer); AS.msgs = []; AS.opts = null; AS.busy = false; AS.timer = null; AS.cur = null; AS.away = { desk: false, phone: false }; AS.behind = { desk: false, phone: false }; }
   function waitingChanges() {
     var n = 0;
     AS.msgs.forEach(function (m) { (m.cards || []).forEach(function (c) { if (!c.state) n++; }); });
@@ -601,20 +612,21 @@
      Reduced motion changes presentation, never the amount of simulated work. */
   function replyAsst(e) {
     var as = AS, text = typeof e.text === 'function' ? e.text() : e.text;
-    var m = { r: 'ai', x: '', reads: e.reads || '', done: false, cards: null, ui: null, open: false, stage: 'Reading workspace context…' };
+    var replies = AS.msgs.filter(function (x) { return x.r === 'ai'; }).length;
+    // One of the six approved studies, in order, fixed for the reply. The record is read by whichever node draws the mark.
+    var m = { r: 'ai', x: '', reads: e.reads || '', done: false, cards: null, ui: null, open: false, stage: 'Reading workspace context…', steps: [{ x: 'Reading workspace context', done: false }],
+      mark: { study: M.studies[replies % M.studies.length], t0: performance.now(), stopAt: null } };
     var words = text.split(' '), events = [], complex = !!(e.ui || e.cards || e.recs), recs = e.recs ? e.recs() : null;
-    as.msgs.push(m); as.busy = true;
+    as.msgs.push(m); as.busy = true; as.cur = m;
     function at(time, fn) { events.push({ time: time * ASK_PACE, fn: fn }); }
     function redraw() {
-      var chat = guideSurface().querySelector('.w-achat');
-      var stick = !chat || chat.scrollHeight - chat.scrollTop - chat.clientHeight < 90;
-      renderAsst(stick); renderPhone();
+      renderAsst('auto'); renderPhone();
     }
     var textEnd = complex ? 11500 : Math.max(5000, Math.min(12000, words.length * 155));
     var chunk = WB.reduced ? 7 : 1;
     for (var i = chunk; i < words.length + chunk; i += chunk) (function (n) {
       at(1800 + (textEnd - 1800) * n / words.length, function () {
-        m.x = words.slice(0, n).join(' '); m.stage = 'Writing the reply…'; paintReply(m);
+        m.x = words.slice(0, n).join(' '); setStage(m, 'Writing the reply…'); paintReply(m);
       });
     })(Math.min(i, words.length));
     if (e.ui) {
@@ -623,23 +635,23 @@
       for (var j = 1; j <= count; j++) (function (n) {
         at(13500 + (32000 - 13500) * (n - 1) / Math.max(1, count - 1), function () {
           m.ui = u; u.progress = n;
-          m.stage = n <= 4 ? 'Building your overview…' : n <= 4 + u.bars.length ? 'Grouping work by project…' : 'Adding your work items…'; redraw();
+          setStage(m, n <= 4 ? 'Building your overview…' : n <= 4 + u.bars.length ? 'Grouping work by project…' : 'Adding your work items…'); redraw();
         });
       })(j);
     }
     if (e.cards) {
       var cards = e.cards(); m.cards = [];
       cards.forEach(function (c, j) { at(15000 + j * 5000, function () {
-        m.cards.push(c); m.stage = 'Preparing proposed changes · ' + (j + 1) + ' of ' + cards.length; redraw();
+        m.cards.push(c); setStage(m, 'Preparing proposed changes · ' + (j + 1) + ' of ' + cards.length); redraw();
       }); });
     }
     if (recs) {
       m.recs = [];
-      recs.forEach(function (r, j) { at(12500 + j * 3000, function () { m.recs.push(r); m.stage = 'Weighing your policy and the repository…'; redraw(); }); });
-      at(12500 + recs.length * 3000, function () { m.mem = true; m.stage = 'Citing what I read…'; redraw(); });
+      recs.forEach(function (r, j) { at(12500 + j * 3000, function () { m.recs.push(r); setStage(m, 'Weighing your policy and the repository…'); redraw(); }); });
+      at(12500 + recs.length * 3000, function () { m.mem = true; setStage(m, 'Citing what I read…'); redraw(); });
     }
     at(e.ui || e.cards ? 35000 : recs ? 12500 + recs.length * 3000 + 3500 : textEnd + 800, function () {
-      as.busy = false; as.timer = null; m.done = true; m.x = text;
+      as.busy = false; as.timer = null; as.cur = null; m.done = true; m.x = text; finishSteps(m);
       if (m.ui) delete m.ui.progress;
       as.opts = e.cards ? [] : typeof e.next === 'function' ? e.next() : (e.next || backOpts());
       redraw(); render();
@@ -652,20 +664,73 @@
       as.timer = setTimeout(function () { if (as.msgs.indexOf(m) < 0) return; event.fn(); next(); }, delay);
     }
     renderAsst(true); renderPhone(); next();
+    // What the person sent arrives (160 ms); a conversation that was restored does not replay.
+    [deskRoot, phoneRoot].forEach(function (root) {
+      var me = root && root.querySelectorAll('.w-ame'), last = me && me[me.length - 1];
+      if (last) M.animate(last, [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], 160);
+    });
   }
-  /* Redraws the words of a reply that is still streaming, in each surface that shows the conversation. */
+  /* What a reply reports as it goes: the line under it names the stage, and opens to the stages so far. */
+  function setStage(m, s) {
+    var name = s.replace(/…$/, '').replace(/ · \d+ of \d+$/, '');
+    m.stage = s;
+    if (m.steps[m.steps.length - 1].x === name) return;
+    m.steps[m.steps.length - 1].done = true;
+    m.steps.push({ x: name, done: false });
+  }
+  function finishSteps(m) { m.steps.forEach(function (x) { x.done = true; }); }
+  /* Stop stays pending until the work reports that it has stopped (here, a moment later); the mark settles back meanwhile, and
+     what had already been written stays. Nothing proposed is offered: a half-made change is not one to confirm. */
+  function stopAsst() {
+    var m = AS.cur;
+    if (!AS.busy || !m || m.stopping) return;
+    m.stopping = true; m.mark.stopAt = performance.now();
+    clearTimeout(AS.timer); AS.timer = null;
+    paintReply(m); renderAsst('auto');
+    setTimeout(function () {
+      if (AS.msgs.indexOf(m) < 0) return;
+      m.stopped = true; m.done = true; m.ui = null; m.cards = null; m.recs = null; m.mem = false; finishSteps(m);
+      AS.busy = false; AS.cur = null; AS.opts = backOpts();
+      renderAsst('auto'); renderPhone(); render();
+    }, 900);
+  }
+  /* Writes the new words of a reply that is still streaming, in each surface that shows the conversation. What was already there
+     stays still; the words that just arrived fade in (120 ms). A reader who scrolled up, or selected text, is left where they are. */
+  function nearEnd(chat, within) { return chat.scrollHeight - chat.scrollTop - chat.clientHeight < within; }
+  function selecting(node) { var sel = document.getSelection(); return !!sel && !sel.isCollapsed && node.contains(sel.anchorNode); }
+  function setBehind(kind, on) {
+    AS.behind[kind] = on;
+    var root = kind === 'desk' ? deskRoot : phoneRoot, b = root && root.querySelector('.w-latest');
+    if (b) b.hidden = !on;
+  }
   function paintReply(m) {
     var at = AS.msgs.indexOf(m);
-    [deskRoot, phoneRoot].forEach(function (root) {
+    [['desk', deskRoot], ['phone', phoneRoot]].forEach(function (pair) {
+      var kind = pair[0], root = pair[1];
       var o = root && root.querySelector('[data-overlay]'), chat = o && o.querySelector('.w-achat');
-      var node = chat && chat.querySelector('[data-m="' + at + '"] .w-atext');
+      var box = chat && chat.querySelector('[data-m="' + at + '"]'), node = box && box.querySelector('.w-atext');
       if (!node) return;
-      var stick = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
-      var statusNode = node.closest('.w-aai').querySelector('.w-astat');
-      if (statusNode) statusNode.textContent = m.stage;
-      node.innerHTML = esc(m.x) + '<span class="w-acur" aria-hidden="true"></span>';
-      if (stick) chat.scrollTop = chat.scrollHeight;
+      var follow = !AS.away[kind] && nearEnd(chat, 80) && !selecting(chat);
+      var stage = box.querySelector('[data-stage]');
+      if (stage) stage.textContent = m.stopping ? 'Stopping…' : m.stage;
+      node.hidden = !m.x;
+      M.stream(node.querySelector('[data-stream]'), m.x, true);
+      if (follow) chat.scrollTop = chat.scrollHeight; else if (m.x) setBehind(kind, true);
     });
+  }
+  /* New response below: back to the tail over 180 ms. Scrolling again interrupts it. */
+  function jumpLatest(kind) {
+    var root = kind === 'desk' ? deskRoot : phoneRoot, chat = root && root.querySelector('.w-achat');
+    AS.away[kind] = false; setBehind(kind, false);
+    if (!chat) return;
+    if (M.reduced()) { chat.scrollTop = chat.scrollHeight; return; }
+    var from = chat.scrollTop, start = performance.now();
+    (function step(now) {
+      if (AS.away[kind]) return;
+      var p = Math.min(1, (now - start) / 180);
+      chat.scrollTop = from + (chat.scrollHeight - chat.clientHeight - from) * (1 - Math.pow(1 - p, 3));
+      if (p < 1) requestAnimationFrame(step); else chat.scrollTop = chat.scrollHeight;
+    })(start);
   }
   function settle() { if (!waitingChanges()) AS.opts = backOpts(); }
   function decideCard(mi, ci, yes) {
@@ -714,18 +779,21 @@
     } else { P.at = c && c.op === 'ticket' ? 'team' : 'project'; P.proj = 'my-app'; P.teamTab = 'board'; P.tab = 'board'; P.task = null; P.col = 'backlog'; }
     render();
   }
-  /* Both surfaces draw the conversation while it is open. Each keeps its own scroll. */
+  /* Both surfaces draw the conversation while it is open. Each keeps its own scroll, and follows the tail only while its reader does. */
   function renderAsst(stick) {
-    [[deskRoot, D], [phoneRoot, P]].forEach(function (pair) {
-      var root = pair[0], V = pair[1], o = root && root.querySelector('[data-overlay]');
+    [['desk', deskRoot, D], ['phone', phoneRoot, P]].forEach(function (trio) {
+      var kind = trio[0], root = trio[1], V = trio[2], o = root && root.querySelector('[data-overlay]');
       if (!o) return;
       if (!AS.open) { if (o.querySelector('.w-asst')) setOverlay(root, ''); return; }
-      var store = V === P ? P.scroll : D.scroll, fk = focusKey(o);
+      var store = V === P ? P.scroll : D.scroll, fk = focusKey(o), old = o.querySelector('.w-achat');
+      var follow = stick === 'auto' ? !old || (!AS.away[kind] && nearEnd(old, 90) && !selecting(old)) : stick;
+      if (follow) { AS.away[kind] = false; AS.behind[kind] = false; } else if (stick === 'auto') AS.behind[kind] = true;
       keepScroll(o, store);
       o.innerHTML = assistantHTML(V === P);
       restoreScroll(o, store);
       var chat = o.querySelector('.w-achat');
-      if (chat && stick) chat.scrollTop = chat.scrollHeight;
+      if (chat && follow) chat.scrollTop = chat.scrollHeight;
+      o.querySelectorAll('.w-livemark').forEach(function (node) { var m = AS.msgs[+node.dataset.mi]; if (m && m.mark) M.mark(node, m.mark); });
       if (fk) { var n = o.querySelector(fk); if (n) n.focus({ preventScroll: true }); }
     });
     guideRefresh();
@@ -736,23 +804,25 @@
       : '<button class="w-btn quiet sm" type="button" data-a="asst-x" aria-label="Close Salie">' + ic('close', 14) + 'Close<kbd class="w-key">Esc</kbd></button>';
     var top = '<header class="w-atop"><div class="w-awho"><h2>Salie</h2><button class="w-amodel" type="button" data-a="asst-model">Claude Code<span>· Default</span>' + ic('down', 14) + '</button></div><div class="w-aacts">' + newBtn + closeBtn + '</div></header>';
     return '<div class="w-asst" role="dialog" aria-modal="true" aria-label="Salie">' + top +
-      '<div class="w-achat" data-keep="achat"><div class="w-acol">' + chatHTML(phone) + '</div></div>' + dockHTML() + '</div>';
+      '<div class="w-achatwrap"><div class="w-achat" data-keep="achat"><div class="w-acol">' + chatHTML(phone) + '</div></div>' +
+      '<button class="w-latest" type="button" data-a="asst-latest"' + (AS.behind[phone ? 'phone' : 'desk'] ? '' : ' hidden') + '>' + ic('down', 12) + 'New response below</button></div>' + dockHTML() + '</div>';
   }
   function chatHTML(phone) {
     if (!AS.msgs.length) return '<div class="w-aempty">' + mark(40) + '<h2>What can I help with?</h2><p>Pick a message below. I will ask you before I change anything.</p></div>';
     return AS.msgs.map(function (m, i) {
       if (m.r === 'me') return '<div class="w-ame"><p>' + esc(m.x) + '</p></div>';
-      var cursor = m.done ? '' : '<span class="w-acur" aria-hidden="true"></span>';
-      var words = m.x ? esc(m.x) + cursor : '<span class="w-dots" role="img" aria-label="Working on it"><i></i><i></i><i></i></span>';
+      // While a reply is being written: the pixel mark and what it is doing, opening to the stages reported so far.
+      var line = m.done ? '' : '<div class="w-activity"><button class="w-progress" type="button" data-a="asst-act" data-id="' + i + '" aria-expanded="' + !!m.actOpen + '">' + M.markHTML(24, m.mark.study, i) + '<span data-stage>' + esc(m.stopping ? 'Stopping…' : m.stage || 'Working on it…') + '</span></button>' +
+        (m.actOpen ? '<ul class="w-actsteps">' + m.steps.map(function (x) { return '<li>' + esc(x.x) + ' · ' + (x.done ? 'Completed' : m.stopping ? 'Stopping' : 'Running') + '</li>'; }).join('') + '</ul>' : '') + '</div>';
       var cards = m.cards ? m.cards.map(function (c, ci) { return assistCardHTML(c, i, ci); }).join('') : '';
       var left = m.done && m.cards ? m.cards.filter(function (c) { return !c.state; }).length : 0;
       var bar = left >= 2 ? '<div class="w-aall" role="group" aria-label="All the changes waiting"><span>' + left + ' changes are waiting for you.</span><button class="w-btn pri sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="yes">Confirm all ' + left + '</button><button class="w-btn sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="no">Not now</button></div>' : '';
       var sugs = m.recs && m.recs.length ? '<section class="w-sugs" aria-label="Suggested next steps">' + m.recs.map(function (r, ri) { return recHTML(r, i, ri, phone); }).join('') + '</section>' : '';
       var mem = m.mem ? '<details class="w-reads w-mem" data-j="' + i + '"' + (m.memOpen ? ' open' : '') + '><summary>Memory sources (' + MEM.slice(0, 2).length + ')</summary><ul>' + MEM.slice(0, 2).map(function (r) {
         return '<li><strong>' + r.id + '</strong> · Your private memory · ' + r.kind + ' · ' + r.ver + ' · current<p>' + esc(r.text) + '</p><p class="w-mm">' + esc(r.ref) + ' · Updated ' + r.upd + '</p></li>'; }).join('') + '</ul></details>' : '';
-      return '<div class="w-aai" data-m="' + i + '"><p class="w-atext">' + words + '</p>' + (m.ui ? uiHTML(m.ui, i) : '') + sugs + mem +
+      return '<div class="w-aai" data-m="' + i + '"><p class="w-atext"' + (m.x ? '' : ' hidden') + '><span data-stream>' + esc(m.x) + '</span></p>' + (m.ui ? uiHTML(m.ui, i) : '') + line + sugs + mem +
         (m.reads ? '<details class="w-reads" data-i="' + i + '"' + (m.open ? ' open' : '') + '><summary>What I looked at</summary><p>' + esc(m.reads) + '</p></details>' : '') +
-        '<p class="w-astat">' + (m.done ? 'Reply finished.' : esc(m.stage || 'Working on it…')) + '</p>' + cards + bar + (m.result ? '<p class="w-aresult" role="status">' + esc(m.result) + '</p>' : '') + '</div>';
+        (m.done ? '<p class="w-astat" role="status">' + (m.stopped ? 'Stopped.' : 'Reply finished.') + '</p>' : '') + cards + bar + (m.result ? '<p class="w-aresult" role="status">' + esc(m.result) + '</p>' : '') + '</div>';
     }).join('');
   }
   /* One suggestion: what to do, why, where it leads, and a way to say whether it helped. */
@@ -789,23 +859,33 @@
   }
   function dockHTML() {
     var pills = (waitingChanges() ? [] : optsNow()).map(function (o) { return '<button class="w-apill" type="button" data-a="asst-ask" data-id="" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('');
-    var note = AS.busy ? 'Working on it.' : waitingChanges() ? 'Confirm or decline the changes above to continue.' : 'Pick a message. Replies are scripted in this demo, and nothing is sent to a model.';
-    return '<div class="w-acol w-adock">' + (pills ? '<div class="w-apills" role="group" aria-label="Predefined messages">' + pills + '</div>' : '') + '<p class="w-anote">' + note + '</p></div>';
+    var note = AS.busy ? '' : waitingChanges() ? 'Confirm or decline the changes above to continue.' : 'Pick a message. Replies are scripted in this demo, and nothing is sent to a model.';
+    var stop = AS.busy ? '<div class="w-stoprow"><button class="w-btn" type="button" data-a="asst-stop"' + (AS.cur && AS.cur.stopping ? ' disabled' : '') + '>' + ic('stop', 14) + (AS.cur && AS.cur.stopping ? 'Stopping…' : 'Stop') + '</button><p class="w-anote">' + (AS.cur && AS.cur.stopping ? 'Waiting for the work to confirm it has stopped.' : 'Working on it.') + '</p></div>' : '';
+    return '<div class="w-acol w-adock">' + (pills ? '<div class="w-apills" role="group" aria-label="Predefined messages">' + pills + '</div>' : '') + stop + (note ? '<p class="w-anote">' + note + '</p>' : '') + '</div>';
   }
 
   /* ---------- toasts ---------- */
-  var toastTimer;
+  var toastTimer, toastAct = null;
   // A message stays up for as long as it takes to read: a base time plus a little per character, so a longer note lingers
   // proportionally longer (about 3.9s at 40 characters, 5.8s at 100, 8s at 170) and never more than 9s.
   function toastTime(m) { return Math.min(9000, 2600 + 32 * String(m).length); }
-  function toast(m) {
+  /* A notice can offer the place a change landed (act: where, label, run); it then stays up for six seconds, as in the app. */
+  function toast(m, act) {
+    toastAct = act || null;
     [deskMount, phoneMount].forEach(function (root) {
       var el = root && root.querySelector('.w-toast');
       if (!el) return;
-      el.textContent = m; el.classList.add('show');
+      var mine = act && act.where === (root === phoneMount ? 'phone' : 'desk');
+      el.innerHTML = esc(m) + (mine ? '<button class="act" type="button" data-a="toastact">' + esc(act.label) + '</button>' : '');
+      el.classList.toggle('has-act', !!mine); el.classList.add('show');
     });
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { document.querySelectorAll('.w-toast').forEach(function (el) { el.classList.remove('show'); }); }, toastTime(m));
+    toastTimer = setTimeout(function () { document.querySelectorAll('.w-toast').forEach(function (el) { el.classList.remove('show', 'has-act'); }); toastAct = null; }, act ? 6000 : toastTime(m));
+  }
+  /* On the phone's board, a card that moved to a column other than the one on show can be followed there. */
+  function viewIn(col, label) {
+    if (VIEW !== P || P.at !== 'project' || P.tab !== 'board' || P.col === col) return null;
+    return { where: 'phone', label: 'View in ' + label, run: function () { P.col = col; P.task = null; render(); } };
   }
 
   /* ---------- the other workspaces: the story's backdrop ----------
@@ -1001,9 +1081,9 @@
     var groups = [['individual', 'Individual'], ['team', S.team.name]].map(function (g) {
       var rs = rows.filter(function (r) { return r.ws === g[0]; });
       if (!rs.length) return '';
-      return '<section class="w-ugroup" aria-label="' + esc(g[1]) + '"><h2>' + wsTag(g[0], g[1]) + '<span class="count">' + rs.length + '</span></h2><ul class="w-ulist">' + rs.map(function (w) {
+      return '<section class="w-ugroup" aria-label="' + esc(g[1]) + '"><h2>' + wsTag(g[0], g[1]) + '<span class="count">' + rs.length + '</span></h2><ul class="w-ulist" data-mp="mw-' + g[0] + '">' + rs.map(function (w) {
         var badge = w.exec ? '<span class="w-xb" data-tone="' + EXECTONE[w.exec] + '"><i class="w-dot" data-tone="' + EXECTONE[w.exec] + '"></i>Reported: ' + EXECWORD[w.exec] + '</span>' : '<span></span>';
-        return '<li><button class="w-wrow" type="button" data-a="go" data-v="' + w.go + '"><span class="ti">' + esc(w.title) + '</span><span class="pj">' + esc(w.project) + '</span><span class="stt">' + status[w.status] + '</span>' + badge + '</button></li>';
+        return '<li data-mk="w' + w.go + '"><button class="w-wrow" type="button" data-a="go" data-v="' + w.go + '"><span class="ti">' + esc(w.title) + '</span><span class="pj">' + esc(w.project) + '</span><span class="stt">' + status[w.status] + '</span>' + badge + '</button></li>';
       }).join('') + '</ul></section>';
     }).join('');
     return upage('My Work', lede, groups);
@@ -1011,10 +1091,10 @@
   function inboxRowHTML(r) {
     if (r.ws === 'team') {
       var k = r.k;
-      return '<li><div class="w-irow"><i class="w-dot" data-tone="ok"></i><span class="tx"><span class="ti">WB-' + k.n + ' ' + esc(k.title) + '</span><span class="cx">' + wsTag('team', S.team.name) + '<span>' + esc(S.team.project) + '</span></span><span class="dt">' + esc(k.who) + ' asked for your review. Pull request #' + k.pr.n + ' is merged.</span></span><span class="ac"><button class="w-btn sm pri" type="button" data-a="go" data-v="team:reviews">Review changes</button></span></div></li>';
+      return '<li data-mk="ik' + k.n + '"><div class="w-irow"><i class="w-dot" data-tone="ok"></i><span class="tx"><span class="ti">WB-' + k.n + ' ' + esc(k.title) + '</span><span class="cx">' + wsTag('team', S.team.name) + '<span>' + esc(S.team.project) + '</span></span><span class="dt">' + esc(k.who) + ' asked for your review. Pull request #' + k.pr.n + ' is merged.</span></span><span class="ac"><button class="w-btn sm pri" type="button" data-a="go" data-v="team:reviews">Review changes</button></span></div></li>';
     }
     var t = r.t, q = r.kind === 'question';
-    return '<li><div class="w-irow"><i class="w-dot" data-tone="' + (q ? 'ask' : 'ok') + '"></i><span class="tx"><span class="ti">' + esc(t.title) + '</span><span class="cx">' + wsTag('individual', 'Individual') + '<span>' + esc(r.project) + '</span></span><span class="dt">' +
+    return '<li data-mk="it' + t.id + '"><div class="w-irow"><i class="w-dot" data-tone="' + (q ? 'ask' : 'ok') + '"></i><span class="tx"><span class="ti">' + esc(t.title) + '</span><span class="cx">' + wsTag('individual', 'Individual') + '<span>' + esc(r.project) + '</span></span><span class="dt">' +
       (q ? (t.prio === 'high' ? 'High priority. ' : '') + esc(t.agent) + ' asks: ' + esc(t.run.q) : r.kind === 'blocked' ? 'Stopped rather than guess. ' + esc(t.run.q) : 'Finished and ready for review.') + '</span></span><span class="ac">' +
       (q || r.kind === 'blocked' ? t.run.choices.map(function (c) { return '<button class="w-btn sm" type="button" data-a="answer" data-id="' + t.id + '" data-v="' + esc(c) + '">' + esc(c) + '</button>'; }).join('')
         : '<button class="w-btn sm pri" type="button" data-a="go" data-v="ind:' + t.id + '">Review changes</button>') + '</span></div></li>';
@@ -1022,7 +1102,7 @@
   function inboxHTML() {
     var rows = rowsAll();
     return upage('Workspaces', 'Questions, blockers, reviews and warnings from all your workspaces',
-      rows.length ? '<section class="w-ugroup" aria-label="Action needed"><h2>Action needed<span class="count">' + rows.length + '</span></h2><ul class="w-ulist">' + rows.map(inboxRowHTML).join('') + '</ul></section>' : '<p class="w-uempty">Nothing needs you.</p>');
+      rows.length ? '<section class="w-ugroup" aria-label="Action needed"><h2>Action needed<span class="count">' + rows.length + '</span></h2><ul class="w-ulist" data-mp="inbox">' + rows.map(inboxRowHTML).join('') + '</ul></section>' : '<p class="w-uempty">Nothing needs you.</p>');
   }
   function ucalHTML() {
     var tl = D.cal === 'timeline';
@@ -1073,6 +1153,10 @@
   }
   /* Help: the app's bundled guides (web/src/lib/help.ts), searchable. */
   var HELP = [
+    { id: 'mcp', title: 'Setting up an MCP server', dest: 'mcp', link: 'Open MCP setup', summary: 'MCP lets a client use tools from a server. Connect Werkbord to an external server, or connect any compatible client to Werkbord’s built-in board server.',
+      example: 'A notes service supplies an MCP URL for Werkbord to use. A separate planning client instead connects to Werkbord to read selected projects and propose changes.',
+      steps: ['Open Settings → Connections → MCP services. To use another service, paste its single-server MCP JSON configuration or choose Add connection and enter its URL or local executable. Use the authentication method documented by that service.', 'Review the imported fields and save. Test and discover checks the server and lists its tools; OAuth opens sign-in if required. Then enable the connection and choose Assistant or Coding agents. Review each tool’s permission before use.', 'To let another client use Werkbord, go to Connect a client to Werkbord on the same page. Give it a name and select only the projects and operations it needs. Create its credential and copy the generated connection settings while they are visible.', 'For a client on another computer, use a reachable private controller address ending in /mcp. For stdio-only clients, select the local process option and install the werkbord command on that client’s computer. Paste the generated settings into your client and reconnect it.', 'Ask the client to list projects to verify the connection. Individual board changes wait in Pending changes for your approval. Team task plans wait in Plans; direct Team ticket writes follow the issued permissions. Credentials are specific to their Individual controller or Team workspace.'],
+      recovery: 'If connection fails, check which side is the client, the server address, network access, and authentication. localhost means the computer running the client. Environment references name variables available to the controller process; they are not secret values. Never paste credentials into a chat. If you lose a new credential, revoke it and create another.' },
     { id: 'answer', title: 'Answer an agent', dest: 'control', link: 'Open Workspace', summary: 'Workspace collects questions and other interruptions. Open the task to see its project and the exact request before choosing.',
       example: 'An agent asks, “Commit the fixture work?” Open the question, review its context and options, then choose the answer that matches your intent.',
       steps: ['Open Workspace or the question on its task card. The task title and project stay with the question.', 'Read the prompt and available choices. Werkbord saves the answer, then the runner delivers it to the agent.', '“Answer saved. Waiting for the agent to receive it” means delivery is not confirmed yet. “Answer delivered” means the runner confirmed receipt.'],
@@ -1125,10 +1209,10 @@
     dropOverlay();
     if (where === 'phone') {
       P.task = null;
-      if (dest === 'control') P.at = 'control'; else if (dest === 'runners') P.at = 'runners'; else { P.at = 'project'; P.proj = 'my-app'; P.tab = dest === 'runs' ? 'runs' : dest === 'calendar' ? 'calendar' : 'board'; }
+      if (dest === 'control') P.at = 'control'; else if (dest === 'runners') P.at = 'runners'; else if (dest === 'mcp') { P.at = 'settings'; P.set = 'personal/mcp'; } else { P.at = 'project'; P.proj = 'my-app'; P.tab = dest === 'runs' ? 'runs' : dest === 'calendar' ? 'calendar' : 'board'; }
     } else {
       leave(); D.ws = 'individual'; D.task = null;
-      if (dest === 'control') D.view = 'control'; else if (dest === 'runners') { D.ws = 'universal'; D.set = 'personal/runners'; G.f.settings = true; } else { D.proj = 'my-app'; D.view = dest; }
+      if (dest === 'control') D.view = 'control'; else if (dest === 'runners') { D.ws = 'universal'; D.set = 'personal/runners'; G.f.settings = true; } else if (dest === 'mcp') { D.ws = 'universal'; D.set = 'personal/mcp'; G.f.settings = true; } else { D.proj = 'my-app'; D.view = dest; }
     }
     render();
   }
@@ -1182,7 +1266,7 @@
     var talk = cs.length ? '<button class="w-comment-chip' + (unread ? ' unread' : '') + '" type="button" data-a="tticket" data-id="' + k.n + '" aria-label="' + plural(cs.length, 'comment') + (unread ? ', one mentions you' : '') + ' on WB-' + k.n + '">' + ic('reply', 12) + (unread ? 'Mentions you' : plural(cs.length, 'comment')) + '</button>' : '';
     var git = k.branch ? '<p class="w-tbranch">' + esc(k.branch) + '</p><p class="w-tchips">' + (k.ahead ? '<span class="w-chip">' + k.ahead + ' commits</span>' : '<span class="w-chip">no commits yet</span>') + (k.pr ? '<span class="w-chip">' + ic('pr', 12) + '#' + k.pr.n + ' ' + k.pr.state + '</span>' : '') + '</p>' : '';
     var tone = k.st === 'review' ? 'ask' : k.st === 'progress' ? 'work' : k.st === 'done' ? 'ok' : 'neutral';
-    return '<li class="w-card w-task w-tix' + (k.st === 'done' ? ' settled' : '') + (k.fresh ? ' fresh' : '') + '" data-tone="' + tone + '" data-ticket="' + k.n + '"><p class="w-tid">WB-' + k.n + '</p><button class="w-ttitle" type="button" data-a="tticket" data-id="' + k.n + '">' + esc(k.title) + '</button><p class="w-st">' + who + '</p>' + presence + git + (due ? '<p class="w-tchips">' + due + '</p>' : '') + talk + (acts ? '<div class="acts">' + acts + '</div>' : '') + '</li>';
+    return '<li class="w-card w-task w-tix' + (k.st === 'done' ? ' settled' : '') + (k.fresh ? ' fresh' : '') + '" data-tone="' + tone + '" data-ticket="' + k.n + '" data-mk="k' + k.n + '"><p class="w-tid">WB-' + k.n + '</p><button class="w-ttitle" type="button" data-a="tticket" data-id="' + k.n + '">' + esc(k.title) + '</button><p class="w-st">' + who + '</p>' + presence + git + (due ? '<p class="w-tchips">' + due + '</p>' : '') + talk + (acts ? '<div class="acts">' + acts + '</div>' : '') + '</li>';
   }
   function teamHeadHTML(tab) {
     tab = tab || 'board';
@@ -1208,14 +1292,14 @@
     if (D.tarch) return teamHeadHTML() + '<main class="w-main" style="overflow:hidden"><div class="w-bview"><div class="w-bar">' + filters + '</div><div class="w-bscroll"><section class="w-archive" aria-label="Ticket archive"><div class="head"><div><h2>Archived work</h2><p class="w-muted">Archived tickets and cleared Done cards. Their comments, branches and pull requests are kept.</p></div><label class="w-field"><span class="w-lab">Search archive</span><input class="w-input" type="search" data-arch-q value="' + esc(D.aq || '') + '" placeholder="Title or ticket details" autocomplete="off"></label></div><ul class="w-archlist" data-arch-list>' + teamArchiveRows() + '</ul></section></div></div></main>';
     return teamHeadHTML() + '<main class="w-main" style="overflow:hidden"><div class="w-bview"><div class="w-bar">' + filters + legend + '</div><div class="w-cols">' + TCOLS.map(function (c) {
       var ts = tk.filter(function (k) { return k.st === c[0] && (!D.mine || k.who === ME); }).sort(function (a, b) { return Number(!!b.story) - Number(!!a.story) || b.n - a.n; });
-      return '<section class="w-col w-tray" data-col="' + c[0] + '" aria-label="' + c[1] + '"><header class="w-ch"><h2>' + c[1] + '</h2><span class="w-chip">' + ts.length + '</span></header><ul class="w-list" data-keep="tcol-' + c[0] + '">' + (ts.length ? ts.map(tcardHTML).join('') : '<li class="w-none">Nothing here.</li>') + '</ul></section>';
+      return '<section class="w-col w-tray" data-col="' + c[0] + '" data-mp="tb-' + c[0] + '" aria-label="' + c[1] + '"><header class="w-ch"><h2>' + c[1] + '</h2><span class="w-chip">' + ts.length + '</span></header><ul class="w-list" data-keep="tcol-' + c[0] + '">' + (ts.length ? ts.map(tcardHTML).join('') : '<li class="w-none">Nothing here.</li>') + '</ul></section>';
     }).join('') + '</div></div></main>';
   }
   function teamReviewsHTML() {
     var rs = S.team.tickets.filter(function (k) { return k.st === 'review'; }).sort(function (a, b) { return Number(b.reviewer === ME) - Number(a.reviewer === ME); });
-    var list = rs.length ? '<ul class="w-ulist">' + rs.map(function (k) {
+    var list = rs.length ? '<ul class="w-ulist" data-mp="treviews">' + rs.map(function (k) {
       var asked = k.reviewer === ME && k.who !== ME;
-      return '<li class="w-rv"><div class="tx"><p class="w-tid">WB-' + k.n + '</p><p class="w-ttitle">' + esc(k.title) + '</p><p class="w-mm">' + esc(k.who) + ' · ' + esc(k.branch) + ' · ' + k.ahead + ' commits</p><p class="w-mm">' + ic('pr', 12) + 'Pull request #' + k.pr.n + ' · ' + k.pr.state + ' on the Git host · no conflicts</p>' + (k.comments && k.comments.length ? '<button class="w-comment-chip" type="button" data-a="tticket" data-id="' + k.n + '">' + ic('reply', 12) + plural(k.comments.length, 'comment') + '</button>' : '') + '</div><div class="acts">' +
+      return '<li class="w-rv" data-mk="v' + k.n + '"><div class="tx"><p class="w-tid">WB-' + k.n + '</p><p class="w-ttitle">' + esc(k.title) + '</p><p class="w-mm">' + esc(k.who) + ' · ' + esc(k.branch) + ' · ' + k.ahead + ' commits</p><p class="w-mm">' + ic('pr', 12) + 'Pull request #' + k.pr.n + ' · ' + k.pr.state + ' on the Git host · no conflicts</p>' + (k.comments && k.comments.length ? '<button class="w-comment-chip" type="button" data-a="tticket" data-id="' + k.n + '">' + ic('reply', 12) + plural(k.comments.length, 'comment') + '</button>' : '') + '</div><div class="acts">' +
         (asked ? '<button class="w-btn sm" type="button" data-a="toast" data-v="Request changes sends the ticket back to its author with your note.">Request changes</button><button class="w-btn sm pri" type="button" data-a="signoff" data-id="' + k.n + '">Mark done</button>' : '<span class="w-mm">Waiting for ' + esc(k.reviewer || 'a reviewer') + '</span>') + '</div></li>';
     }).join('') + '</ul>' : '<p class="w-uempty">Nothing is waiting for review.</p>';
     return '<header class="w-ghead"><div class="w-uh"><h1>Reviews</h1><p class="w-lede">Tickets in review, those asked of you first. The diff itself is on your Git host.</p></div></header><main class="w-main" data-keep="main-t-reviews"><div class="w-upage">' + list + '</div></main>';
@@ -1226,7 +1310,7 @@
       return '<li><div class="w-irow"><i class="w-dot" data-tone="ask"></i><span class="tx"><span class="ti">' + esc(m.c.by) + ' mentioned you on WB-' + m.k.n + '</span><span class="cx"><span>' + esc(S.team.project) + '</span><span>' + esc(m.k.title) + '</span></span><span class="dt">' + commentHTML(m.c.text) + '</span></span><span class="ac"><button class="w-btn sm pri" type="button" data-a="tticket" data-id="' + m.k.n + '">Open comment</button><button class="w-btn sm" type="button" data-a="mread" data-id="' + m.k.n + '" data-v="' + m.i + '">Mark read</button></span></div></li>';
     }).join('') + '</ul></section>' : '';
     return '<header class="w-ghead"><div class="w-uh"><h1>Workspace</h1><p class="w-lede">' + esc(S.team.name) + ' · what is waiting for you in this Team</p></div></header><main class="w-main" data-keep="main-t-home"><div class="w-upage">' +
-      (rs.length ? '<section class="w-ugroup"><h2>Action needed<span class="count">' + rs.length + '</span></h2><ul class="w-ulist">' + rs.map(inboxRowHTML).join('') + '</ul></section>' : (heard ? '' : '<p class="w-uempty">Nothing needs you in ' + esc(S.team.name) + '.</p>')) + heard + '</div></main>';
+      (rs.length ? '<section class="w-ugroup"><h2>Action needed<span class="count">' + rs.length + '</span></h2><ul class="w-ulist" data-mp="inbox">' + rs.map(inboxRowHTML).join('') + '</ul></section>' : (heard ? '' : '<p class="w-uempty">Nothing needs you in ' + esc(S.team.name) + '.</p>')) + heard + '</div></main>';
   }
   function teamMembersHTML() {
     return '<header class="w-ghead"><div class="w-uh"><h1>Members</h1><p class="w-lede">One Owner, any number of Admins, and Members. Each person keeps their own computer, runner and credentials; connections are what each computer reports.</p></div></header><main class="w-main" data-keep="main-t-members"><div class="w-upage"><ul class="w-ulist">' +
@@ -1304,23 +1388,54 @@
   function usd(n) { return '$' + n.toFixed(2); }
   function hm(sec) { var m = Math.round(sec / 60); return m < 60 ? m + 'm' : Math.floor(m / 60) + 'h ' + pad(m % 60) + 'm'; }
   function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  /* What the charts on show are drawn for: a new scope (another project, range or measure) is animated, a quiet update is not. */
+  var chartScope = '';
   function barsHTML(rows) {
     var max = Math.max.apply(null, rows.map(function (r) { return r.v; }).concat(1));
     return '<div class="w-anbars">' + rows.map(function (r) {
-      return '<div class="row"><div class="cap"><span>' + esc(r.l) + '</span><b>' + (r.f || num(r.v)) + '</b></div><div class="track"><span style="width:' + Math.round(r.v / max * 100) + '%;background:' + (r.c || 'var(--accent)') + '"></span></div>' + (r.d ? '<small>' + esc(r.d) + '</small>' : '') + '</div>';
+      return '<div class="row"><div class="cap"><span>' + esc(r.l) + '</span><b>' + (r.f || num(r.v)) + '</b></div><div class="track"><span data-chart-key="bar:' + esc(r.l) + '" data-chart-value="' + (r.v / max) + '" data-chart-scope="' + esc(chartScope) + '" style="width:' + Math.round(r.v / max * 100) + '%;background:' + (r.c || 'var(--accent)') + '"></span></div>' + (r.d ? '<small>' + esc(r.d) + '</small>' : '') + '</div>';
     }).join('') + '</div>';
   }
-  function dailySVG(days, series) {
+  /* The daily chart. Its exact values are in the readout and in the table below it, so the picture can grow in without delaying a number.
+     Pointer, tap and keyboard (Left and Right, Home and End, Escape) inspect a date; the readout floats, so nothing around it moves. */
+  var INSP = {}, DAYS_OPEN = {};
+  function readout(d) { return d[0] + ' · ' + d[1] + ' created · ' + d[2] + ' moved to Done'; }
+  function dailySVG(days, series, key) {
     var max = Math.max.apply(null, days.map(function (d) { return series === 'created' ? d.created : series === 'completed' ? d.completed : Math.max(d.created, d.completed); }).concat(1));
-    var step = 640 / Math.max(1, days.length), g = '', every = Math.max(1, Math.ceil(days.length / 6));
+    var step = 640 / Math.max(1, days.length), g = '', every = Math.max(1, Math.ceil(days.length / 6)), scope = chartScope + '/' + series;
     (max > 1 && max % 2 === 0 ? [0, 0.5, 1] : [0, 1]).forEach(function (ratio) { g += '<line x1="40" x2="680" y1="' + (170 - ratio * 144) + '" y2="' + (170 - ratio * 144) + '" stroke="var(--border)"/><text x="30" y="' + (174 - ratio * 144) + '" text-anchor="end">' + Math.round(max * ratio) + '</text>'; });
     days.forEach(function (d, i) {
-      var both = series === 'both', x = 40 + i * step;
-      if (series !== 'completed') g += '<rect x="' + (x + step * 0.12).toFixed(1) + '" y="' + (170 - d.created / max * 144).toFixed(1) + '" width="' + (step * (both ? 0.34 : 0.76)).toFixed(1) + '" height="' + (d.created / max * 144).toFixed(1) + '" fill="var(--accent)"/>';
-      if (series !== 'created') g += '<rect x="' + (x + step * (both ? 0.52 : 0.12)).toFixed(1) + '" y="' + (170 - d.completed / max * 144).toFixed(1) + '" width="' + (step * (both ? 0.34 : 0.76)).toFixed(1) + '" height="' + (d.completed / max * 144).toFixed(1) + '" fill="var(--ok)"/>';
+      var both = series === 'both', x = 40 + i * step, id = iso(d.date);
+      g += '<g><title>' + id + ': ' + d.created + ' created, ' + d.completed + ' moved to Done</title>';
+      if (series !== 'completed') g += '<rect data-chart-key="' + id + ':created" data-chart-value="' + (d.created / max) + '" data-chart-axis="y" data-chart-scope="' + esc(scope) + '" x="' + (x + step * 0.12).toFixed(1) + '" y="' + (170 - d.created / max * 144).toFixed(1) + '" width="' + (step * (both ? 0.34 : 0.76)).toFixed(1) + '" height="' + (d.created / max * 144).toFixed(1) + '" fill="var(--accent)"/>';
+      if (series !== 'created') g += '<rect data-chart-key="' + id + ':done" data-chart-value="' + (d.completed / max) + '" data-chart-axis="y" data-chart-scope="' + esc(scope) + '" x="' + (x + step * (both ? 0.52 : 0.12)).toFixed(1) + '" y="' + (170 - d.completed / max * 144).toFixed(1) + '" width="' + (step * (both ? 0.34 : 0.76)).toFixed(1) + '" height="' + (d.completed / max * 144).toFixed(1) + '" fill="var(--ok)"/>';
       if (i % every === 0 || i === days.length - 1) g += '<text x="' + (40 + (i + 0.5) * step).toFixed(1) + '" y="196" text-anchor="middle">' + pad(d.date.getMonth() + 1) + '-' + pad(d.date.getDate()) + '</text>';
+      g += '</g>';
     });
-    return '<div class="legend"><span class="key" style="background:var(--accent)"></span>Created <span class="key" style="background:var(--ok)"></span>Moved to Done <span class="unit">Days · peak ' + max + ' tasks</span></div><svg viewBox="0 0 700 210" role="img" aria-label="Daily task counts">' + g + '</svg>';
+    var data = days.map(function (d) { return [iso(d.date), d.created, d.completed]; }), at = INSP[key] != null && INSP[key] < days.length ? INSP[key] : null;
+    var rows = data.map(function (d) { return '<tr><td>' + d[0] + '</td><td>' + d[1] + '</td><td>' + d[2] + '</td></tr>'; }).join('');
+    return '<div class="w-andaily" role="slider" tabindex="0" data-insp="' + key + '" data-days="' + esc(JSON.stringify(data)) + '" aria-valuemin="0" aria-valuemax="' + Math.max(0, days.length - 1) + '" aria-valuenow="' + (at == null ? 0 : at) + '" aria-valuetext="' + esc(at == null ? data[0][0] : readout(data[at])) + '" aria-label="Daily activity chart. Use Left and Right arrows to inspect dates, or Escape to clear."' + (at == null ? '' : ' data-pin="1" data-sel="' + at + '"') + '>' +
+      '<div class="legend"><span class="key" style="background:var(--accent)"></span>Created <span class="key" style="background:var(--ok)"></span>Moved to Done <span class="unit">Days · peak ' + max + ' tasks</span></div><svg viewBox="0 0 700 210" role="img" aria-label="Daily task counts. Exact values are in Daily values below.">' + g + '</svg>' +
+      (at == null ? '' : '<output class="readout">' + esc(readout(data[at])) + '</output>') +
+      '<details class="w-days" data-dv="' + key + '"' + (DAYS_OPEN[key] ? ' open' : '') + '><summary>Daily values</summary><div class="scroll"><table><thead><tr><th>Date</th><th>Created</th><th>Moved to Done</th></tr></thead><tbody>' + rows + '</tbody></table></div></details></div>';
+  }
+  function inspectDay(box, i, pin) {
+    var days = JSON.parse(box.dataset.days);
+    i = Math.max(0, Math.min(days.length - 1, i));
+    var out = box.querySelector('output.readout');
+    if (!out) { out = document.createElement('output'); out.className = 'readout'; box.insertBefore(out, box.querySelector('.w-days')); }
+    out.textContent = readout(days[i]);
+    box.dataset.sel = i; box.setAttribute('aria-valuenow', i); box.setAttribute('aria-valuetext', readout(days[i]));
+    if (pin) { box.dataset.pin = '1'; INSP[box.dataset.insp] = i; }
+  }
+  function clearDay(box) {
+    var out = box.querySelector('output.readout'); if (out) out.remove();
+    delete box.dataset.sel; delete box.dataset.pin; INSP[box.dataset.insp] = null;
+    box.setAttribute('aria-valuenow', 0); box.setAttribute('aria-valuetext', JSON.parse(box.dataset.days)[0][0]);
+  }
+  function dayAt(box, e) {
+    var days = JSON.parse(box.dataset.days), r = box.querySelector('svg').getBoundingClientRect();
+    return Math.floor(((e.clientX - r.left) / r.width * 700 - 40) / (640 / Math.max(1, days.length)));
   }
   function statsHTML(items) { return '<dl class="w-anstats">' + items.map(function (x) { return '<div><dt>' + x[0] + '</dt><dd>' + x[1] + '</dd></div>'; }).join('') + '</dl>'; }
   function selHTML(label, key, list, cur) {
@@ -1335,9 +1450,10 @@
       (tab === 'Activity' ? selHTML('Show', 'series', [['both', 'Created and Done'], ['created', 'Created'], ['completed', 'Moved to Done']], A.series) : '') +
       (tab === 'Usage' ? selHTML('Measure', 'measure', [['tokens', 'Tokens'], ['cost', 'API cost']], A.measure) : '');
     var stamp = '<p class="w-muted w-anstamp">As of today, ' + clock(S.now) + ' · ' + (A.project || 'All projects') + ' · ' + A.days + ' days</p>', body = '';
+    chartScope = [A.project, A.days, A.provider, A.runner, tab, A.measure].join('/');
     if (tab === 'Activity') {
       body = statsHTML([['Tasks created', r.created], ['Moved to Done', r.completed], ['Median task duration', hm(r.median)], ['Duration samples', r.samples]]) +
-        '<p class="w-muted w-anfine">Duration includes waiting, from creation to the first recorded move to Done.</p><section><h3>Created and completed over time</h3><div class="w-andaily">' + dailySVG(r.days, A.series) + '</div></section>';
+        '<p class="w-muted w-anfine">Duration includes waiting, from creation to the first recorded move to Done.</p><section><h3>Created and completed over time</h3>' + dailySVG(r.days, A.series, A === P.an ? 'phone' : 'desk') + '</section>';
     } else if (tab === 'Execution') {
       body = statsHTML([['Run attempts', r.attempts], ['Retries', r.retries], ['Failed runs', r.failed], ['Waiting for you', r.waiting]]) +
         '<p class="w-muted w-anfine">Latest outcomes of runs started in the selected period. A normal exit does not verify task completion.</p><section><h3>Run outcomes</h3>' +
@@ -1363,13 +1479,14 @@
   })();
   function teamAnalyticsHTML() {
     var n = D.tdays || 30, days = [], created = 0, completed = 0, reviews = 0;
+    chartScope = 'team/' + n;
     for (var i = n - 1; i >= 0; i--) { var d = TEAM_DAYS[i]; days.push({ date: dateOf(-i), created: d.created, completed: d.completed }); created += d.created; completed += d.completed; }
     S.team.tickets.forEach(function (k) { if (k.st === 'review') reviews++; });
     var people = S.team.members.map(function (m, i) { return [m[0], Math.round(completed * [0.3, 0.17, 0.26, 0.22, 0.05][i])]; });
     var col = function (st) { return S.team.tickets.filter(function (k) { return k.st === st && !k.arch; }).length; };
     return '<div class="w-an"><div class="w-anfilters">' + selHTML('Time range', 'tdays', [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days']], n) + '</div><p class="w-muted w-anstamp">As of today, ' + clock(S.now) + ' · ' + esc(S.team.project) + ' · ' + n + ' days</p>' +
       statsHTML([['Tickets created', created], ['Moved to Done', completed], ['Median time in review', n > 7 ? '5h 20m' : '4h 05m'], ['In review now', col('review')]]) +
-      '<section><h3>Created and completed over time</h3><div class="w-andaily">' + dailySVG(days, 'both') + '</div></section>' +
+      '<section><h3>Created and completed over time</h3>' + dailySVG(days, 'both', 'team') + '</section>' +
       '<div class="w-ansplit"><section><h3>Finished by person</h3>' + barsHTML(people.map(function (p) { return { l: p[0], v: p[1], c: p[0] === ME ? 'var(--accent)' : 'var(--ok)' }; })) + '</section>' +
       '<section><h3>Where tickets are now</h3>' + barsHTML([{ l: 'Available', v: col('available'), c: 'var(--text-2)' }, { l: 'In Progress', v: col('progress') }, { l: 'Review', v: col('review'), c: 'var(--warn)' }, { l: 'Done', v: col('done'), c: 'var(--ok)' }]) + '</section></div></div>';
   }
@@ -1414,6 +1531,31 @@
   /* The rest of Settings, filled in as a working setup would look: what a person has chosen, what is connected, what is running.
      It is shown as it stands. Anything that would add or change something says so instead (see roToast). */
   var DEMO_ONLY = ' This is a fixed example in the demo.';
+  /* A pasted single-server configuration, read the way the product reads it (web/src/lib/mcp-setup.ts): it fills in the fields and
+     never runs anything, and anything it cannot carry over safely is refused rather than guessed. */
+  function mcpImport(text) {
+    var parsed;
+    try { parsed = JSON.parse(text); } catch (x) { throw new Error('This is not valid JSON. Copy the configuration again from the service’s documentation.'); }
+    var servers = parsed && parsed.mcpServers;
+    if (!servers || typeof servers !== 'object' || Array.isArray(servers) || Object.keys(servers).length !== 1) throw new Error('Paste a configuration with exactly one entry inside mcpServers.');
+    var name = Object.keys(servers)[0], v = servers[name];
+    if (!v || typeof v !== 'object') throw new Error('The server entry must be an object.');
+    if (Object.keys(v).some(function (k) { return ['command', 'args', 'url', 'headers', 'type', 'transport', 'env'].indexOf(k) < 0; })) throw new Error('This configuration has unsupported options. Enter it manually so no settings are lost.');
+    if (v.env && (typeof v.env !== 'object' || Object.keys(v.env).length)) throw new Error('This configuration includes environment values. Enter it manually and use environment references instead of pasting secrets.');
+    if (v.url !== undefined && v.command !== undefined) throw new Error('Choose one transport: a service URL or a local executable.');
+    if (typeof v.url === 'string') {
+      var u; try { u = new URL(v.url); } catch (y) { throw new Error('Use an HTTP or HTTPS service URL without embedded credentials.'); }
+      if (['http:', 'https:'].indexOf(u.protocol) < 0 || u.username || u.password) throw new Error('Use an HTTP or HTTPS service URL without embedded credentials.');
+      var bearer = false;
+      if (v.headers) {
+        if (typeof v.headers !== 'object' || Array.isArray(v.headers)) throw new Error('Headers must be an object.');
+        Object.keys(v.headers).forEach(function (k) { if (k.toLowerCase() !== 'authorization' || typeof v.headers[k] !== 'string' || !/^Bearer \S+$/i.test(v.headers[k])) throw new Error('Only a Bearer Authorization header can be imported. Configure other authentication manually.'); bearer = true; });
+      }
+      return [['Name', esc(name)], ['Connection', 'Remote service'], ['Address', '<span class="w-mm">' + esc(u.href) + '</span>'], ['Authentication', bearer ? 'Bearer token (not shown)' : 'None'], ['Starts', 'Disabled until you test or enable it']];
+    }
+    if (typeof v.command !== 'string' || !v.command.trim() || (v.args !== undefined && (!Array.isArray(v.args) || v.args.some(function (x) { return typeof x !== 'string' || /[\r\n]/.test(x); })))) throw new Error('Provide an executable and a list of string arguments, or a service URL.');
+    return [['Name', esc(name)], ['Connection', 'Local process'], ['Command', '<span class="w-mm">' + esc(v.command) + '</span>'], ['Arguments', '<span class="w-mm">' + esc((v.args || []).join(' ') || 'none') + '</span>'], ['Starts', 'Disabled until you test or enable it']];
+  }
   function pnl(title, note, inner) { return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">' + esc(title) + '</h3><p class="w-muted">' + note + '</p></div>' + inner + '</section>'; }
   function srow(main, sub, right) { return '<li><span class="tx"><b>' + main + '</b><span class="w-mm">' + sub + '</span></span>' + (right ? '<span class="ac">' + right + '</span>' : '') + '</li>'; }
   function sbtn(label, msg, pri) { return '<button class="w-btn sm' + (pri ? ' pri' : '') + '" type="button" data-a="toast" data-v="' + esc(msg) + '">' + label + '</button>'; }
@@ -1458,7 +1600,21 @@
         '<p class="w-muted fine">A sample account for the demo. Werkbord reads pull requests and creates repositories when you ask. It never pushes without asking first.</p>');
     },
     'personal/mcp': function () {
-      return pnl('MCP services', SET_NOTE['personal/mcp'], '<p class="w-muted" data-testid="mcp-empty">No MCP services yet. Salie only calls a service you have turned on.</p><div><button class="w-btn" type="button" data-a="toast" data-v="Adding a service is turned off in the demo.">Add a service</button></div>');
+      var dir = VIEW.mcp || 'service';
+      var toggle = '<div class="w-seg mcp-direction" role="group" aria-label="MCP connection direction" style="margin-bottom:16px">' + [['service', 'Use a service in Werkbord'], ['client', 'Let a client use Werkbord']].map(function (o) {
+        return '<button type="button" data-a="mcpdir" data-id="' + o[0] + '" aria-pressed="' + (dir === o[0]) + '">' + o[1] + '</button>'; }).join('') + '</div>';
+      if (dir === 'client') {
+        return toggle + pnl('Connect a client to Werkbord', 'Give an external agent its own credential, limited to selected projects and board operations. It cannot start runs, change execution settings, or approve its own changes.',
+          '<p class="w-muted fine">Werkbord’s MCP server is already built in. Name your client, choose its projects and operations, then create and copy its connection settings. Any compatible MCP client can connect. <a href="#" data-a="helpgo" data-id="mcp">How MCP setup works</a></p><p class="w-muted">No clients yet.</p><div><button class="w-btn" type="button" data-a="toast" data-v="Creating a client credential is turned off in the demo.">Add a client</button></div>');
+      }
+      var draft = VIEW.mcpDraft ? '<div class="w-notice" role="status"><p class="w-lab">Review before saving</p>' + kvl(VIEW.mcpDraft) + '<p class="w-muted fine">Saving a connection is turned off in the demo.</p></div>' : '';
+      var err = VIEW.mcpErr ? '<p role="alert" style="color:var(--danger);font-size:13px">' + esc(VIEW.mcpErr) + '</p>' : '';
+      return toggle + pnl('Connect Werkbord to a service', 'Connect services the assistant or coding agents can use through Werkbord. Credentials stay with the controller and are never passed to an agent. New connections start disabled.',
+        '<details class="w-setuphelp" data-mcpopen' + (VIEW.mcpOpen ? ' open' : '') + '><summary>Have an MCP configuration? Paste it here</summary><p class="w-muted fine">Copy one server’s JSON configuration from its documentation. Werkbord fills in the fields for you; review them before saving. Nothing runs until you test or enable the connection.</p>' +
+        '<label class="w-field"><span class="w-lab">MCP configuration</span><textarea class="w-input" data-mcp-paste rows="5" spellcheck="false" style="font-family:var(--mono);font-size:12px" placeholder="' + esc('{"mcpServers":{"my-service":{"url":"https://service.example/mcp"}}}') + '">' + esc(VIEW.mcpText || '') + '</textarea></label>' +
+        '<div><button class="w-btn" type="button" data-a="mcpfill">Fill in connection</button></div></details>' + err + draft +
+        '<p class="w-muted fine">For a hosted server, choose Remote service and enter its MCP URL. For a server installed on this computer, choose Local process and enter its executable and arguments. <a href="#" data-a="helpgo" data-id="mcp">MCP setup help</a></p>' +
+        '<p class="w-muted" data-testid="mcp-empty">No MCP services yet. Salie only calls a service you have turned on.</p><div><button class="w-btn" type="button" data-a="toast" data-v="Adding a service is turned off in the demo.">Add a service</button></div>');
     },
     'team/labels': function () {
       return pnl('Labels', SET_NOTE['team/labels'], '<div class="w-setrow">' + LABELS.map(function (l) { return '<span class="w-chip">' + l + '</span>'; }).join('') + '</div><p class="w-muted fine">Labels group tickets on the board and in the Timeline. Anyone with the right to manage labels can add one.</p>');
@@ -1595,7 +1751,7 @@
     if (VIEW.arch) return '<div class="w-bview"><div class="w-bar">' + filtersHTML() + '</div><div class="w-bscroll">' + archiveHTML() + '</div></div>';
     return '<div class="w-bview"><div class="w-bar">' + filtersHTML() + legendHTML() + '</div><div class="w-cols">' + COLS.map(function (c) {
       var ts = inCol(c[0]);
-      return '<section class="w-col w-tray" data-col="' + c[0] + '" aria-label="' + c[1] + '"><header class="w-ch"><h2>' + c[1] + '</h2><span class="w-chip">' + ts.length + '</span>' +
+      return '<section class="w-col w-tray" data-col="' + c[0] + '" data-mp="db-' + c[0] + '" aria-label="' + c[1] + '"><header class="w-ch"><h2>' + c[1] + '</h2><span class="w-chip">' + ts.length + '</span>' +
         (c[0] === 'backlog' ? '<button class="w-btn quiet sm ic add" type="button" data-a="new" aria-label="Add a task to Backlog">' + ic('plus') + '</button>' : '') + '</header>' +
         '<div data-hint="' + c[0] + '"></div><ul class="w-list" data-keep="col-' + c[0] + '">' + (ts.length ? ts.map(function (t) { return cardHTML(t, D.task == t.id); }).join('') : '<li class="w-none">' + emptyCol(c[0]) + '</li>') + '</ul></section>';
     }).join('') + '</div></div>';
@@ -1609,7 +1765,7 @@
     var seg = '<div class="w-seg" role="group" aria-label="Show">' + [['all', 'All', items.length], ['question', 'Needs input', qs.length], ['blocked', 'Blocked', bl.length]].filter(function (s) { return s[0] === 'all' || s[2]; }).map(function (s) {
       return '<button type="button" data-a="cc" data-id="' + s[0] + '" aria-pressed="' + (cur === s[0]) + '">' + s[1] + ' <span class="w-mm">' + s[2] + '</span></button>';
     }).join('') + '</div>';
-    var list = '<ul style="display:flex;flex-direction:column;gap:14px">' + (shown.length ? shown.map(function (i) { return itemHTML(i, true); }).join('') : '<li class="w-empty">Nothing needs you. Agents are working or waiting for review.</li>') + '</ul>';
+    var list = '<ul style="display:flex;flex-direction:column;gap:14px" data-mp="attn">' + (shown.length ? shown.map(function (i) { return itemHTML(i, true); }).join('') : '<li class="w-empty">Nothing needs you. Agents are working or waiting for review.</li>') + '</ul>';
     var mine = S.tasks.filter(function (t) { return t.run && t.run.st === 'running'; });
     var others = [];
     ['api-server', 'marketing-site'].forEach(function (p) { projTasks(p).forEach(function (t) { if (t.run && t.run.st === 'running') others.push(t); }); });
@@ -1679,9 +1835,9 @@
   var HEAD = { 'my-app': 'c93e343', 'api-server': '7be12d0', 'marketing-site': 'a41f9c6' };
   function branchCardHTML(t) {
     var r = t.run;
-    return '<li class="w-card w-branch"><p class="w-bname">werkbord/<b>' + esc(r.branch) + '</b></p><p style="display:flex;gap:6px;flex-wrap:wrap"><span class="w-chip">' + dot('work') + r.ahead + ' ahead</span><span class="w-chip">' + dot('ask') + 'not on any remote</span></p>' +
-      '<p class="w-bwarn">' + r.ahead + ' commit' + (r.ahead === 1 ? '' : 's') + ' ready to review</p><p class="w-muted" style="font-size:13px">' + r.ahead + ' ahead of main · no upstream</p><p class="w-muted" style="font-size:13px"><span class="w-mm" style="color:var(--text)">' + (t.id * 2654435761 >>> 0).toString(16).slice(0, 8) + '</span> ' + esc(r.commit) + ' · ' + ago(S.now - (r.ended || S.now)) + '</p>' +
-      '<div class="w-bfoot"><button class="link" type="button" data-a="open" data-id="' + t.id + '">' + esc(t.title) + '</button><button class="w-btn" type="button" data-a="open" data-id="' + t.id + '">Review</button><button class="w-btn" type="button" data-a="merge" data-id="' + t.id + '">Merge…</button><button class="w-btn" type="button" data-a="push">Push</button></div></li>';
+    return '<li class="w-card w-branch"><p class="w-bname">werkbord/<b>' + esc(r.branch) + '</b></p><p style="display:flex;gap:6px;flex-wrap:wrap"><span class="w-chip">' + dot('work') + r.ahead + ' ahead</span><span class="w-chip">' + (r.pushed ? dot('ok') + 'on origin' : dot('ask') + 'not on any remote') + '</span></p>' +
+      '<p class="w-bwarn">' + r.ahead + ' commit' + (r.ahead === 1 ? '' : 's') + ' ready to review</p><p class="w-muted" style="font-size:13px">' + r.ahead + ' ahead of main · ' + (r.pushed ? 'tracks origin/' + branchOf(t) : 'no upstream') + '</p><p class="w-muted" style="font-size:13px"><span class="w-mm" style="color:var(--text)">' + (t.id * 2654435761 >>> 0).toString(16).slice(0, 8) + '</span> ' + esc(r.commit) + ' · ' + ago(S.now - (r.ended || S.now)) + '</p>' +
+      '<div class="w-bfoot"><button class="link" type="button" data-a="open" data-id="' + t.id + '">' + esc(t.title) + '</button><button class="w-btn" type="button" data-a="open" data-id="' + t.id + '">Review</button><button class="w-btn" type="button" data-a="merge" data-id="' + t.id + '">Merge…</button>' + (r.pushed ? '' : '<button class="w-btn" type="button" data-a="push" data-id="' + t.id + '">Push…</button>') + '</div></li>';
   }
   var GITSUBS = [['overview', 'overview', 'Overview'], ['health', 'check', 'Health'], ['branches', 'git', 'Branches'], ['pr', 'pr', 'Pull requests'], ['changes', 'changes', 'Changes'], ['worktrees', 'folder', 'Worktrees'], ['history', 'runs', 'History']];
   var PRS = { 'my-app': [], 'api-server': [['#41', 'Bump the Postgres driver to 5.6', 'dependabot', 'open · checks passing'], ['#42', 'Allow the new dashboard origin in CORS', 'you', 'open · review requested']], 'marketing-site': [['#17', 'Update the footer links', 'you', 'draft']] };
@@ -1700,7 +1856,7 @@
         '<p class="w-muted fine">Health is read from Git metadata only: no network, no AI, nothing changed.</p></section>';
     }
     if (sub === 'branches') {
-      return '<section class="w-pn"><div class="w-ph">Branches <span class="w-chip">' + (items.length + 1) + '</span></div>' + list([srow('main', dot('ok') + 'HEAD · up to date with origin · ' + HEAD[pr])].concat(items.map(function (t) { return srow('werkbord/' + esc(t.run.branch), dot('ask') + t.run.ahead + ' ahead · not on any remote', '<button class="w-btn sm" type="button" data-a="open" data-id="' + t.id + '">Review</button>'); }))) +
+      return '<section class="w-pn"><div class="w-ph">Branches <span class="w-chip">' + (items.length + 1) + '</span></div>' + list([srow('main', dot('ok') + 'HEAD · up to date with origin · ' + HEAD[pr])].concat(items.map(function (t) { return srow('werkbord/' + esc(t.run.branch), (t.run.pushed ? dot('ok') + t.run.ahead + ' ahead · on origin' : dot('ask') + t.run.ahead + ' ahead · not on any remote'), '<button class="w-btn sm" type="button" data-a="open" data-id="' + t.id + '">Review</button>'); }))) +
         '<p class="w-muted fine">Werkbord branches are made for an agent’s task and merged locally when you say so.</p></section>';
     }
     if (sub === 'pr') {
@@ -1726,11 +1882,65 @@
       (finding ? '<div class="w-slot"><b style="font-weight:600;font-size:13px">A branch is falling behind main</b><p class="w-muted" style="font-size:13px">werkbord/refactor-settings-page is 14 commits behind main. Merging it later may need a rebase first.</p><p class="w-well">git rev-list --count werkbord/refactor-settings-page..main → 14</p><div><button class="w-btn sm" type="button" data-a="finding">Create Backlog task</button></div></div>' :
         '<p class="w-muted" style="font-size:13px">11 checks passed. Findings never act on their own: you choose what becomes a task.</p>') + '</section>';
   }
+  /* ---------- Git Fetch and Push ----------
+     As in the app: while a request is out, a bounded arrow and a thin current say so (no percentage, no stage that was not reported);
+     what comes back keeps this computer's side and the remote's side apart, and only a result the remote confirmed gets a drawn check.
+     The demo's remote answers from a script, after a moment. */
+  var xferTimers = [];
+  function xferIcon(state, dir) {
+    return '<span class="w-xfer" data-state="' + state + '" data-direction="' + dir + '" aria-hidden="true"><svg viewBox="0 0 16 16">' +
+      (state === 'done' ? '<path class="check" d="m2 8 4 4 8-9" pathLength="1"/>' : '<path class="arrow" d="' + (dir === 'down' ? 'M8 2v12m-5-5 5 5 5-5' : 'M8 14V2m-5 5 5-5 5 5') + '"/>') + '</svg></span>';
+  }
+  function fetchButton() {
+    var pend = S.xfer.fetching === curProj(), done = S.xfer.fetched === curProj();
+    return '<button class="w-btn sm w-transfer fetch" type="button" data-a="gfetch"' + (pend ? ' data-transfer="pending" disabled' : '') + ' title="Fetch from the remote to update what is known about it. Changes no branch of yours.">' +
+      (pend ? xferIcon('pending', 'down') : done ? xferIcon('done', 'down') : '') + '<span>' + (pend ? 'Fetching…' : done ? 'Fetched' : 'Fetch') + '</span></button>';
+  }
+  function resultHTML(r) {
+    return '<div class="w-notice w-result" data-tone="ok" role="status"><div class="heading">' + xferIcon('done', 'down') + '<strong>Done</strong></div><p>' + esc(r.message) + '</p>' +
+      '<div class="sides"><div><h4>On this computer</h4><p>' + esc(r.local) + (r.sha ? ' <span class="sha">none → ' + r.sha + '</span>' : '') + '</p></div>' +
+      '<div><h4>On origin</h4><p><strong class="ok">Confirmed by the remote.</strong>' + (r.sha ? ' <span class="sha">at ' + r.sha + '</span>' : '') + '</p></div></div></div>';
+  }
+  function acknowledgeResults() { [deskRoot, phoneRoot].forEach(function (root) { if (root) root.querySelectorAll('.w-result').forEach(M.acknowledge); }); }
+  function gitFetch() {
+    var p = curProj();
+    if (S.xfer.fetching) return;
+    S.xfer.fetching = p; S.xfer.fetched = ''; S.xfer.last = null; render();
+    xferTimers.push(setTimeout(function () {
+      S.xfer.fetching = ''; S.xfer.fetched = p;
+      S.xfer.last = { kind: 'fetch', project: p, message: 'Fetched origin.', local: 'Remote-tracking branches were updated. Your own branches, your checkout and every worktree were left alone.' };
+      render(); acknowledgeResults();
+      // "Fetched" reads for a moment (720 ms), then the button is Fetch again; the result stays.
+      xferTimers.push(setTimeout(function () { S.xfer.fetched = ''; render(); }, 720));
+    }, 1300));
+  }
+  function shaOf(t) { return (t.id * 2654435761 >>> 0).toString(16).slice(0, 7); }
+  function repaintPush() {
+    [[deskRoot, D], [phoneRoot, P]].forEach(function (pair) { if (pair[0] && pair[1].sheet && pair[1].sheet.kind === 'push') setOverlay(pair[0], sheetHTML(pair[1].sheet, pair[0] === phoneRoot)); });
+  }
+  function gitPush(id) {
+    var t = get(id); if (!t || !t.run || S.xfer.pushing || t.run.pushed) return;
+    S.xfer.pushing = t.id; S.xfer.last = null; repaintPush();
+    xferTimers.push(setTimeout(function () {
+      S.xfer.pushing = 0; t.run.pushed = true;
+      S.xfer.last = { kind: 'push', task: t.id, message: 'Pushed ' + branchOf(t) + ' to origin, and origin confirms it is at ' + shaOf(t) + '.', local: 'your remote-tracking branch origin/' + branchOf(t) + ' was updated; it now tracks origin/' + branchOf(t), sha: shaOf(t) };
+      repaintPush(); acknowledgeResults(); render();
+    }, 1600));
+  }
+  function pushSheet(t) {
+    var r = t.run, res = S.xfer.last && S.xfer.last.kind === 'push' && S.xfer.last.task === t.id ? S.xfer.last : null, pend = S.xfer.pushing === t.id;
+    var body = res ? resultHTML(res) : '<p>Push <strong>' + branchOf(t) + '</strong> to <strong>origin</strong> at <span class="w-mm" style="color:var(--text)">' + shaOf(t) + '</span>.</p>' +
+      '<dl class="w-kv"><dt>Now</dt><dd>No upstream <span class="w-muted">(as of the last fetch)</span></dd><dt>To push</dt><dd>' + plural(r.ahead, 'commit') + ' that exist on no remote</dd></dl>' +
+      '<p class="w-muted" style="font-size:12px">A plain push: never forced. If the remote has commits this branch lacks, it is refused and nothing is overwritten. Afterwards the remote itself is asked to confirm the branch is where it should be.</p>';
+    var foot = res ? '<footer><button class="w-btn pri" type="button" data-a="sheetx">Done</button></footer>' :
+      '<footer><button class="w-btn" type="button" data-a="sheetx">Cancel</button><button class="w-btn pri w-transfer push" type="button" data-a="pushgo" data-id="' + t.id + '"' + (pend ? ' data-transfer="pending" disabled' : '') + '>' + (pend ? xferIcon('pending', 'up') : '') + '<span>' + (pend ? 'Pushing…' : 'Push to origin') + '</span></button></footer>';
+    return '<div class="w-scrim" data-a="sheetx"></div><div class="w-sheet" role="dialog" aria-label="Push ' + branchOf(t) + '" style="--w:560px"><header><h2>Push ' + branchOf(t) + '</h2><button class="w-btn quiet sm ic" type="button" data-a="sheetx" aria-label="Close">' + ic('close') + '</button></header><div class="body">' + body + '</div>' + foot + '</div>';
+  }
   function gitHTML() {
     var items = gitItems(), sub = VIEW.gsub || 'overview';
     if (sub !== 'overview') return '<div style="padding:16px 24px 0;height:100%;display:flex;flex-direction:column;gap:18px">' + gitNavHTML() + '<div class="w-pane" data-keep="git-sub" style="max-width:760px">' + gitSubHTML(sub) + '</div></div>';
     return '<div style="padding:16px 24px 0;height:100%;display:flex;flex-direction:column;gap:18px">' + gitNavHTML() + '<div class="w-split" style="padding:0;--side:420px;flex:1;min-height:0"><div class="w-pane" data-keep="git-l"><p class="w-lab" style="display:flex;justify-content:space-between">Needs you<span>' + items.length + '</span></p><ul style="display:flex;flex-direction:column;gap:12px">' + (items.length ? items.map(branchCardHTML).join('') : '<li class="w-empty">Nothing waiting. Finished work shows up here with its branch.</li>') + '</ul></div>' +
-      '<div class="w-pane" data-keep="git-r">' + healthHTML() + '<section class="w-pn" aria-label="Repository"><div class="w-ph"><span class="w-lab">Repository</span><span class="end" style="display:flex;gap:6px"><button class="w-btn sm" type="button" data-a="toast" data-v="Refresh reads the repository again.">Refresh</button><button class="w-btn sm" type="button" data-a="toast" data-v="Fetch asks the remote what changed. It never pulls into your checkout.">Fetch</button></span></div><p style="font-weight:600;font-size:16px">' + curProj() + '</p><div class="w-boxes"><div class="w-slot"><p class="w-lab">On this computer</p><dl class="w-kv"><dt>HEAD</dt><dd><b>main</b> · ' + HEAD[curProj()] + '</dd><dt>Target</dt><dd><b>main</b></dd><dt>Working tree</dt><dd style="color:var(--ok-text)">clean</dd></dl></div><div class="w-slot"><p class="w-lab">On the remote</p><dl class="w-kv"><dt>origin</dt><dd>github.com/you/' + curProj() + '</dd><dt>main</dt><dd>up to date</dd></dl></div></div></section></div></div></div>';
+      '<div class="w-pane" data-keep="git-r">' + healthHTML() + '<section class="w-pn" aria-label="Repository"><div class="w-ph"><span class="w-lab">Repository</span><span class="end" style="display:flex;gap:6px"><button class="w-btn sm" type="button" data-a="toast" data-v="Refresh reads the repository again.">Refresh</button>' + fetchButton() + '</span></div>' + (S.xfer.last && S.xfer.last.kind === 'fetch' && S.xfer.last.project === curProj() ? resultHTML(S.xfer.last) : '') + '<p style="font-weight:600;font-size:16px">' + curProj() + '</p><div class="w-boxes"><div class="w-slot"><p class="w-lab">On this computer</p><dl class="w-kv"><dt>HEAD</dt><dd><b>main</b> · ' + HEAD[curProj()] + '</dd><dt>Target</dt><dd><b>main</b></dd><dt>Working tree</dt><dd style="color:var(--ok-text)">clean</dd></dl></div><div class="w-slot"><p class="w-lab">On the remote</p><dl class="w-kv"><dt>origin</dt><dd>github.com/you/' + curProj() + '</dd><dt>main</dt><dd>up to date</dd></dl></div></div></section></div></div></div>';
   }
 
   /* ---------- calendar ---------- */
@@ -1889,6 +2099,7 @@
         '<div class="w-exec"><label class="w-field"><span class="w-lab">Agent</span><select class="w-select" name="agent"><option>Claude Code</option><option>Codex</option></select></label><label class="w-field"><span class="w-lab">Priority</span><select class="w-select" name="prio"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></label><label class="w-field"><span class="w-lab">Interaction</span><select class="w-select" name="inter"><option>Ask me when needed</option><option>Autonomous</option><option>Stop if blocked</option></select></label></div></div>' +
         '<footer><span class="tip"><kbd class="w-key">⌘</kbd><kbd class="w-key">↵</kbd> start</span><button class="w-btn" type="button" data-a="sheetx">Cancel</button><button class="w-btn" type="submit" name="go" value="add">Add to Backlog</button><button class="w-btn pri" type="submit" name="go" value="start">Add and start agent</button></footer></form>';
     }
+    if (sh.kind === 'push') { var pt = get(sh.id); return pt && pt.run ? pushSheet(pt) : ''; }
     if (sh.kind === 'merge') {
       var t = get(sh.id), r = t.run;
       return '<div class="w-scrim" data-a="sheetx"></div><div class="w-sheet" role="dialog" aria-label="Merge" style="--w:560px"><header><h2>Merge ' + branchOf(t) + '</h2><button class="w-btn quiet sm ic" type="button" data-a="sheetx" aria-label="Close">' + ic('close') + '</button></header>' +
@@ -1952,12 +2163,14 @@
       else if (D.view === 'analytics') main = '<header class="w-ghead"><div class="w-uh"><h1>Analytics</h1><p class="w-lede">Where agent time and cost go, across your projects</p></div></header><main class="w-main" data-keep="main-an">' + analyticsHTML(D.an) + '</main>';
       else if (D.view === 'psettings') main = psettingsHTML();
       else main = headHTML() + bannerHTML() + '<main class="w-main" data-keep="main-' + D.view + '"' + (D.view === 'runs' ? '' : ' style="overflow:hidden"') + '>' + ({ board: boardHTML, overview: overviewHTML, calendar: calendarHTML, git: gitHTML, runs: runsHTML })[D.view]() + '</main>';
-      panel = D.task && get(D.task) && PROJVIEWS.indexOf(D.view) > -1 ? '<section class="w-panel" role="dialog" aria-label="Task">' + panelInner(get(D.task), D.ptab, false) + '</section>' : '';
+      panel = D.task && get(D.task) && PROJVIEWS.indexOf(D.view) > -1 ? '<section class="w-panel" data-surface="panel:' + D.task + '" role="dialog" aria-label="Task">' + panelInner(get(D.task), D.ptab, false) + '</section>' : '';
     }
     if (D.set !== null || D.page) panel = '';
     // Sheets, the switcher and toasts live outside this part, so an open form keeps what was typed.
+    var motion = M.begin(deskRoot);
     deskRoot.querySelector('[data-app]').innerHTML = '<div class="w-shell">' + railHTML() + '<div class="w-mainarea">' + (P.wf ? wfBanner() : '') + main + panel + (panel || D.page === 'help' ? '' : helpButtonHTML()) + '</div></div>';
     restoreScroll(deskRoot, D.scroll);
+    M.end(deskRoot, motion, revSig(), { arrived: landed });
     S.tasks.forEach(function (t) { t.fresh = false; });
     S.team.tickets.forEach(function (k) { k.fresh = false; });
     if (fk) { var n = deskRoot.querySelector(fk); if (n) n.focus({ preventScroll: true }); }
@@ -1966,9 +2179,14 @@
     return '<div class="w-scrim" data-a="palx"></div><div class="w-pal" role="dialog" aria-label="Jump to"><input class="w-input" data-pal placeholder="Jump to a project, section or task" autocomplete="off" aria-label="Jump to"><ul data-pallist>' + palListHTML('', where) + '</ul></div>';
   }
   function overlayOf(root) { return root && root.querySelector('[data-overlay]'); }
+  /* The layers an overlay holds are named by what they are, so one that is repainted in place is not mistaken for a new one. */
+  function tagLayers(o) {
+    o.querySelectorAll('.w-scrim').forEach(function (n) { n.setAttribute('data-surface', 'scrim'); });
+    o.querySelectorAll('.w-sheet').forEach(function (n) { n.setAttribute('data-surface', 'sheet:' + (n.getAttribute('aria-label') || '')); });
+  }
   function setOverlay(root, html, focusSel) {
     var o = overlayOf(root); if (!o) return;
-    o.innerHTML = html;
+    M.within(root, function () { o.innerHTML = html; tagLayers(o); });
     var f = focusSel && o.querySelector(focusSel); if (f) f.focus({ preventScroll: true });
     guideRefresh();
   }
@@ -2025,7 +2243,7 @@
   function wfBanner() {
     if (!P.wf || P.wf.dismissed) return '';
     var l = wfLines();
-    return '<section class="w-wfb" aria-label="Workflow progress"><div class="ex"><div class="open"><strong>Find Bugs</strong><span data-wf="status">' + l.status + '</span><span data-wf="stage">' + l.stage + ' · ' + esc(P.wf.repo) + '</span><span class="w-mm" data-wf="count">Claude Code · ' + l.count + '</span></div>' +
+    return '<section class="w-wfb" data-surface="wfb" aria-label="Workflow progress"><div class="ex"><div class="open"><strong>Find Bugs</strong><span data-wf="status">' + l.status + '</span><span data-wf="stage">' + l.stage + ' · ' + esc(P.wf.repo) + '</span><span class="w-mm" data-wf="count">Claude Code · ' + l.count + '</span></div>' +
       (l.ended && !P.wf.stopped ? '<button class="w-btn" type="button" data-a="wfreport">View report</button>' : '') + (l.ended ? '<button class="w-btn" type="button" data-a="wfx" aria-label="Dismiss finished workflow">' + ic('close') + '</button>' : '<button class="w-btn" type="button" data-a="wfstop" aria-label="Stop Find Bugs">' + ic('stop', 14) + 'Stop</button>') + '</div></section>';
   }
   /* The deck's three sheets for a workflow key: the button library (an empty position, or the pencil), the repository
@@ -2061,6 +2279,9 @@
         'marketing-site': [['Signup errors are not announced to screen readers', 'Put the message in a polite live region.'], ['The theme resets after navigating', 'Read the saved theme before the first paint.']] }[P.wf.repo];
   }
   function wfRunning() { return !!P.wf && !wfLines().ended; }
+  /* A saved deck is acknowledged on the pencil that edits it, and a workflow's progress on the banner that reports it. */
+  function ackPencil() { var b = phoneRoot && phoneRoot.querySelector('.w-dtop [aria-label="Edit Deck"]'); if (b) M.acknowledge(b); }
+  function ackBanner() { document.querySelectorAll('.wbx .w-wfb .ex').forEach(M.acknowledge); }
   function saveWorkflow() {
     var select = phoneRoot.querySelector('[data-workflow-repo]');
     if (select) P.repo = select.value || null;
@@ -2082,14 +2303,14 @@
     var c = keyCounts();
     var keys = KEYS.map(function (k) {
       if (k[0] === 'bugs') {
-        if (!P.deckAdded) return '<button class="w-dkey empty" type="button" data-a="decklibrary" aria-label="Add a button to position 9"><span class="cap"><span class="face"><span class="glyph">' + ic('plus', 26) + '</span><span class="name">Add button</span></span></span></button>';
-        // A workflow key: tap to run, hold to configure. It names where it runs, and says so while it is running.
-        // "Ask every time" in its settings; the key has room for nine characters.
-        var busy = wfRunning(), where = busy ? 'Running' : P.repo || 'Pick repo';
-        return '<a class="w-dkey workflow" href="#" data-a="wftap" data-key="bugs" aria-keyshortcuts="Shift+F10"' + (busy ? ' data-run="on"' : '') + ' aria-label="Find Bugs, ' + (busy ? 'running on ' + esc(P.wf.repo) : P.repo ? 'runs on ' + esc(P.repo) : 'asks for a repository') + '. Hold to change its settings."><span class="cap"><span class="face targeted"><span class="glyph">' + ic('bug', 22) + '</span><span class="name">Find Bugs</span><span class="target">' + (busy ? dot('work', 'pulse') : '') + esc(where) + '</span></span></span></a>';
+        if (!P.deckAdded) return '<button class="w-dkey empty" type="button" data-a="decklibrary" data-mk="k-add" aria-label="Add a button to position 9"><span class="cap"><span class="face"><span class="glyph">' + ic('plus', 26) + '</span><span class="name">Add button</span></span></span></button>';
+        // A workflow key: tap to run, hold to configure. It shows its icon and name only; where it runs is in its settings,
+        // and is read out to a screen reader (the label below).
+        var busy = wfRunning();
+        return '<a class="w-dkey workflow" href="#" data-a="wftap" data-key="bugs" data-mk="k-bugs" aria-keyshortcuts="Shift+F10"' + (busy ? ' data-run="on"' : '') + ' aria-label="Find Bugs, ' + (busy ? 'running on ' + esc(P.wf.repo) : P.repo ? 'runs on ' + esc(P.repo) : 'asks for a repository') + '. Hold to change its settings."><span class="cap"><span class="face"><span class="glyph">' + ic('bug', 26) + '</span><span class="name">Find Bugs</span></span></span></a>';
       }
       var count = c[k[0]] || 0, tone = k[2] || 'plain', lit = count > 0;
-      return '<a class="w-dkey" href="#" data-a="pgo" data-id="' + k[0] + '" data-key="' + k[0] + '"' + (lit ? ' data-lit="on" data-tone="' + tone + '"' : '') + ' aria-label="' + PLACES[k[0]] + (lit ? ', ' + count : '') + '"><span class="cap"><span class="face"><span class="glyph">' + ic(k[1], 26) + '</span><span class="name">' + PLACES[k[0]] + '</span></span>' +
+      return '<a class="w-dkey" href="#" data-a="pgo" data-id="' + k[0] + '" data-key="' + k[0] + '" data-mk="k-' + k[0] + '"' + (lit ? ' data-lit="on" data-tone="' + tone + '"' : '') + ' aria-label="' + PLACES[k[0]] + (lit ? ', ' + count : '') + '"><span class="cap"><span class="face"><span class="glyph">' + ic(k[1], 26) + '</span><span class="name">' + PLACES[k[0]] + '</span></span>' +
         (lit ? '<span class="w-num' + (tone === 'wait' ? ' pend' : '') + '" aria-hidden="true">' + count + '</span>' : '') + '</span></a>';
     }).join('');
     return '<div class="w-deckpage"><header class="w-dtop"><div class="id"><p class="brand">' + mark(20) + '<span class="wm">werkbord</span></p><p class="w-mm status"><span class="conn">' + dot('ok') + 'Connected</span> · 1 runner</p></div>' +
@@ -2098,7 +2319,7 @@
       '<button class="w-btn ic" type="button" data-a="help" aria-label="Help and shortcuts">' + ic('help') + '</button>' +
       '<button class="w-btn ic" type="button" data-a="settings" aria-label="Settings">' + ic('settings') + '</button></nav></header>' +
       wfBanner() +
-      '<section class="w-housing" aria-label="Control Deck"><div class="w-keys">' + keys + '</div></section>' + (P.wf && !P.wf.dismissed ? '<section class="w-deckhistory" aria-label="Workflow executions"><h2>Workflow executions</h2><p>Find Bugs · ' + esc(P.wf.repo) + '</p><p class="w-mm" data-wf="count">Claude Code · ' + wfLines().count + '</p><p data-wf="stage">' + wfLines().stage + ' · ' + esc(P.wf.repo) + '</p>' + (P.wf.ended && !P.wf.stopped ? '<p>2 bugs found · 2 suggested fixes · no files changed</p>' : '') + '</section>' : '') + '</div>';
+      '<section class="w-housing" aria-label="Control Deck"><div class="w-keys" data-mp="deck">' + keys + '</div></section>' + (P.wf && !P.wf.dismissed ? '<section class="w-deckhistory" aria-label="Workflow executions"><h2>Workflow executions</h2><p>Find Bugs · ' + esc(P.wf.repo) + '</p><p class="w-mm" data-wf="count">Claude Code · ' + wfLines().count + '</p><p data-wf="stage">' + wfLines().stage + ' · ' + esc(P.wf.repo) + '</p>' + (P.wf.ended && !P.wf.stopped ? '<p>2 bugs found · 2 suggested fixes · no files changed</p>' : '') + '</section>' : '') + '</div>';
   }
   /* A page under the deck: Back, its name, and one line on how its subject stands (the app's subtitle.ts). */
   function pageHead(title, sub, back, tone) {
@@ -2113,7 +2334,7 @@
     var cols = COLS.map(function (c) { return [c[0], c[1], inCol(c[0])]; });
     return '<div class="w-mpage"><div class="w-seg full" role="group" aria-label="Board column">' + cols.map(function (c) { return '<button type="button" data-a="col" data-id="' + c[0] + '" aria-pressed="' + (P.col === c[0]) + '">' + c[1] + '<span class="w-mm">' + c[2].length + '</span></button>'; }).join('') + '</div>' +
       filtersHTML() + legendHTML(true) +
-      '<ul style="display:flex;flex-direction:column;gap:12px">' + (function () { var ts = inCol(P.col); return ts.length ? ts.map(function (t) { return cardHTML(t, false); }).join('') : '<li class="w-none">' + emptyCol(P.col) + '</li>'; })() + '</ul></div>';
+      '<ul style="display:flex;flex-direction:column;gap:12px" data-mp="pb">' + (function () { var ts = inCol(P.col); return ts.length ? ts.map(function (t) { return cardHTML(t, false); }).join('') : '<li class="w-none">' + emptyCol(P.col) + '</li>'; })() + '</ul></div>';
   }
   function phoneCalendar(uni) {
     var d = P.day, x = dateOf(d);
@@ -2145,9 +2366,9 @@
   }
   function phoneMyWork() {
     var rows = myWorkRows(), status = { doing: 'In progress', review: 'In review' };
-    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px">' + (rows.length ? rows.map(function (w) {
+    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px" data-mp="pmw">' + (rows.length ? rows.map(function (w) {
       var open = w.go.indexOf('ind:') === 0;
-      return '<li><button class="w-card w-prow" type="button" data-a="' + (open ? 'open' : w.ws === 'team' ? 'pteam' : 'other') + '"' + (open ? ' data-id="' + w.go.slice(4) + '"' : '') + '><span class="who"><b>' + esc(w.title) + '</b><span class="w-mm">' + esc(w.wsName) + ' · ' + esc(w.project) + ' · ' + status[w.status] + '</span></span>' +
+      return '<li data-mk="w' + w.go + '"><button class="w-card w-prow" type="button" data-a="' + (open ? 'open' : w.ws === 'team' ? 'pteam' : 'other') + '"' + (open ? ' data-id="' + w.go.slice(4) + '"' : '') + '><span class="who"><b>' + esc(w.title) + '</b><span class="w-mm">' + esc(w.wsName) + ' · ' + esc(w.project) + ' · ' + status[w.status] + '</span></span>' +
         (w.exec ? '<span class="w-xb" data-tone="' + EXECTONE[w.exec] + '"><i class="w-dot" data-tone="' + EXECTONE[w.exec] + '"></i>' + EXECWORD[w.exec] + '</span>' : '') + '</button></li>';
     }).join('') : '<li class="w-empty">Nothing is in progress.</li>') + '</ul></div>';
   }
@@ -2176,11 +2397,11 @@
       return '<li class="w-card w-agent" data-tone="' + tone[c.state] + '"><div class="head"><span class="tile" aria-hidden="true">' + ic('activity', 20) + '</span><span class="who"><b>' + c.name + '</b><span class="w-mm">' + dot(tone[c.state]) + c.state + (c.sessions > 1 ? ' · ' + c.sessions + ' sessions' : '') + '</span></span></div>' +
         (c.state === 'Idle' ? '<p class="w-muted" style="font-size:13px">Ready. Start it on a task from a project\'s Board.</p>' : '') + (inside.length ? '<ul class="inside">' + inside.join('') + '</ul>' : '') + '</li>';
     }).join('');
-    return '<div class="w-mpage"><div class="w-seg full" role="group" aria-label="Show agents">' + seg + '</div><ul style="display:flex;flex-direction:column;gap:10px">' + (list || '<li class="w-empty">No agent is ' + (P.af === 'waiting' ? 'waiting for you' : P.af) + '.</li>') + '</ul></div>';
+    return '<div class="w-mpage"><div class="w-seg full" role="group" aria-label="Show agents">' + seg + '</div><ul style="display:flex;flex-direction:column;gap:10px" data-mp="ag">' + (list || '<li class="w-empty">No agent is ' + (P.af === 'waiting' ? 'waiting for you' : P.af) + '.</li>') + '</ul></div>';
   }
   function phoneReviews() {
     var items = attention().filter(function (i) { return i.kind === 'review'; });
-    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px">' + (items.length ? items.map(function (i) { return itemHTML(i, true); }).join('') : '<li class="w-empty">Nothing is ready for review. Finished work shows up here.</li>') + '</ul></div>';
+    return '<div class="w-mpage"><ul style="display:flex;flex-direction:column;gap:12px" data-mp="attn">' + (items.length ? items.map(function (i) { return itemHTML(i, true); }).join('') : '<li class="w-empty">Nothing is ready for review. Finished work shows up here.</li>') + '</ul></div>';
   }
   function phoneAnalytics() { return '<div class="w-mpage">' + analyticsHTML(P.an) + '</div>'; }
   function phoneRunners() {
@@ -2234,9 +2455,11 @@
     var tabbar = '<nav class="w-tabbar" aria-label="Primary">' +
       '<button type="button" data-a="pdeck"' + (!AS.open ? ' aria-current="page"' : '') + '><span class="icon">' + ic('control', 22) + '</span><span>Control Deck</span></button>' +
       '<button type="button" data-a="' + (AS.open ? 'asst-x' : 'asst-open') + '" aria-haspopup="dialog"' + (AS.open ? ' aria-current="page" aria-expanded="true"' : ' aria-expanded="false"') + ' aria-label="Salie' + (q ? ', ' + q + (q === 1 ? ' change is' : ' changes are') + ' waiting for you' : AS.busy ? ', working' : '') + '"><span class="icon asst">' + ic('assistant', 22) + (q ? '<span class="w-num pend">' + q + '</span>' : AS.busy ? '<span class="w-asst-live" aria-hidden="true"></span>' : '') + '</span><span>Salie</span></button></nav>';
-    var task = P.task && get(P.task) ? '<section class="w-mtask" role="dialog" aria-label="Task">' + panelInner(get(P.task), P.ptab, true) + '</section>' : '';
+    var task = P.task && get(P.task) ? '<section class="w-mtask" data-surface="mtask:' + P.task + '" role="dialog" aria-label="Task">' + panelInner(get(P.task), P.ptab, true) + '</section>' : '';
+    var motion = M.begin(phoneRoot);
     phoneRoot.querySelector('[data-app]').innerHTML = '<div class="w-scroll" data-keep="pscroll-' + at + (at === 'project' ? P.tab : '') + '">' + page + '</div>' + (at === 'project' && P.tab === 'board' && !P.task ? '<button class="w-fab" type="button" data-a="new" aria-label="New task">' + ic('plus', 22) + '</button>' : '') + tabbar + task;
     restoreScroll(phoneRoot, P.scroll);
+    M.end(phoneRoot, motion, revSig(), { arrived: landed });
     if (fk) { var el = phoneRoot.querySelector(fk); if (el) el.focus({ preventScroll: true }); }
   }
 
@@ -2272,7 +2495,7 @@
 
   /* ---------- shared demo clock: 4.5 real seconds per simulated minute (one tick per TICK ms) ---------- */
   function wfLive() {
-    if (P.wf && !P.wf.stopped && phoneRoot) { var wl = wfLines(); if (wl.ended && !P.wf.ended) { P.wf.ended = true; render(); return; } ['status', 'stage', 'count'].forEach(function (k) { document.querySelectorAll('.wbx [data-wf="' + k + '"]').forEach(function (el) { el.textContent = k === 'status' ? wl.status : k === 'stage' ? wl.stage + ' · ' + P.wf.repo : 'Claude Code · ' + wl.count; }); }); }
+    if (P.wf && !P.wf.stopped && phoneRoot) { var wl = wfLines(); if (wl.ended && !P.wf.ended) { P.wf.ended = true; render(); ackBanner(); return; } if (P.wf.seen !== wl.count) { if (P.wf.seen) ackBanner(); P.wf.seen = wl.count; } ['status', 'stage', 'count'].forEach(function (k) { document.querySelectorAll('.wbx [data-wf="' + k + '"]').forEach(function (el) { el.textContent = k === 'status' ? wl.status : k === 'stage' ? wl.stage + ' · ' + P.wf.repo : 'Claude Code · ' + wl.count; }); }); }
   }
   function tick() {
     if (P.wf && !P.wf.stopped && !P.wf.ended) P.wf.elapsed += 1000;
@@ -2355,7 +2578,7 @@
     else { P.task = +id; P.ptab = 'activity'; }
   }
   /* The other projects are shown as they stand. What would change them says so instead. */
-  var RO = { start: 1, toreview: 1, merge: 1, mergego: 1, stop: 1 };
+  var RO = { start: 1, toreview: 1, merge: 1, mergego: 1, stop: 1, push: 1, pushgo: 1 };
   function roText(t) { return (t && t.project ? t.project : 'This project') + ' is a read only snapshot in the demo. Start, review and merge work in my-app, where the walkthrough happens.'; }
   var NEW_OFF = 'Adding work is part of the walkthrough in this demo: ask Salie to plan a feature, and it creates the tasks and the ticket.';
   function archiveDone() {
@@ -2399,7 +2622,8 @@
         case 'ptab': V.ptab = id; render(); break;
         case 'start': startTask(+id); render(); break;
         case 'answer': answer(isNaN(+id) ? id : +id, v); render(); break;
-        case 'toreview': toReview(+id); render(); break;
+        case 'toreview': toReview(+id); var inRev = viewIn('review', 'Review'); if (inRev) toast('Moved to Review.', inRev); render(); break;
+        case 'toastact': var ta = toastAct; toastAct = null; document.querySelectorAll('.w-toast').forEach(function (el) { el.classList.remove('show', 'has-act'); }); if (ta) ta.run(); break;
         case 'merge': V.sheet = { kind: 'merge', id: +id }; setOverlay(root, sheetHTML(V.sheet, where === 'phone'), '[data-a="mergego"]'); break;
         case 'mergego': mergeTask(+id); dropOverlay(); render(); break;
         case 'sheetx': dropOverlay(); break;
@@ -2427,10 +2651,10 @@
         case 'calmode': D.cal = id; render(); break;
         case 'pgo': P.at = id; P.task = null; P.set = null; dropOverlay(); render(); break;
         case 'decklibrary': workflowSheet('decklibrary'); break;
-        case 'deckadd': if (P.deckAdded) workflowSheet('wfconfig'); else { P.deckAdded = true; dropOverlay(); toast('Find Bugs is on your deck. Tap to run, hold to configure.'); render(); } break;
+        case 'deckadd': if (P.deckAdded) workflowSheet('wfconfig'); else { P.deckAdded = true; dropOverlay(); toast('Find Bugs is on your deck. Tap to run, hold to configure.'); render(); ackPencil(); } break;
         case 'wftap': tapWorkflow(); break;
         case 'wfrun': var picked = phoneRoot.querySelector('input[name="wfrepo"]:checked'); runWorkflow(picked ? picked.value : REPOS[0]); dropOverlay(); render(); break;
-        case 'wfsave': saveWorkflow(); dropOverlay(); render(); break;
+        case 'wfsave': saveWorkflow(); dropOverlay(); render(); ackPencil(); break;
         case 'wfreport': V.sheet = { kind: 'workflow-report' }; G.f['phone-report'] = true; setOverlay(root, sheetHTML(V.sheet, where === 'phone')); break;
         case 'wfstop': if (P.wf) { P.wf.stopped = true; render(); } break;
         case 'wfx': if (P.wf) P.wf.dismissed = true; dropOverlay(); render(); break;
@@ -2452,6 +2676,9 @@
         case 'asst-open': openAsst(where); break;
         case 'asst-x': closeAsst(where); break;
         case 'asst-new': startOverAsst(); break;
+        case 'asst-stop': stopAsst(); break;
+        case 'asst-latest': jumpLatest(where); break;
+        case 'asst-act': var am = AS.msgs[+id]; if (am) { am.actOpen = !am.actOpen; renderAsst(false); } break;
         case 'asst-ask': askAsst(v); break;
         case 'asst-ok': decideCard(+id, +v, true); break;
         case 'asst-no': decideCard(+id, +v, false); break;
@@ -2487,13 +2714,17 @@
         case 'asst-model': toast('Replies are scripted here, so the model is fixed in this demo.'); break;
         case 'help': dropOverlay(); if (where === 'phone') { P.at = 'help'; P.task = null; } else { leave(); D.page = 'help'; D.task = null; } render(); break;
         case 'toast': toast(v); break;
+        case 'mcpdir': V.mcp = id; render(); break;
+        case 'mcpfill': var paste = root.querySelector('[data-mcp-paste]'); V.mcpText = paste ? paste.value : ''; V.mcpOpen = true; try { V.mcpDraft = mcpImport(V.mcpText); V.mcpErr = ''; } catch (x) { V.mcpDraft = null; V.mcpErr = x.message; } render(); break;
         case 'settings': if (where === 'phone') { dropOverlay(); P.at = 'settings'; P.set = null; P.task = null; render(); break; } dropOverlay(); D.page = null; D.set = id || D.set || 'general/appearance'; G.f.settings = true; D.task = null; render(); break;
         case 'setsec': D.set = id; render(); break;
         case 'settheme': var chosen = v || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); document.documentElement.dataset.theme = chosen; try { if (v) localStorage.setItem('wb-theme', v); else localStorage.removeItem('wb-theme'); } catch (x) {} window.dispatchEvent(new Event('themechange')); render(); break;
         case 'setalerts': D.alerts = !D.alerts; toast(D.alerts ? 'Alerts are on. Werkbord tells you from another app when an agent needs you.' : 'Alerts are off. Werkbord still marks what needs you in the sidebar.'); render(); break;
         case 'settest': toast('Needs you · my-app · Migrate runs table to WAL. On a Mac this arrives as a notification, and the Dock icon bounces.'); break;
         case 'setshare': D.share = +v; if (D.share === 2) toast('Sent to ' + S.team.name + '. It stays private until another authorised person approves it there.'); render(); break;
-        case 'push': toast('Push shows what would leave this computer, and asks before anything does.'); break;
+        case 'push': V.sheet = { kind: 'push', id: +id }; setOverlay(root, sheetHTML(V.sheet, where === 'phone'), '[data-a="pushgo"]'); break;
+        case 'pushgo': gitPush(+id); break;
+        case 'gfetch': gitFetch(); break;
         case 'gnav': V.gsub = id; render(); break;
         case 'closetask': toast('Close task archives it. Its runs and worktree stay inspectable.'); break;
         case 'edit': toast('Edit changes the title, details and execution settings.'); break;
@@ -2542,6 +2773,7 @@
         if (ui && body) { ui.q = e.target.value; body.innerHTML = uiBodyHTML(ui); }
         return;
       }
+      if (e.target.matches('[data-mcp-paste]')) { V.mcpText = e.target.value; return; }
       if (e.target.matches('[data-pal]')) { var l = root.querySelector('[data-pallist]'); if (l) l.innerHTML = palListHTML(e.target.value, where); }
     });
     /* A "What I looked at" panel stays open or shut across the re-renders of a streaming reply. */
@@ -2550,7 +2782,26 @@
       if (m) m.open = d.open;
       var mm = d.tagName === 'DETAILS' && d.dataset.j != null ? AS.msgs[+d.dataset.j] : null;
       if (mm) mm.memOpen = d.open;
+      if (d.tagName === 'DETAILS' && d.dataset.dv) DAYS_OPEN[d.dataset.dv] = d.open;
+      if (d.tagName === 'DETAILS' && d.hasAttribute('data-mcpopen')) V.mcpOpen = d.open;
     }, true);
+    // The daily chart: a mouse inspects as it moves, a tap or a click pins a date, and the keys walk the dates.
+    root.addEventListener('pointermove', function (e) { var box = e.target.closest && e.target.closest('.w-andaily'); if (box && e.pointerType === 'mouse' && !box.dataset.pin) inspectDay(box, dayAt(box, e), false); });
+    root.addEventListener('pointerout', function (e) { var box = e.target.closest && e.target.closest('.w-andaily'); if (box && !box.dataset.pin && !(e.relatedTarget && box.contains(e.relatedTarget))) clearDay(box); });
+    root.addEventListener('click', function (e) { var box = e.target.closest && e.target.closest('.w-andaily'); if (box && !e.target.closest('.w-days')) inspectDay(box, dayAt(box, e), true); });
+    root.addEventListener('pointerdown', function (e) { root.querySelectorAll('.w-andaily[data-pin]').forEach(function (box) { if (!box.contains(e.target)) clearDay(box); }); });
+    root.addEventListener('keydown', function (e) {
+      var box = e.target.closest && e.target.closest('.w-andaily'); if (!box || e.target.closest('.w-days')) return;
+      if (e.key === 'Escape') { clearDay(box); return; }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].indexOf(e.key) < 0) return;
+      e.preventDefault();
+      var last = JSON.parse(box.dataset.days).length - 1, now = box.dataset.sel != null ? +box.dataset.sel : 0;
+      inspectDay(box, e.key === 'Home' ? 0 : e.key === 'End' ? last : now + (e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : -1), true);
+    });
+    // Reading wins over following: scrolling up lets go of the tail, and reaching it again takes it back.
+    root.addEventListener('wheel', function (e) { if (e.deltaY < 0 && e.target.closest && e.target.closest('.w-achat')) AS.away[where] = true; }, { passive: true });
+    root.addEventListener('touchmove', function (e) { if (e.target.closest && e.target.closest('.w-achat')) AS.away[where] = true; }, { passive: true });
+    root.addEventListener('scroll', function (e) { var c = e.target; if (c.classList && c.classList.contains('w-achat') && nearEnd(c, 4)) { AS.away[where] = false; setBehind(where, false); } }, true);
     root.addEventListener('keydown', function (e) {
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); return; }
       if (where === 'desk' && D.ws === 'individual' && !AS.open && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); D.pal = ''; openOverlay(palHTML('desk'), '[data-pal]'); }
@@ -3144,7 +3395,7 @@
   }
   function guideReset() {
     G.active = true; G.mode = 'core'; G.exitAsk = false;
-    halt(); asstFresh(); clearTimeout(toastTimer);
+    halt(); asstFresh(); clearTimeout(toastTimer); xferTimers.forEach(clearTimeout); xferTimers = []; INSP = {}; DAYS_OPEN = {};
     var fresh = JSON.parse(initialState);
     Object.keys(S).forEach(function (k) { S[k] = fresh[k]; });
     G.f = {}; G.s = {}; G.floor = 0; G.hide = null; G.left = null; G.deskSw = null; revealed = ''; placed = {};

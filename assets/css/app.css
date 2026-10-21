@@ -319,7 +319,7 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 
 /* ---------- overlays: task panel, sheets, palette, toasts ---------- */
 .w-scrim { position: absolute; inset: 0; z-index: 40; background: var(--scrim); }
-.w-sheet { position: absolute; z-index: 41; left: 50%; top: 12%; transform: translateX(-50%); width: var(--w, 520px); max-height: 76%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--win-sh); animation: w-rise .18s var(--ease); }
+.w-sheet { position: absolute; z-index: 41; left: 50%; top: 12%; transform: translateX(-50%); width: var(--w, 520px); max-height: 76%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--win-sh); }
 @keyframes w-rise { from { opacity: 0; transform: translate(-50%, -6px); } }
 .w-sheet header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 8px 18px; }
 .w-sheet header h2 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
@@ -337,8 +337,7 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .w-add { color: var(--ok-text); }
 .w-del { color: var(--danger-text); }
 
-.w-panel { position: absolute; z-index: 30; top: 0; right: 0; bottom: 0; width: 760px; display: flex; flex-direction: column; background: var(--bg); border-left: 1px solid var(--border); box-shadow: -18px 0 40px -24px rgba(0,0,0,.35); animation: w-slide .22s var(--ease); }
-@keyframes w-slide { from { transform: translateX(24px); opacity: 0; } }
+.w-panel { position: absolute; z-index: 30; top: 0; right: 0; bottom: 0; width: 760px; display: flex; flex-direction: column; background: var(--bg); border-left: 1px solid var(--border); box-shadow: -18px 0 40px -24px rgba(0,0,0,.35); }
 .w-phead { flex: none; padding: 14px 24px 14px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--border); }
 .w-phead .top { display: flex; align-items: center; gap: 10px; }
 .w-phead .top .sp { flex: 1; }
@@ -420,14 +419,13 @@ textarea.w-input { padding: 8px 10px; resize: none; line-height: 1.45; }
 .wbx-phone .w-runrow:first-child { border-top: 0; }
 .wbx-phone .w-runrow .top, .wbx-phone .w-runrow .bot { display: flex; justify-content: space-between; gap: 10px; }
 .wbx-phone .w-runrow b { font-weight: 500; }
-.wbx-phone .w-sheet { left: 0; right: 0; top: auto; bottom: 0; width: auto; transform: none; max-height: 88%; border-radius: 12px 12px 0 0; animation: w-up .22s var(--ease); }
-@keyframes w-up { from { transform: translateY(20px); opacity: 0; } }
+.wbx-phone .w-sheet { left: 0; right: 0; top: auto; bottom: 0; width: auto; transform: none; max-height: 88%; border-radius: 12px 12px 0 0; }
 .wbx-phone .w-sheet footer { padding-bottom: 34px; flex-wrap: wrap; }
 .wbx-phone .w-sheet footer .w-btn { flex: 1 1 auto; }
 .wbx-phone .w-sheet footer .tip { display: none; }
 .wbx-phone .w-exec { grid-template-columns: 1fr 1fr; }
 .wbx-phone .w-toast { bottom: 110px; }
-.w-mtask { position: absolute; inset: 0 0 90px; z-index: 15; background: var(--bg); display: flex; flex-direction: column; animation: w-slide .22s var(--ease); }
+.w-mtask { position: absolute; inset: 0 0 90px; z-index: 15; background: var(--bg); display: flex; flex-direction: column; }
 .w-mtask .w-phead { padding: 14px 16px 12px; }
 .w-mtask .w-phead h2 { font-size: 22px; }
 .w-mtask .w-phead .top { gap: 8px; flex-wrap: nowrap; overflow: hidden; }
@@ -642,8 +640,6 @@ button.w-ttitle:hover { text-decoration: underline; text-underline-offset: 3px; 
   box-shadow: inset 0 1px 0 var(--deck-edge), inset 0 -2px 3px color-mix(in srgb, var(--text) 7%, transparent), 0 var(--lift) 0 var(--deck-wall), 0 calc(var(--lift) + 3px) 7px -1px color-mix(in srgb, var(--text) 32%, transparent);
   transform: translateY(calc(var(--lift) * -1)); transition: transform .16s var(--ease), box-shadow .16s var(--ease); }
 .w-dkey .face { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 0 4px; }
-.w-dkey .face.targeted { gap: 4px; }
-.w-dkey .target { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 11.5px/1.2 var(--mono); color: var(--text-2); }
 .w-dkey .glyph { display: inline-flex; color: var(--text-2); transition: color .16s; }
 .w-dkey .name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: normal; overflow-wrap: anywhere; font-size: 12.5px; font-weight: 500; letter-spacing: -.005em; line-height: 1.1; }
 .w-dkey[data-lit="on"][data-tone="wait"] .glyph { color: var(--warn); }
@@ -655,7 +651,6 @@ button.w-ttitle:hover { text-decoration: underline; text-underline-offset: 3px; 
 /* A workflow key runs work rather than opening a page, so it wears the accent: a tinted cap, an accent rim and glyph. */
 .w-dkey.workflow .cap { background: radial-gradient(120% 90% at 50% 8%, color-mix(in srgb, var(--deck-edge) 60%, transparent), transparent 62%), var(--key-wf); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
 .w-dkey.workflow .glyph { color: var(--accent); }
-.w-dkey.workflow .target { color: var(--accent); opacity: .85; }
 /* An empty position is a socket with nothing in it: no cap, a dashed outline and a plus. */
 .w-dkey.empty { font: inherit; cursor: pointer; border: 0; }
 .w-dkey.empty .cap { background: none; border: 1.5px dashed color-mix(in srgb, var(--text) 24%, transparent); box-shadow: none; transform: none; color: var(--text-2); }
@@ -754,7 +749,6 @@ button.w-ttitle:hover { text-decoration: underline; text-underline-offset: 3px; 
 .w-repos legend { padding: 0; margin-bottom: 8px; }
 .w-repos .w-radio { min-height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 14px; cursor: pointer; }
 .w-repos .w-radio:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.w-dkey .target .w-dot { width: 6px; height: 6px; margin-right: 4px; vertical-align: 1px; }
 .w-workflow-option:not(:disabled) { border-color: var(--accent); }
 .w-phone-team .w-col { flex: none; width: 100%; }
 .w-phone-team .w-list { overflow: visible; }
@@ -931,3 +925,75 @@ button.w-ttitle:hover { text-decoration: underline; text-underline-offset: 3px; 
 .wbx-phone .w-pal { width: calc(100% - 24px); top: 56px; }
 .w-linebtn { display: block; width: 100%; padding: 0; border: 0; background: none; color: var(--text); text-align: left; }
 .w-linebtn:hover b { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- motion: what moves, as in the app (docs/MOTION.md). Nothing here delays a result, and reduced motion removes all of it. ---------- */
+/* The pixel mark's shades, per theme, so a live mark follows the theme without a script (the product uses light-dark()). */
+.wbx { --mk-0-0:#3A3A38; --mk-0-1:#333331; --mk-0-2:#2C2C2B; --mk-0-3:#252524; --mk-0-4:#1F1F1E; --mk-0-5:#181817; --mk-0-6:#111111; --mk-0-7:#0A0A0A; --mk-1-0:#5B7BFF; --mk-1-1:#5272FC; --mk-1-2:#4A6AF9; --mk-1-3:#4161F6; --mk-1-4:#3959F3; --mk-1-5:#3050F0; --mk-1-6:#2848ED; --mk-1-7:#1F3FEA; --mk-2-0:#FFCB6B; --mk-2-1:#FCC35E; --mk-2-2:#F8BB51; --mk-2-3:#F5B344; --mk-2-4:#F2AA36; --mk-2-5:#EFA229; --mk-2-6:#EB9A1C; --mk-2-7:#E8920F; }
+:root[data-theme="dark"] .wbx { --mk-0-0:#FFFFFF; --mk-0-1:#F7F7F6; --mk-0-2:#EEEEEC; --mk-0-3:#E6E6E3; --mk-0-4:#DDDDDA; --mk-0-5:#D5D5D1; --mk-0-6:#CCCCC7; --mk-0-7:#C4C4BE; --mk-1-0:#A3B4FF; --mk-1-1:#99ACFF; --mk-1-2:#8EA4FF; --mk-1-3:#849CFF; --mk-1-4:#7A93FF; --mk-1-5:#708BFF; --mk-1-6:#6583FF; --mk-1-7:#5B7BFF; --mk-2-0:#FFD582; --mk-2-1:#FDCF78; --mk-2-2:#FBC86E; --mk-2-3:#F9C264; --mk-2-4:#F8BC59; --mk-2-5:#F6B64F; --mk-2-6:#F4AF45; --mk-2-7:#F2A93B; }
+.wbx-phone, .wbx-desk { position: relative; }
+.stage > .wbx { position: absolute; }
+:root[data-motion-paused] .wbx * { animation-play-state: paused !important; }
+.w-livemark { display: block; flex: none; overflow: visible; }
+
+/* Salie at work: the mark and what it is doing, in one line that opens to the reported operations. */
+.w-activity { display: grid; gap: 6px; }
+.w-progress { display: flex; align-items: center; gap: 8px; min-height: 24px; padding: 0; border: 0; background: none; color: var(--text-2); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.w-progress:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+.w-actsteps { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 12.5px; }
+.wbx-phone .w-progress { min-height: 44px; }
+.w-atext[hidden] { display: none; }
+/* Scrolled away from the tail of a reply that keeps arriving. */
+.w-achatwrap { position: relative; min-height: 0; display: grid; }
+.w-achatwrap > .w-achat { min-height: 0; }
+.w-latest { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 2; display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); box-shadow: var(--card-sh); color: var(--text); font-size: 12.5px; font-weight: 500; }
+.w-latest[hidden] { display: none; }
+.w-latest svg { width: 12px; height: 12px; }
+.wbx-phone .w-latest { min-height: 40px; }
+.w-adock .w-stoprow { display: flex; align-items: center; gap: 10px; }
+
+/* Charts keep their numbers; only the picture grows from its baseline. */
+.w-andaily { position: relative; }
+.w-andaily rect { transform-box: fill-box; transform-origin: center bottom; }
+.w-anbars .track span { transform-origin: left center; }
+.w-andaily:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.w-andaily .readout { position: absolute; top: 24px; right: 0; z-index: 1; max-width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text); box-shadow: var(--card-sh); font-size: 12px; pointer-events: none; animation: w-readout .12s ease-out; }
+@keyframes w-readout { from { opacity: 0; } }
+.w-andaily .w-days { margin-top: 8px; font-size: 12.5px; }
+.w-andaily .w-days summary { cursor: pointer; width: fit-content; color: var(--text-2); }
+.w-andaily .w-days table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 12px; }
+.w-andaily .w-days th, .w-andaily .w-days td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 400; }
+.w-andaily .w-days th { color: var(--text-2); }
+.w-andaily .w-days td { font-family: var(--mono); }
+.w-andaily .w-days .scroll { max-height: 180px; overflow: auto; }
+
+/* Git Fetch and Push: a bounded arrow and a thin current say the request is out. They never show a percentage or an invented stage. */
+.w-transfer { position: relative; overflow: hidden; justify-content: center; gap: 8px; }
+.w-transfer.fetch { min-width: 8.4em; }
+.w-transfer.push { min-width: 11em; }
+.w-transfer[data-transfer="pending"] { background: var(--surface-2); border-color: var(--accent); color: var(--text); opacity: 1; }
+.w-xfer { display: inline-grid; place-items: center; flex: none; width: 16px; height: 18px; overflow: hidden; color: var(--accent); }
+.w-xfer[data-state="done"] { color: var(--ok); }
+.w-xfer svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.w-xfer .arrow { animation: w-xdown 1.05s linear infinite; }
+.w-xfer[data-direction="up"] .arrow { animation-name: w-xup; }
+.w-xfer .check { stroke-dasharray: 1; animation: w-xcheck .16s ease-out; }
+@keyframes w-xdown { from { transform: translateY(-18px); } to { transform: translateY(18px); } }
+@keyframes w-xup { from { transform: translateY(18px); } to { transform: translateY(-18px); } }
+@keyframes w-xcheck { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.w-transfer[data-transfer="pending"]::after { content: ''; position: absolute; left: 5px; right: 5px; bottom: 2px; height: 2px; background: linear-gradient(90deg, transparent 0 34%, var(--accent) 34% 66%, transparent 66%); background-size: 300% 100%; animation: w-current 1.2s linear infinite; }
+@keyframes w-current { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.w-result { display: grid; gap: 6px; }
+.w-result .heading { display: flex; align-items: center; gap: 8px; }
+.w-result .heading strong { font-size: 13px; }
+.w-result .sides { display: grid; gap: 8px; margin-top: 4px; }
+.w-result .sides h4 { margin: 0 0 2px; font-size: 12px; font-weight: 600; }
+.w-result .sides p { font-size: 12px; color: var(--text-2); }
+.w-result .sides .ok { color: var(--ok); font-weight: 600; }
+.w-result .sha { font-family: var(--mono); }
+
+/* A notice that offers the place a change landed. */
+.w-toast .act { margin-left: 12px; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; pointer-events: auto; }
+.w-toast.has-act { pointer-events: auto; }
+.w-setuphelp { display: grid; gap: 10px; }
+.w-setuphelp summary { cursor: pointer; width: fit-content; min-height: 28px; font-size: 13px; }
+.wbx-phone .w-setuphelp summary { min-height: 44px; display: flex; align-items: center; }

@@ -51,16 +51,32 @@ html.js .rolo-w.is-out { opacity: 0; transform: translateY(-.36em) rotateX(80deg
 .device-screen > .wbx { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 .device-btn, .device-island, .device-status, .device-home { display: none; }
 
-/* Below 768px: the desktop window is hidden, and Try the demo opens the phone app full screen. */
+/* Below 768px the site is two pages. The first fits the screen with no scrolling: the header holds the logo and Try the demo,
+   and under it are the headline, three points of one line each, and the waitlist. Try the demo opens the second, which is a page
+   of its own: it opens on the card that says what werkbord is, and then shows the phone app full screen. */
 @media (max-width: 767px) {
   .demo-panel[data-panel="desktop"] { display: none; }
-  .demo-open { display: inline-flex; }
+  .demo-open { display: inline-flex; align-items: center; margin: 0; height: 40px; padding: 0 16px; font-size: 14px; flex: none; }
   .demo-panel[data-panel="phone"].is-full { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 200; gap: 0; align-items: stretch; background: var(--bg); }
   .demo-panel.is-full .demo-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; height: 56px; padding: 0 16px; border-bottom: 1px solid var(--bd); }
   .demo-panel.is-full .demo-tag { display: inline; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--t2); }
   .demo-panel.is-full .demo-cap { display: none; }
   .demo-panel.is-full .phone-demo { flex: 1; min-height: 0; width: 100%; }
   .demo-panel.is-full .device-wrap { height: 100%; }
+}
+@media (max-width: 767px) {
+  html.js body { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; }
+  html.js .top-in { height: 56px; }
+  html.js .home { flex: 1; justify-content: center; gap: 0; padding: 14px 0; }
+  html.js .home-copy { gap: 14px; }
+  html.js .demo-section { display: contents; }
+  html.js .demo-head, html.js .demo-switch, html.js .demo-guide { display: none; }
+  /* One line each. The longest point is about 34em wide in this face; the square and its gap take 17px of the column, so the
+     text is sized to the column, as it is from 768px, only smaller. */
+  html.js .points { gap: 6px; margin-top: 8px; font-size: calc((100cqi - 17px) / 34.6); letter-spacing: -.015em; }
+  html.js .points li { gap: 9px; white-space: nowrap; }
+  html.js .points .sq { width: 8px; height: 8px; }
+  html.js .foot { padding: 12px 0 14px; font-size: 13px; }
 }
 html:not(.js) .demo-open, html:not(.js) .demo-switch { display: none; }
 html:not(.js) .demo-panel[data-panel="desktop"] { display: block; }
@@ -206,9 +222,24 @@ html:not(.js) .demo-guide { display: none; }
 .demo-welcome-actions .btn { min-height: 44px; }
 @media (max-width: 479px) { .demo-welcome { padding: 24px; } .demo-welcome-actions { flex-direction: column; } }
 
+/* On a phone the invitation is a page: Back in its bar returns to the first page, and the card's two buttons go into the demo. */
 @media (max-width: 767px) {
-  .demo-welcome-wrap { position: relative; inset: auto; padding: 0; }
-  .demo-welcome { width: 100%; max-height: none; margin: 0; }
+  .demo-welcome-wrap { position: fixed; inset: 0; z-index: 210; display: flex; flex-direction: column; align-items: stretch; place-items: normal; padding: 0 0 16px; overflow-y: auto; overscroll-behavior: contain; background: var(--bg); }
+  .demo-welcome-wrap[hidden] { display: none; }
+  .demo-welcome-wrap .demo-bar { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; height: 56px; padding: 0 16px; border-bottom: 1px solid var(--bd); background: var(--bg); }
+  .demo-welcome-wrap .demo-tag { display: inline; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--t2); }
+  .demo-welcome { width: min(480px, calc(100% - 32px)); max-height: none; flex: none; margin: auto; }
+  .demo-welcome h2 { margin-top: 18px; font-size: 26px; }
+}
+/* A short phone: the card is tightened so it, too, fits without scrolling. */
+@media (max-width: 767px) and (max-height: 720px) {
+  .demo-welcome { padding: 20px; }
+  .demo-welcome img { height: 24px; width: auto; }
+  .demo-welcome h2 { margin: 12px 0 8px; font-size: 22px; }
+  .demo-welcome p { font-size: 13.5px; line-height: 1.5; }
+  .demo-welcome .demo-welcome-about { margin-bottom: 8px; }
+  .demo-welcome-actions { margin-top: 16px; gap: 8px; }
+  .demo-welcome-actions .btn { min-height: 42px; }
 }
 
 @media (min-width: 1200px) and (orientation: landscape) {
