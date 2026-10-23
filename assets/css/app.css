@@ -997,3 +997,139 @@ button.w-ttitle:hover { text-decoration: underline; text-underline-offset: 3px; 
 .w-setuphelp { display: grid; gap: 10px; }
 .w-setuphelp summary { cursor: pointer; width: fit-content; min-height: 28px; font-size: 13px; }
 .wbx-phone .w-setuphelp summary { min-height: 44px; display: flex; align-items: center; }
+
+/* ---------- personal generative workspaces (the app's 4.72): the sidebar group, the saved page, the data library ---------- */
+.w-gen { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.w-gen .w-nav svg { flex: none; }
+.w-pw { width: 100%; max-width: 1120px; margin: 0 auto; padding: 24px; min-width: 0; }
+.w-pw h3, .w-pw h4 { letter-spacing: 0; }
+.w-pwhead { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 20px; }
+.w-pwhead .ti { display: flex; align-items: center; gap: 10px; min-width: 0; margin-right: auto; }
+.w-pwhead .ti svg { flex: none; }
+.w-pwhead h1 { overflow-wrap: anywhere; }
+.w-pwhead .more { position: relative; }
+.w-pwhead .menu { position: absolute; z-index: 5; right: 0; top: calc(100% + 4px); display: grid; gap: 4px; width: 250px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); box-shadow: var(--win-sh); }
+.w-pwhead .menu .w-btn { justify-content: flex-start; }
+.w-pwstatus { min-height: 24px; color: var(--text-2); font-size: 12px; }
+/* The renderer's rhythm: sections sit 24px apart, and every view is a panel of its own. */
+.w-pwstack { display: grid; gap: 24px; min-width: 0; }
+.w-pwgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.w-pwtext { margin: 0; font-size: 13.5px; line-height: 1.55; overflow-wrap: anywhere; }
+.w-pwc { display: grid; align-content: start; gap: 14px; min-width: 0; padding: 16px 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: var(--card-sh); }
+.w-pwcard { display: grid; gap: 8px; min-width: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: var(--card-sh); }
+.w-pwcard > h3 { font-size: 14px; font-weight: 600; line-height: 1.35; }
+.w-pwcard .w-pwc { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.w-pwc h3 { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.w-pwc .pr { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.w-pwc .pr h3 { font-size: 13px; }
+.w-pwc .ct { color: var(--text-2); font: 12px var(--mono); font-variant-numeric: tabular-nums; }
+.w-pwc .pgs { height: 9px; overflow: hidden; border-radius: 2px; background: var(--surface-2); }
+.w-pwc .pgs span { display: block; height: 100%; background: var(--accent); transition: width .3s var(--ease); }
+.w-pwc .mut, .w-pwc .none { margin: 0; color: var(--text-2); font-size: 12px; }
+.w-pwc .none { padding: 20px 0; text-align: center; }
+.w-pwc .ok { color: var(--ok-text); }
+.w-pwc .big { font-size: 15px; }
+.w-pwc .bars { display: grid; gap: 7px; }
+.w-pwc .bar { display: grid; grid-template-columns: minmax(68px, 1fr) minmax(54px, 5fr) auto; align-items: center; gap: 8px; min-height: 30px; padding: 2px 4px; font-size: 12px; }
+.w-pwc .bar .track { display: block; height: 10px; overflow: hidden; border-radius: 2px; background: var(--surface-2); }
+.w-pwc .bar .track span { display: block; height: 100%; background: var(--accent); }
+.w-pwc .bar .n { min-width: 2ch; color: var(--text-2); text-align: right; font: 12px var(--mono); }
+.w-pwc .vh { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+/* The filter band: shaded and framed, so the controls read as one tool above the list. */
+.w-pwc .fil { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface-2); }
+.w-pwc .fil label { display: grid; gap: 5px; min-width: 0; color: var(--text-2); font-size: 12px; }
+.w-pwc .fil .sch { flex: 1 1 180px; }
+.w-pw input[type="search"], .w-pw input[type="text"], .w-pw input[type="date"], .w-pw select { min-width: 0; width: 100%; min-height: 34px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; }
+.w-pw input:focus-visible, .w-pw select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.w-pwc .recs { margin: 0; padding: 0; overflow: hidden; list-style: none; border: 1px solid var(--border); border-radius: 5px; }
+.w-pwc .recs li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.w-pwc .recs li:last-child { border-bottom: 0; }
+.w-pwc .recs li:hover { background: var(--surface-2); }
+.w-pwc .dn { display: grid; place-items: center; flex: 0 0 32px; min-height: 32px; margin-block: -6px; cursor: pointer; }
+.w-pwc .done { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.w-pwc .rc { min-width: 0; flex: 1; }
+.w-pwc .rc strong { font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.w-pwc .rc .fin { text-decoration: line-through; color: var(--text-2); }
+.w-pwc dl { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 5px 0 0; color: var(--text-2); font-size: 12px; }
+.w-pwc dl div { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
+.w-pwc dt::after { content: ':'; }
+.w-pwc dd { margin: 0; overflow-wrap: anywhere; }
+.w-pwc .ra { display: flex; gap: 6px; flex-shrink: 0; }
+.w-pwc .scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: 5px; }
+.w-pwc table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px; text-align: left; }
+.w-pwc th, .w-pwc td { max-width: 260px; padding: 9px 10px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.w-pwc th { padding: 0 10px; background: var(--surface-2); border-bottom: 2px solid var(--border); font-weight: 500; }
+.w-pwc th button { display: flex; align-items: center; gap: 6px; min-height: 36px; border: 0; background: transparent; color: var(--text-2); font: inherit; white-space: nowrap; }
+.w-pwc tbody tr:last-child td { border-bottom: 0; }
+.w-pwc tbody tr:hover td { background: var(--surface-2); }
+.w-pwc .editor { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.w-pwc .editor h4 { font-size: 14px; }
+.w-pwc .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 16px; }
+.w-pwc .fld { display: grid; align-content: start; gap: 6px; min-width: 0; }
+.w-pwc .fld label { color: var(--text-2); font-size: 12px; }
+.w-pwc .fld.chk { grid-template-columns: 1fr auto; align-items: center; }
+.w-pwc .fld.chk input { width: 18px; min-height: 18px; accent-color: var(--accent); }
+.w-pwc .acts, .w-pwhead .acts, .w-pwlib .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.w-pwc .dc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.w-pwc .dc p { width: 100%; overflow-wrap: anywhere; }
+.w-pw .team { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; }
+.w-pw .team summary { cursor: pointer; }
+.w-pw .team ul { padding-left: 20px; }
+.w-pw .team .mut { margin: 8px 0; color: var(--text-2); font-size: 12px; }
+.w-pwhead .manage { flex-basis: 100%; display: grid; gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.w-pwhead .manage h2, .w-pwhead .manage h3 { font-size: 16px; letter-spacing: 0; }
+.w-pwhead .manage h3 { font-size: 14px; }
+.w-pwhead .manage p { color: var(--text-2); font-size: 13px; line-height: 1.6; max-width: 72ch; }
+.w-pwhead .manage form { display: grid; gap: 14px; }
+.w-pwhead .manage .f { display: grid; gap: 6px; font-size: 13px; }
+.w-pwhead .manage fieldset { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 5px; font-size: 13px; }
+.w-pwhead .manage fieldset label, .w-pwhead .manage .cf { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.w-pwhead .manage .col { padding-block: 10px; border-top: 1px solid var(--border); }
+.w-pwhead .manage .col p { margin-top: 4px; }
+.w-pwhead .manage input[type="checkbox"] { accent-color: var(--accent); }
+.w-pwhead .manage input[type="text"], .w-pwhead .manage select { min-height: 34px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); font: inherit; font-size: 13px; }
+.w-pwlib { width: 100%; max-width: 1120px; margin: 0 auto; padding: 24px; }
+.w-pwlib header, .w-pwlib .row, .w-pwlib .rs { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.w-pwlib header, .w-pwlib .row { justify-content: space-between; }
+.w-pwlib h2 { margin: 24px 0 12px; font-size: 18px; font-weight: 600; letter-spacing: 0; }
+.w-pwlib h3 { font-size: 14px; letter-spacing: 0; }
+.w-pwlib p { margin-top: 8px; color: var(--text-2); font-size: 13px; line-height: 1.6; max-width: 72ch; }
+.w-pwlib .row { padding-block: 16px; border-bottom: 1px solid var(--border); }
+.w-pwlib .row p { margin: 4px 0 0; }
+.w-pwlib .sts { color: var(--ok-text); }
+.w-pwlib .w-pwins { padding: 0; }
+/* Salie's proposal: the interface it would save, read only, under the card's own summary. */
+.w-pwprev { display: grid; gap: 12px; min-width: 0; padding-block: 12px; border-block: 1px solid var(--border); }
+.w-pwprev > h3 { display: flex; align-items: center; gap: 8px; font-size: 16px; overflow-wrap: anywhere; }
+.w-pwprev > h3 svg { flex: none; }
+.w-pwprev h4 { margin-block: 12px 6px; font-size: 13px; letter-spacing: 0; }
+.w-pwprev > p, .w-pwprev li, .w-pwprev summary, .w-pwprev details p { margin: 0; font-size: 12.5px; line-height: 1.6; overflow-wrap: anywhere; }
+.w-pwprev > p { color: var(--text-2); }
+.w-pwprev summary { cursor: pointer; }
+.w-pwprev ul { padding-left: 20px; }
+.w-pwprev pre { max-height: 220px; margin: 8px 0 0; overflow: auto; font: 11.5px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.w-pwprev .w-pwc, .w-pwprev .w-pwcard { box-shadow: none; }
+.w-pwprev .w-pwc input, .w-pwprev .w-pwc select { opacity: .7; }
+@media (max-width: 600px) { .w-pwgrid { grid-template-columns: 1fr; } }
+
+/* On a phone (4.73): the workspace page and the deck's Workspaces list. Tables read as labelled cards, and touch targets are 44px. */
+.w-pwacts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+.w-pwacts .pri { grid-column: 1 / -1; }
+.w-pwacts .w-btn { width: 100%; white-space: normal; text-align: center; }
+.wbx-phone .w-pw { max-width: none; padding: 0; }
+.wbx-phone .w-pwstack { gap: 18px; }
+.wbx-phone .w-pwgrid { grid-template-columns: 1fr; gap: 18px; }
+.wbx-phone .w-pwc { padding: 14px; }
+.wbx-phone .w-pwc .recs li { flex-wrap: wrap; }
+.wbx-phone .w-pwc .rc { flex-basis: calc(100% - 56px); }
+.wbx-phone .w-pwc .ra { margin-left: auto; }
+.wbx-phone .w-pwc .dn { flex-basis: 44px; min-height: 44px; margin-block: -10px; }
+.wbx-phone .w-pw input[type="search"], .wbx-phone .w-pw input[type="text"], .wbx-phone .w-pw input[type="date"], .wbx-phone .w-pw select { min-height: 44px; font-size: 16px; }
+.wbx-phone .w-pwc .w-btn.sm { min-height: 44px; }
+.w-pwdeck { display: grid; gap: 8px; margin-top: 16px; }
+.w-pwdeck h2 { font: 600 11.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); }
+.w-pwdeck .w-btn { justify-self: start; }
+.w-pwdeck .w-muted { font-size: 12px; }
+.w-pwrow { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); text-decoration: none; }
+.w-pwrow span { min-width: 0; overflow-wrap: anywhere; }
+.w-pwrow svg { flex: none; color: var(--text-2); }

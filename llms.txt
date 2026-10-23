@@ -4,7 +4,7 @@
 
 ## Page
 
-- [werkbord](https://micho8cho93.github.io/werkbord-site/): the headline, a beta waitlist with a live count of the first 50 places, and a guided demo of the app at desktop and phone width: your work across workspaces in Universal, Salie (with next-step suggestions that cite what it remembers), agents running in parallel, review and merge, and a Team (claims, comments and @mentions), with projects, analytics, settings and help to open; the phone demo follows the app's Control Deck layout.
+- [werkbord](https://micho8cho93.github.io/werkbord-site/): the headline, a beta waitlist with a live count of the first 50 places, and a guided demo of the app at desktop and phone width: your work across workspaces in Universal, Salie (with next-step suggestions that cite what it remembers, and personal workspaces it generates and saves on your computer), agents running in parallel, review and merge, and a Team (claims, comments and @mentions), with projects, analytics, settings and help to open; the phone demo follows the app's Control Deck layout.
 
 ## Facts on the page
 

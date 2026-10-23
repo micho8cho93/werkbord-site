@@ -40,6 +40,8 @@
     analytics: '<path d="M2 2v12h12M5 11V8M8 11V5M11 11V3"/>',
     activity: '<path d="M1.5 8h3l2-5 3 10 2-5h3"/>',
     edit: '<path d="M10.5 2.5l3 3L5.5 13.5l-3.5.5.5-3.5z"/><path d="M2 14.5h12"/>',
+    database: '<ellipse cx="8" cy="4" rx="5.5" ry="2"/><path d="M2.5 4v8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2V4M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/>',
+    more: '<circle cx="3.5" cy="8" r="0.9"/><circle cx="8" cy="8" r="0.9"/><circle cx="12.5" cy="8" r="0.9"/>',
     help: '<circle cx="8" cy="8" r="5.8"/><path d="M6.3 6.4a1.8 1.8 0 1 1 2.5 1.6c-.5.3-.8.6-.8 1.1v.3"/><path d="M8 11.7v.1"/>'
   };
   function ic(n, size) { size = size || 16; return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>'; }
@@ -219,12 +221,13 @@
 
   /* ---------- views: each surface has its own navigation ---------- */
   var D = { ws: 'universal', uv: 'mywork', tv: 'board', view: 'control', proj: 'my-app', page: null, set: null, alerts: false, share: 0, mine: false, sw: false, task: null, ptab: 'activity', sheet: null, pal: null, week: 0, dayN: 0, mode: 'week', cal: 'calendar', pick: null, cc: 'all', fa: 'any', fp: 'any', arch: false, tarch: false, aq: '', gsub: 'overview', an: analyticsState(), tan: 'Activity', hq: '', drag: null, scroll: {} };
-  var P = { scope: 'individual', teamTab: 'board', deckAdded: false, repo: null, at: 'deck', tab: 'board', proj: 'my-app', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', fa: 'any', fp: 'any', arch: false, aq: '', gsub: 'overview', an: analyticsState(), set: null, hq: '', wf: null, af: 'all', scroll: {} };
+  var P = { scope: 'individual', teamTab: 'board', deckAdded: false, deckWs: false, repo: null, at: 'deck', tab: 'board', proj: 'my-app', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', fa: 'any', fp: 'any', arch: false, aq: '', gsub: 'overview', an: analyticsState(), set: null, hq: '', wf: null, af: 'all', scroll: {} };
   // The visible surface being drawn: the per-project pages read its project, filters and archive from it.
   var VIEW = D;
 
   // my-app starts with only its finished history, so the visitor sees an idea become a working board.
   var initialState = JSON.stringify(S);
+  var PW = pwFresh();
   var G = { mode: 'core', active: false, f: {}, s: {}, floor: 0, cur: null, where: null, hide: null, exitAsk: false };
 
   function get(id) {
@@ -243,7 +246,7 @@
      the motion layer animates it; any other repaint (a filter, a page, the theme) only sets a new baseline, as in the app. */
   function revSig() {
     return S.tasks.map(function (t) { return t.id + ':' + t.state + ':' + (t.archived != null ? 1 : 0) + ':' + (t.run ? t.run.st : ''); }).join('|') + '#' +
-      S.team.tickets.map(function (k) { return k.n + ':' + k.st + ':' + (k.who || '') + ':' + (k.arch != null ? 1 : 0); }).join('|') + '#' + S.ext.ask.st + ':' + (P.deckAdded ? 1 : 0);
+      S.team.tickets.map(function (k) { return k.n + ':' + k.st + ':' + (k.who || '') + ':' + (k.arch != null ? 1 : 0); }).join('|') + '#' + S.ext.ask.st + ':' + (P.deckAdded ? 1 : 0) + (P.deckWs ? 1 : 0);
   }
   /* A card that lands in Done is acknowledged where it lands. */
   function landed(node, it) { if (/-done$/.test(it.part)) M.acknowledge(node); }
@@ -413,6 +416,314 @@
     toast('Scheduled for ' + dayLabel(d) + ', ' + clock(m) + '. It starts by itself, even with this window closed.');
   }
 
+  /* ---------- personal generative workspaces (the app's 4.72) ----------
+     Salie can propose a private interface that is saved on this computer: a layout of panels over a collection of records. The
+     proposal is a card with a read only preview and its own Confirm, as in the app. Once saved it is listed under Create with Salie in
+     the sidebar, and its records are the person's to add, tick off, edit and delete. The demo keeps one workspace over one collection
+     (Weekly tasks), and what it draws follows the product's own renderer (web/src/lib/personal, web/src/shell): bordered panels, a
+     shaded filter band over each list or table, and more room between sections. Desktop only: a phone credential has no route to
+     personal workspaces, so the phone never offers them. */
+  var PW_ID = 'pws_h3k7q2m9x4c6b8da';
+  var PW_ICONS = ['check', 'folder', 'analytics', 'calendar', 'activity', 'overview'];
+  var PW_PRIO = ['Low', 'Normal', 'High'];
+  var PW_CREATE = 'Create a weekly to-do list', PW_FOCUS = 'Add a High priority section and move progress up', PW_BACK = 'Put progress back below the tasks';
+  var PW_INTRO = 'Your weekly tasks, saved on this computer. Add them directly, tick them off, and come back whenever you need the list.';
+  var PW_LAYOUT = {
+    basic: [['text', PW_INTRO], ['view', 'todos'], ['grid', 'progress', 'status'], ['card', 'Priority overview', 'chart'], ['view', 'table']],
+    focus: [['text', PW_INTRO], ['grid', 'progress', 'status'], ['view', 'urgent'], ['view', 'todos'], ['card', 'Priority overview', 'chart'], ['view', 'table']],
+    table: [['view', 'records']]
+  };
+  function pwFresh() {
+    return { ws: null, col: null, menu: false, panel: '', ed: null, draft: {}, q: {}, f: {}, sk: {}, sd: {}, delId: null, delView: '', mode: '', cfm: false, hsel: 0, hrev: 0, inspect: false, note: '', teamOpen: false, setf: null };
+  }
+  function pwViews() {
+    return {
+      todos: { id: 'todos', name: 'This week', kind: 'checklist', ops: ['create', 'update', 'delete'] },
+      urgent: { id: 'urgent', name: 'High priority', kind: 'checklist', ops: ['update'], filt: { priority: 'High' } },
+      table: { id: 'table', name: 'All records', kind: 'table', ops: ['create', 'update', 'delete'] },
+      progress: { id: 'progress', name: 'Progress', kind: 'progress' },
+      status: { id: 'status', name: 'Current status', kind: 'status' },
+      chart: { id: 'chart', name: 'Tasks by priority', kind: 'chart' },
+      records: { id: 'records', name: PW.col ? PW.col.name : 'Records', kind: 'table', ops: ['create', 'update', 'delete'] }
+    };
+  }
+  var PW_FIELDS = [['title', 'Task', 'text'], ['done', 'Completed', 'boolean'], ['due', 'Due date', 'date'], ['priority', 'Priority', 'select'], ['notes', 'Notes', 'text']];
+  function iso(x) { return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); }
+  function pwShow(v) { return v === undefined || v === '' || v === null ? '–' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v); }
+  function pwOpts() { return !PW.ws ? [PW_CREATE] : PW.ws.layout === 'basic' ? [PW_FOCUS] : PW.ws.layout === 'focus' ? [PW_BACK] : []; }
+  function pwWhere() { return D.ws === 'universal' ? 'uni' : D.ws === 'individual' ? 'ind' : 'team'; }
+  function pwVisible() { return !!PW.ws && !!PW.ws.loc[pwWhere()]; }
+  function pwLocs(loc) { return [loc.uni ? 'Universal' : '', loc.ind ? 'Individual' : '', loc.team ? S.team.name : ''].filter(Boolean).join(', ') || 'no location'; }
+  function pwSave(note) {
+    var w = PW.ws; w.rev++;
+    w.hist.push({ rev: w.rev, name: w.name, icon: w.icon, layout: w.layout, loc: { uni: w.loc.uni, ind: w.loc.ind, team: w.loc.team }, at: clock(S.now) });
+    PW.note = note || '';
+  }
+  function pwMake(layout) {
+    var reuse = !!PW.col;
+    if (!PW.col) PW.col = { name: 'Weekly tasks', recs: [], next: 1, owned: true }; else PW.col.owned = false;
+    PW.ws = { id: PW_ID, rev: 0, name: layout === 'table' ? PW.col.name : 'Weekly to-dos', icon: layout === 'table' ? 'folder' : 'check', layout: layout, loc: { uni: true, ind: true, team: false }, hist: [] };
+    pwSave(reuse ? 'Saved. Your earlier records are back in the workspace.' : '');
+  }
+  /* The card Salie proposes: creating the workspace, or changing its layout (a new revision, with the records untouched). */
+  function pwCard(layout) {
+    var edit = !!PW.ws, rev = edit ? PW.ws.rev : 0;
+    return { op: 'workspace', edit: edit, layout: layout, rev: rev, title: edit ? PW.ws.name : 'Weekly to-dos',
+      detail: edit ? 'Update “' + PW.ws.name + '” with a new layout. Records are preserved. Review the interface, schemas and display locations below.'
+        : 'Create “Weekly to-dos” with 1 personal collection. Records are ' + (PW.col ? 'preserved' : 'saved only when you add them') + '. Review the interface, schemas and display locations below.',
+      ok: function () { return edit ? !!PW.ws && PW.ws.rev === rev : !PW.ws; },
+      run: function () {
+        if (edit) { PW.ws.layout = layout; pwSave('Layout updated. Your records did not change.'); } else pwMake(layout);
+        this.saved = PW.ws.rev;
+      } };
+  }
+  /* What the confirmation card shows before anything is saved: where it appears, its fields and record controls, and the
+     interface itself with every control switched off. */
+  function pwPreview(c) {
+    var w = PW.ws, recs = PW.col ? PW.col.recs : [], V = pwViews();
+    var fields = '<h4>' + esc(PW.col ? PW.col.name : 'Weekly tasks') + '</h4><ul>' + PW_FIELDS.map(function (f) { return '<li>' + f[1] + ' (' + f[0] + ') · ' + f[2] + (f[0] === 'title' || f[0] === 'done' || f[0] === 'priority' ? ' · required' : ' · optional') + (f[0] === 'priority' ? ' · ' + PW_PRIO.join(', ') : '') + '</li>'; }).join('') + '</ul>';
+    var ops = Object.keys(V).filter(function (k) { return V[k].kind !== 'records' && PW_LAYOUT[c.layout].some(function (n) { return n.indexOf(k) > 0; }); }).map(function (k) {
+      return '<p>' + V[k].name + ': ' + (V[k].ops ? V[k].ops.join(', ') : 'read only') + (V[k].filt ? ' · priority = High' : '') + '</p>'; }).join('');
+    var prev = c.edit ? '<details><summary>Previous definition and locations</summary><pre>' + esc(JSON.stringify({ id: w.id, name: w.name, icon: w.icon, revision: w.rev, layout: w.layout === 'basic' ? ['text', 'This week', 'Progress and status', 'Priority overview', 'All records'] : ['text', 'Progress and status', 'High priority', 'This week', 'Priority overview', 'All records'], visibility: { universal: w.loc.uni, individual: w.loc.ind, team: w.loc.team } }, null, 2)) + '</pre></details>' : '';
+    return '<section class="w-pwprev" aria-label="Proposed workspace"><h3>' + ic(c.edit ? w.icon : 'check', 18) + esc(c.edit ? w.name : 'Weekly to-dos') + '</h3>' +
+      '<p>' + (c.edit ? 'Editing ' + esc(w.name) + ' · revision ' + w.rev + ' · ' + w.id : 'New workspace · ' + (PW.col ? 'reuses saved personal data' : 'collections start empty')) + '</p>' +
+      '<p>Show in: ' + esc(c.edit ? pwLocs(w.loc) : 'Universal, Individual') + '</p>' + prev +
+      '<details><summary>Review fields and record controls</summary>' + fields + ops + '</details>' +
+      '<p>Preview only. Confirm below to save this definition. Existing records keep their IDs and values.</p>' + pwRender(c.layout, { ro: true, recs: recs }) + '</section>';
+  }
+  function pwCardHTML(c, mi, ci, phone) {
+    var st = !c.state ? 'Needs you' : c.state === 'yes' ? 'Done' : c.state === 'no' ? 'Declined' : 'Not sent';
+    var label = c.edit ? 'Update personal workspace' : 'Save personal workspace', body;
+    if (AS.busy && !c.state) body = '<p class="w-mm">Preparing proposal…</p>';
+    else if (!c.state) body = pwPreview(c) + '<div class="acts"><button class="w-btn pri sm" type="button" data-a="asst-ok" data-id="' + mi + '" data-v="' + ci + '">Confirm</button><button class="w-btn sm" type="button" data-a="asst-no" data-id="' + mi + '" data-v="' + ci + '">Not now</button></div><p class="w-muted fine">Nothing changes until you confirm. Open until ' + clock(S.now + 15) + '.</p>';
+    else if (c.state === 'yes') body = '<p class="res ok">' + ic('check', 14) + 'Done. Saved personal workspace ' + PW_ID + ', revision ' + c.saved + '.' + ' <button class="link" type="button" data-a="pw-openfrom">Open saved workspace</button>' + '</p>';
+    else body = '<p class="res">' + (c.state === 'no' ? 'Not done. You said no.' : 'This changed before you confirmed, so nothing was sent.') + '</p>';
+    return '<section class="w-acard" data-state="' + (c.state || 'wait') + '" aria-label="' + label + ': ' + st + '"><p class="w-lab">' + label + '<span class="st"><i></i>' + st + '</span></p><p class="detail">' + esc(c.detail) + '</p>' + body + '</section>';
+  }
+
+  /* ---- the interface: one renderer for the proposal's preview and the saved page ---- */
+  function pwMatch(r, v) { if (!v.filt) return true; return Object.keys(v.filt).every(function (k) { return r[k] === v.filt[k]; }); }
+  function pwRender(layout, o) {
+    var V = pwViews();
+    return '<div class="w-pwstack">' + PW_LAYOUT[layout].map(function (n) {
+      if (n[0] === 'text') return '<p class="w-pwtext">' + esc(n[1]) + '</p>';
+      if (n[0] === 'view') return pwView(V[n[1]], o);
+      if (n[0] === 'grid') return '<div class="w-pwgrid">' + n.slice(1).map(function (k) { return pwView(V[k], o); }).join('') + '</div>';
+      return '<section class="w-pwcard"><h3>' + esc(n[1]) + '</h3>' + pwView(V[n[2]], o) + '</section>';
+    }).join('') + '</div>';
+  }
+  function pwShown(v, o) {
+    var q = (o.ro ? '' : PW.q[v.id] || '').toLowerCase(), sk = o.ro ? '' : PW.sk[v.id] || '', dir = PW.sd[v.id] === false ? -1 : 1;
+    var rows = o.recs.filter(function (r) {
+      if (!pwMatch(r, v)) return false;
+      if (q && !PW_FIELDS.some(function (f) { return pwShow(r[f[0]]).toLowerCase().indexOf(q) > -1; })) return false;
+      return ['done', 'priority'].every(function (k) { var fv = o.ro ? '' : PW.f[v.id + ':' + k]; return !fv || String(r[k]) === fv; });
+    });
+    if (sk) rows = rows.slice().sort(function (a, b) { return pwShow(a[sk]).localeCompare(pwShow(b[sk]), undefined, { numeric: true }) * dir; });
+    return rows;
+  }
+  function pwRows(v, o) {
+    var all = o.recs.filter(function (r) { return pwMatch(r, v); }), rows = pwShown(v, o), ops = v.ops || [], upd = ops.indexOf('update') > -1, del = ops.indexOf('delete') > -1;
+    var out = '<p class="ct">' + rows.length + ' of ' + all.length + ' records</p>';
+    var actions = function (r) {
+      return '<div class="ra">' + (upd ? '<button class="w-btn sm" type="button"' + (o.ro ? ' disabled' : ' data-a="pw-edit" data-id="' + r.id + '" data-v="' + v.id + '" aria-label="Edit ' + esc(r.title) + '"') + '>Edit</button>' : '') +
+        (del ? '<button class="w-btn sm" type="button"' + (o.ro ? ' disabled' : ' data-a="pw-del" data-id="' + r.id + '" data-v="' + v.id + '" aria-label="Delete ' + esc(r.title) + '"') + '>Delete</button>' : '') + '</div>';
+    };
+    if (!rows.length) return out + '<p class="none">' + (all.length ? 'No records match these filters.' : 'No records yet. Add your first record to get started.') + '</p>';
+    if (v.kind === 'table' && !o.phone) {
+      var th = PW_FIELDS.map(function (f) {
+        var on = !o.ro && PW.sk[v.id] === f[0];
+        return '<th scope="col" aria-sort="' + (on ? (PW.sd[v.id] === false ? 'descending' : 'ascending') : 'none') + '"><button type="button"' + (o.ro ? ' disabled' : ' data-a="pw-sort" data-id="' + v.id + '" data-v="' + f[0] + '"') + '>' + f[1] + ic('down', 12) + '</button></th>';
+      }).join('') + (upd || del ? '<th scope="col">Actions</th>' : '');
+      return out + '<div class="scroll"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows.map(function (r) {
+        return '<tr>' + PW_FIELDS.map(function (f) { return '<td>' + esc(pwShow(r[f[0]])) + '</td>'; }).join('') + (upd || del ? '<td>' + actions(r) + '</td>' : '') + '</tr>'; }).join('') + '</tbody></table></div>';
+    }
+    return out + '<ul class="recs">' + rows.map(function (r) {
+      var chk = v.kind === 'checklist' ? '<label class="dn"><input class="done" type="checkbox"' + (r.done ? ' checked' : '') + (!upd || o.ro ? ' disabled' : ' data-a="pw-chk" data-id="' + r.id + '"') + ' aria-label="Complete ' + esc(r.title) + '"></label>' : '';
+      return '<li>' + chk + '<div class="rc"><strong' + (v.kind === 'checklist' && r.done ? ' class="fin"' : '') + '>' + esc(r.title) + '</strong><dl>' + PW_FIELDS.slice(v.kind === 'checklist' ? 2 : 1).map(function (f) { return '<div><dt>' + f[1] + '</dt><dd>' + esc(pwShow(r[f[0]])) + '</dd></div>'; }).join('') + '</dl></div>' + (upd || del ? actions(r) : '') + '</li>';
+    }).join('') + '</ul>';
+  }
+  function pwEditor(v, o) {
+    var r = PW.ed.id == null ? null : o.recs.filter(function (x) { return x.id === PW.ed.id; })[0], d = PW.draft;
+    var f = function (k, def) { return d[k] === undefined ? def : d[k]; };
+    var x = o.sfx || '';
+    return '<form class="editor" data-form="pw-rec" aria-label="' + (r ? 'Edit record' : 'Add record') + '"><h4>' + (r ? 'Edit record' : 'Add record') + '</h4><div class="fields">' +
+      '<div class="fld"><label for="pw-title' + x + '">Task (required)</label><input id="pw-title' + x + '" name="title" type="text" required maxlength="120" data-pw-d="title" value="' + esc(f('title', '')) + '" placeholder="Ship the weekly report" autocomplete="off"></div>' +
+      '<div class="fld"><label for="pw-due' + x + '">Due date</label><input id="pw-due' + x + '" name="due" type="date" data-pw-d="due" value="' + esc(f('due', '')) + '"></div>' +
+      '<div class="fld"><label for="pw-priority' + x + '">Priority (required)</label><select id="pw-priority' + x + '" name="priority" required data-pw-d="priority">' + PW_PRIO.map(function (p) { return '<option' + (f('priority', 'Normal') === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div>' +
+      '<div class="fld"><label for="pw-notes' + x + '">Notes</label><input id="pw-notes' + x + '" name="notes" type="text" data-pw-d="notes" value="' + esc(f('notes', '')) + '" autocomplete="off"></div>' +
+      '<div class="fld chk"><label for="pw-done' + x + '">Completed (required)</label><input id="pw-done' + x + '" name="done" type="checkbox" data-pw-d="done"' + (f('done', false) ? ' checked' : '') + '></div></div>' +
+      '<div class="acts"><button class="w-btn pri" type="submit">Save record</button><button class="w-btn" type="button" data-a="pw-cancel">Cancel</button></div></form>';
+  }
+  function pwView(v, o) {
+    var recs = o.recs, rows = recs.filter(function (r) { return pwMatch(r, v); }), done = rows.filter(function (r) { return r.done; }).length;
+    if (v.kind === 'progress') return '<section class="w-pwc" aria-label="' + v.name + '"><div class="pr"><h3>' + v.name + '</h3>' + (rows.length ? '<span class="ct">' + done + ' of ' + rows.length + '</span>' : '') + '</div>' +
+      (rows.length ? '<div class="pgs" role="progressbar" aria-valuemin="0" aria-valuemax="' + rows.length + '" aria-valuenow="' + done + '"><span style="width:' + Math.round(done / rows.length * 100) + '%"></span></div>' : '<p class="mut">No total is recorded for this view.</p>') + '</section>';
+    if (v.kind === 'status') return '<section class="w-pwc" aria-label="' + v.name + '"><h3 class="big">' + v.name + '</h3><p class="mut"><span class="ok">' + done + ' completed</span> · ' + (rows.length - done) + ' remaining</p></section>';
+    if (v.kind === 'chart') {
+      var counts = PW_PRIO.map(function (p) { return rows.filter(function (r) { return r.priority === p; }).length; }), peak = Math.max.apply(null, counts.concat(0));
+      return '<section class="w-pwc" aria-label="' + v.name + '"><h3>' + v.name + '</h3><div class="bars">' + PW_PRIO.map(function (p, i) {
+        return '<div class="bar"><span class="c">' + p + '</span><span class="track"><span style="width:' + (peak ? Math.round(counts[i] / peak * 100) : 0) + '%"></span></span><span class="n">' + counts[i] + '</span></div>'; }).join('') + '</div><p class="mut">' + rows.length + ' records. Unassigned: 0.</p></section>';
+    }
+    var ops = v.ops || [], uid = o.ro ? '' : v.id;
+    var sel = function (k, label, opts) {
+      return '<label>' + label + '<select' + (o.ro ? ' disabled' : ' data-pw-f="' + v.id + ':' + k + '"') + '><option value="">All</option>' + opts.map(function (p) { return '<option value="' + p[0] + '"' + (!o.ro && PW.f[v.id + ':' + k] === p[0] ? ' selected' : '') + '>' + p[1] + '</option>'; }).join('') + '</select></label>';
+    };
+    var sortSel = v.kind !== 'table' || o.phone ? '<label>Sort by<select' + (o.ro ? ' disabled' : ' data-pw-s="' + v.id + '"') + '><option value="">Record order</option>' + PW_FIELDS.map(function (f) { return '<option value="' + f[0] + '"' + (!o.ro && PW.sk[v.id] === f[0] ? ' selected' : '') + '>' + f[1] + '</option>'; }).join('') + '</select></label>' : '';
+    var mine = !o.ro && PW.ed && PW.ed.view === v.id, gone = !o.ro && PW.delId != null && PW.delView === v.id ? o.recs.filter(function (r) { return r.id === PW.delId; })[0] : null;
+    return '<section class="w-pwc" aria-label="' + esc(v.name) + '"><div class="vh"><h3>' + esc(v.name) + '</h3>' + (ops.indexOf('create') > -1 ? '<button class="w-btn sm"' + (o.ro ? ' disabled' : ' type="button" data-a="pw-add" data-id="' + v.id + '"' + (PW.ed ? ' disabled' : '')) + '>' + ic('plus', 14) + 'Add record</button>' : '') + '</div>' +
+      '<div class="fil"><label class="sch">Filter records<input type="search"' + (o.ro ? ' disabled' : ' data-pw-q="' + v.id + '" value="' + esc(PW.q[v.id] || '') + '"') + ' placeholder="Search this view" autocomplete="off"></label>' +
+      (v.kind === 'checklist' || v.kind === 'table' ? sel('done', 'Completed', [['true', 'Yes'], ['false', 'No']]) : '') + sel('priority', 'Priority', PW_PRIO.map(function (p) { return [p, p]; })) + sortSel + '</div>' +
+      (mine ? pwEditor(v, o) : '') +
+      (gone ? '<div class="dc" role="group" aria-label="Delete record"><p>Delete “' + esc(gone.title) + '”?</p><button class="w-btn danger" type="button" data-a="pw-delgo">Delete record</button><button class="w-btn" type="button" data-a="pw-cancel">Keep record</button></div>' : '') +
+      '<div data-pwr="' + uid + '">' + pwRows(v, o) + '</div></section>';
+  }
+
+  /* ---- the saved workspace's page, with its management menu ---- */
+  function pwPage() {
+    var w = PW.ws, o = { ro: false, recs: PW.col.recs, sfx: 'd' };
+    var menu = [['pw-settings', 'Name, icon & locations'], pwVisible() ? ['pw-away', 'Remove from this location'] : null, ['pw-history', 'Definition history'], ['pw-lib', 'Personal data library'], ['pw-delete', 'Delete workspace…']].filter(Boolean).map(function (m) {
+      return '<button class="w-btn" type="button" role="menuitem" data-a="' + m[0] + '">' + m[1] + '</button>'; }).join('');
+    var head = '<header class="w-pwhead"><div class="ti">' + ic(w.icon, 20) + '<h1>' + esc(w.name) + '</h1></div><button class="w-btn" type="button" data-a="pw-custom">Customize with Salie</button><button class="w-btn" type="button" data-a="pw-reload">Reload workspace</button>' +
+      '<div class="more"><button class="w-btn ic" type="button" data-a="pw-menu" aria-haspopup="menu" aria-expanded="' + !!PW.menu + '" aria-label="Manage workspace" title="Manage workspace">' + ic('more') + '</button>' + (PW.menu ? '<div class="menu" role="menu">' + menu + '</div>' : '') + '</div>' + pwManage() + '</header>';
+    var team = w.loc.team ? '<details class="team" data-pwteam' + (PW.teamOpen ? ' open' : '') + '><summary>Team projects · ' + esc(S.team.name) + ' · read-only</summary>' + (PW.teamOpen ? '<p class="mut">Read-only · Checked ' + clock(S.now) + '</p><ul><li>' + esc(S.team.project) + '</li></ul>' : '') + '</details>' : '';
+    return '<main class="w-main" data-keep="main-pw"><div class="w-pw" data-pw-workspace="' + w.id + '">' + head + '<div class="w-pwstatus" aria-live="polite">' + esc(PW.note) + '</div>' + pwRender(w.layout, o) + team + '</div></main>';
+  }
+  function pwManage() {
+    var w = PW.ws, p = PW.panel; if (!p) return '';
+    var body = '';
+    if (p === 'settings') {
+      var s = PW.setf || (PW.setf = { name: w.name, icon: w.icon, uni: w.loc.uni, ind: w.loc.ind, team: w.loc.team });
+      body = '<form data-form="pw-set"><label class="f">Name<input class="w-input" name="name" data-pw-sf="name" required maxlength="120" value="' + esc(s.name) + '"></label>' +
+        '<label class="f">Icon<select class="w-select" name="icon" data-pw-sf="icon" aria-label="Icon">' + PW_ICONS.map(function (i) { return '<option' + (s.icon === i ? ' selected' : '') + '>' + i + '</option>'; }).join('') + '</select></label>' +
+        '<fieldset><legend>Show in</legend>' + [['uni', 'Universal'], ['ind', 'Individual'], ['team', S.team.name]].map(function (l) { return '<label><input type="checkbox" name="' + l[0] + '" data-pw-sf="' + l[0] + '"' + (s[l[0]] ? ' checked' : '') + '> ' + esc(l[1]) + '</label>'; }).join('') + '</fieldset>' +
+        '<p>Locations control navigation only. Your workspace and personal records stay saved, even with no locations selected. Team display keeps them private to you.</p><div class="acts"><button class="w-btn pri" type="submit">Save changes</button></div></form>';
+    } else if (p === 'history') {
+      var earlier = w.hist.filter(function (h) { return h.rev < w.rev; }), pick = PW.hsel || (earlier.length ? earlier[earlier.length - 1].rev : 0), shown = PW.hrev && earlier.filter(function (h) { return h.rev === PW.hrev; })[0];
+      body = '<h2>Definition history</h2><p>Restore a saved interface as a new revision. Personal records and collection schemas stay current.</p>' +
+        (earlier.length ? '<label class="f">Saved revision<select class="w-select" data-pw-h>' + earlier.slice().reverse().map(function (h) { return '<option value="' + h.rev + '"' + (h.rev === pick ? ' selected' : '') + '>Revision ' + h.rev + ' · ' + h.at + '</option>'; }).join('') + '</select></label><div class="acts"><button class="w-btn" type="button" data-a="pw-review">Review revision</button></div>' : '<p>No earlier revisions.</p>') +
+        (shown ? '<p>Restore revision ' + shown.rev + ': “' + esc(shown.name) + '”, icon ' + shown.icon + ', ' + ({ basic: 5, focus: 6, table: 1 })[shown.layout] + ' views. Its saved display locations will also be restored.</p><div class="acts"><button class="w-btn" type="button" data-a="pw-restore">Restore this definition</button></div>' : '') + '<p>The latest 100 revisions are listed.</p>';
+    } else if (p === 'delete') {
+      var c = PW.col, keep = PW.mode === 'keep', kill = PW.mode === 'data' && c.owned;
+      body = '<h2>Delete “' + esc(w.name) + '”</h2><div class="acts"><button class="w-btn" type="button" data-a="pw-mode" data-id="keep">Delete workspace only</button><button class="w-btn" type="button" data-a="pw-mode" data-id="data">Delete workspace and its data</button></div><p>Deleting only the workspace keeps all personal collections in the data library for recovery and reuse.</p>' +
+        (PW.mode ? '<h3>' + (keep ? 'Keep personal records' : 'Review personal data deletion') + '</h3><p>The workspace definition, its revision history and all navigation entries will be deleted.</p><div class="col"><strong>' + (kill ? 'Delete ' : 'Keep ') + esc(c.name) + '</strong><p>' + c.recs.length + ' personal records. 1 workspace references.</p>' +
+          (!kill && !keep ? '<p>Protected: this collection is shared or is not owned by this workspace.</p>' : '') + '</div><p>Existing board tasks, projects, Git information, Team records and shared memory are unaffected. Retained collections remain in the personal data library.</p>' +
+          '<label class="cf"><input type="checkbox" data-a="pw-cfm"' + (PW.cfm ? ' checked' : '') + '> I confirm this deletion and the personal data choices above.</label><div class="acts"><button class="w-btn" type="button" data-a="pw-delconfirm"' + (PW.cfm ? '' : ' disabled') + '>Confirm deletion</button></div>' : '');
+    }
+    return '<section class="manage" aria-label="Workspace management">' + body + '<div class="acts"><button class="w-btn" type="button" data-a="pw-cancel">Cancel</button></div></section>';
+  }
+
+
+  /* On a phone (4.73): the workspace's page has Back, its records, Edit with Salie and a Control Deck button, and no management
+     menu and no data library. A table is read as labelled cards. The deck lists every workspace and offers Create with Salie. */
+  function pwPhone() {
+    var w = PW.ws, o = { ro: false, recs: PW.col.recs, phone: true, sfx: 'p' };
+    return pageHead(esc(w.name), 'Saved on your computer', 'the Control Deck') + '<div class="w-mpage"><div class="w-pw w-pwphone" data-pw-workspace="' + w.id + '"><div class="w-pwacts"><button class="w-btn pri" type="button" data-a="pw-custom">Edit with Salie</button>' +
+      '<button class="w-btn" type="button" data-a="pw-reload">Reload workspace</button><button class="w-btn" type="button" data-a="pw-deck">' + (P.deckWs ? 'Remove from Control Deck' : 'Add to Control Deck') + '</button></div>' +
+      '<div class="w-pwstatus" aria-live="polite">' + esc(PW.note) + '</div>' + pwRender(w.layout, o) + '</div></div>';
+  }
+  function pwDeckSection() {
+    if (G.active) return '';
+    return '<section class="w-pwdeck" aria-label="Workspaces" data-testid="deck-workspaces"><h2>Workspaces</h2>' +
+      (PW.ws ? '<a class="w-pwrow" href="#" data-a="pw-open">' + ic(PW.ws.icon, 18) + '<span>' + esc(PW.ws.name) + '</span></a>' : '') +
+      '<button class="w-btn" type="button" data-a="pw-create">' + ic('plus', 16) + 'Create with Salie</button>' + (PW.ws ? '<p class="w-muted">To put one on a button, use Edit Deck.</p>' : '') + '</section>';
+  }
+  /* The ninth key, when a workspace holds it. A workspace that was deleted at the computer says so, and the button can be removed. */
+  function pwDeckKey() {
+    var w = PW.ws;
+    return '<a class="w-dkey" href="#" data-a="' + (w ? 'pw-open' : 'pw-deckrm') + '" data-key="workspace" data-mk="k-pw" aria-label="' + (w ? esc(w.name) : 'Removed workspace. Remove this button') + '"><span class="cap"><span class="face"><span class="glyph">' + ic(w ? w.icon : 'folder', 26) + '</span><span class="name">' + (w ? esc(w.name) : 'Removed workspace') + '</span></span></span></a>';
+  }
+  function pwDeckLibrary() {
+    if (G.active || (!PW.ws && !P.deckWs)) return '';
+    return '<h3 class="w-lab" style="margin-top:6px">Your workspaces</h3><p>Open a workspace you made with Salie. These buttons do not start agents.</p>' + (PW.ws ? '<div class="w-workflows"><button class="w-card w-workflow-option" type="button" data-a="pw-deck">' + ic(PW.ws.icon, 20) + '<span><strong>' + esc(PW.ws.name) + '</strong><small>' + (P.deckWs ? 'On your deck · remove' : 'Add to your deck') + '</small></span></button></div>' : '<div class="w-workflows"><button class="w-card w-workflow-option" type="button" data-a="pw-deckrm">' + ic('folder', 20) + '<span><strong>Removed workspace</strong><small>No longer saved. Remove this button</small></span></button></div>');
+  }
+
+  /* ---- the Personal data library ---- */
+  function pwLibPage() {
+    var c = PW.col, rows = c ? '<section class="row" aria-label="' + esc(c.name) + '"><div><h3>' + esc(c.name) + '</h3><p>' + c.recs.length + ' records · ' + (PW.ws ? '1 workspace references' : 'Retained data, no workspace') + '</p></div><div class="rs"><button class="w-btn" type="button" data-a="pw-inspect">Inspect records</button><button class="w-btn" type="button" data-a="pw-reuse">Use in new workspace</button></div></section>' : '<p>No personal collections are saved.</p>';
+    var V = pwViews(), view = { id: 'inspect', name: c ? c.name : '', kind: 'table', ops: [] };
+    return '<main class="w-main" data-keep="main-pwlib"><div class="w-pwlib"><header><h1>Personal data library</h1><button class="w-btn" type="button" data-a="pw-reload">Reload library</button></header>' +
+      '<p>Collections kept after deleting a workspace remain here. Inspect their records or use them in a new workspace. All data stays on this computer.</p>' +
+      (PW.note ? '<p role="status" class="sts">' + esc(PW.note) + '</p>' : '') +
+      (PW.ws ? '<h2>Saved workspaces</h2><p>Includes workspaces with no display locations.</p><div class="rs"><button class="w-btn" type="button" data-a="pw-open">' + esc(PW.ws.name) + '</button></div>' : '') +
+      '<h2>Personal collections</h2>' + rows + (PW.inspect && c ? '<h2>Collection records</h2><div class="w-pw w-pwins">' + pwView(view, { ro: true, recs: c.recs }) + '</div>' : '') + '</div></main>';
+  }
+  function pwRail() {
+    var gen = function (attrs, icon, label, cur) { return '<button class="w-nav" type="button" ' + attrs + (cur ? ' aria-current="page"' : '') + ' title="' + esc(label) + '">' + ic(icon) + '<span class="name">' + esc(label) + '</span></button>'; };
+    return '<div class="w-gen">' + (D.ws === 'universal' ? '' : gen('data-a="pw-create"', 'plus', 'Create with Salie', false)) + (pwVisible() ? gen('data-a="pw-open"', PW.ws.icon, PW.ws.name, D.page === 'pw') : '') + gen('data-a="page" data-id="pwlib"', 'database', 'Personal data library', D.page === 'pwlib') + '</div>';
+  }
+  function pwUnder() {
+    if (D.page === 'pw' && !PW.ws) D.page = null;
+  }
+  function pwRegion(root, id) {
+    var v = pwViews()[id], box = root.querySelector('[data-pwr="' + id + '"]');
+    if (v && box && PW.col) box.innerHTML = pwRows(v, { ro: false, recs: PW.col.recs });
+  }
+  function pwOpenPhone() {
+    dropOverlay(); P.at = 'pw'; P.task = null; PW.ed = null; PW.delId = null; PW.note = '';
+    render();
+  }
+  function pwOpen() {
+    var was = D.page; leave(); dropOverlay();
+    if (!pwVisible()) D.ws = PW.ws.loc.ind ? 'individual' : PW.ws.loc.uni ? 'universal' : 'team';
+    D.page = 'pw'; D.task = null; if (was !== 'pw') PW.note = '';
+    render();
+  }
+  function pwAway() { leave(); dropOverlay(); if (D.ws !== 'universal' && !D.view) D.view = 'control'; render(); }
+  function pwActs(a, id, v, where, root) {
+    VIEW = where === 'phone' ? P : D;
+    var c = PW.col;
+    if (a === 'pw-create') { dropOverlay(); openAsst(where); if (!AS.busy && !waitingChanges()) { AS.opts = pwOpts(); renderAsst(false); } return; }
+    if (a === 'pw-custom') { dropOverlay(); openAsst(where); if (!AS.busy && !waitingChanges()) { AS.opts = pwOpts(); renderAsst(false); } return; }
+    if (a === 'pw-openfrom') { AS.open = false; renderAsst(false); if (where === 'phone') pwOpenPhone(); else pwOpen(); return; }
+    if (a === 'pw-open') { PW.inspect = false; if (where === 'phone') pwOpenPhone(); else pwOpen(); return; }
+    if (a === 'pw-deck') {
+      if (!PW.ws) return;
+      if (P.deckWs) { P.deckWs = false; PW.note = 'Removed from the Control Deck.'; toast('Removed from the Control Deck.'); }
+      else if (P.deckAdded) { PW.note = 'Your Control Deck is full. Remove a button first.'; toast('Your Control Deck is full. Remove a button first.'); }
+      else { P.deckWs = true; PW.note = 'Added to the Control Deck.'; toast('Added to the Control Deck.'); }
+      dropOverlay(); render(); return;
+    }
+    if (a === 'pw-deckrm') { P.deckWs = false; dropOverlay(); toast('Removed the button.'); render(); return; }
+    if (a === 'pw-reload') { PW.note = ''; render(); toast(D.page === 'pwlib' ? 'Loaded again from this computer.' : 'Loaded again from this computer. Your records are safe.'); return; }
+    if (!PW.ws && !c) return;
+    switch (a) {
+      case 'pw-menu': PW.menu = !PW.menu; render(); var first = PW.menu && root.querySelector('.w-pwhead .menu .w-btn'); if (first) first.focus({ preventScroll: true }); break;
+      case 'pw-settings': PW.menu = false; PW.panel = 'settings'; PW.setf = null; render(); break;
+      case 'pw-history': PW.menu = false; PW.panel = 'history'; PW.hsel = 0; PW.hrev = 0; render(); break;
+      case 'pw-delete': PW.menu = false; PW.panel = 'delete'; PW.mode = ''; PW.cfm = false; render(); break;
+      case 'pw-lib': PW.menu = false; PW.panel = ''; leave(); D.page = 'pwlib'; render(); break;
+      case 'pw-away':
+        PW.menu = false; PW.ws.loc[pwWhere()] = false; pwSave('Removed from ' + (pwWhere() === 'uni' ? 'Universal' : pwWhere() === 'ind' ? 'Individual' : S.team.name) + '. The workspace and its records are still saved.');
+        toast('Removed from this location. It is still in the Personal data library.'); pwAway(); break;
+      case 'pw-cancel': PW.menu = false; PW.panel = ''; PW.ed = null; PW.delId = null; PW.setf = null; PW.mode = ''; render(); break;
+      case 'pw-add': PW.ed = { view: id, id: null }; PW.draft = { priority: 'Normal', due: iso(dateOf(3)), done: false }; render(); var t = root.querySelector('form[data-form="pw-rec"] [name="title"]'); if (t) t.focus({ preventScroll: true }); break;
+      case 'pw-edit': var r = c.recs.filter(function (x) { return x.id === +id; })[0]; if (r) { PW.ed = { view: v, id: r.id }; PW.draft = { title: r.title, done: r.done, due: r.due || '', priority: r.priority, notes: r.notes || '' }; PW.delId = null; render(); var t2 = root.querySelector('form[data-form="pw-rec"] [name="title"]'); if (t2) t2.focus({ preventScroll: true }); } break;
+      case 'pw-chk': var cr = c.recs.filter(function (x) { return x.id === +id; })[0]; if (cr) { cr.done = !cr.done; PW.note = '“' + cr.title + '” ' + (cr.done ? 'is complete.' : 'is open again.'); render(); } break;
+      case 'pw-del': PW.delId = +id; PW.delView = v; PW.ed = null; render(); break;
+      case 'pw-delgo': var gone = c.recs.filter(function (x) { return x.id === PW.delId; })[0]; c.recs = c.recs.filter(function (x) { return x.id !== PW.delId; }); PW.delId = null; PW.note = gone ? '“' + gone.title + '” was deleted.' : ''; render(); break;
+      case 'pw-sort': if (PW.sk[id] === v) PW.sd[id] = PW.sd[id] === false; else { PW.sk[id] = v; PW.sd[id] = true; } render(); break;
+      case 'pw-review': var sel = root.querySelector('[data-pw-h]'); PW.hrev = sel ? +sel.value : 0; render(); break;
+      case 'pw-restore':
+        var h = PW.ws.hist.filter(function (x) { return x.rev === PW.hrev; })[0];
+        if (h) { PW.ws.name = h.name; PW.ws.icon = h.icon; PW.ws.layout = h.layout; PW.ws.loc = { uni: h.loc.uni, ind: h.loc.ind, team: h.loc.team }; pwSave('Restored revision ' + h.rev + ' as revision ' + (PW.ws.rev + 1) + '. Your records did not change.'); PW.panel = ''; toast('Restored as a new revision.'); if (!pwVisible()) pwAway(); else render(); }
+        break;
+      case 'pw-mode': PW.mode = id; PW.cfm = false; render(); break;
+      case 'pw-cfm': PW.cfm = !PW.cfm; render(); break;
+      case 'pw-delconfirm':
+        if (!PW.cfm) break;
+        var removed = PW.mode === 'data' && c.owned;
+        PW.ws = null; PW.panel = ''; PW.menu = false; PW.mode = ''; PW.cfm = false; PW.ed = null; PW.inspect = false;
+        if (removed) PW.col = null;
+        PW.note = removed ? 'Workspace and its exclusively owned personal data deleted.' : 'Workspace deleted. Preserved personal collections are available in the Personal data library.';
+        leave(); D.page = 'pwlib'; render(); break;
+      case 'pw-inspect': PW.inspect = !PW.inspect; render(); break;
+      case 'pw-reuse':
+        if (PW.ws) { toast('The demo keeps one personal workspace, and it already uses this collection. Delete it first to reuse the data.'); break; }
+        pwMake('table'); PW.inspect = false; pwOpen(); PW.note = 'Recovered records in a new personal workspace.'; render(); break;
+    }
+  }
+
   /* ---------- Salie: predefined messages, scripted replies ----------
      The person picks one of the messages on offer; there is no text box. Each message has a reply written in advance, which
      streams in word by word, and the next messages on offer follow from it. A reply can carry generated interface (the
@@ -431,12 +742,12 @@
   }
   var NEXT_Q = 'What should I do next on my-app?';
   function rootOpts() {
-    return ['What is on my plate this week?', 'Plan CSV export for reports', NEXT_Q, 'What needs me today?'];
+    return ['What is on my plate this week?', 'Plan CSV export for reports', NEXT_Q, 'What needs me today?'].concat(pwOpts());
   }
   function backOpts(extra) {
     var o = (extra || []).concat(['What is on my plate this week?', NEXT_Q, 'What needs me today?']);
     if (!planned()) o.unshift('Plan CSV export for reports');
-    return o.filter(function (l, i) { return o.indexOf(l) === i; }).slice(0, 4);
+    return o.filter(function (l, i) { return o.indexOf(l) === i; }).slice(0, 4).concat(pwOpts());
   }
   function optsNow() { return AS.opts || rootOpts(); }
 
@@ -593,6 +904,15 @@
     'Answer the auth test question': { reads: 'Read “Fix flaky auth test” and its question',
       text: 'There are two options. Fix the shared clock so the test passes in the full suite, or skip the test for now. Which one should the agent use?',
       ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, next: function () { return ['Fix the shared clock', 'Skip it for now', 'What needs me today?']; } },
+    'Create a weekly to-do list': { reads: 'Read your saved personal workspaces', ok: function () { return !PW.ws; }, gone: 'Weekly to-dos is already saved on this computer. Open it from the sidebar, or choose Customize with Salie there. I will not create a duplicate.',
+      text: function () { return 'Here is a weekly to-do list with deadlines and priorities. It keeps one collection of tasks on this computer: the task, whether it is done, a due date, a priority and notes. The page shows this week’s tasks as a checklist, with progress, a status line, a chart by priority and a table of every record. ' + (PW.col ? 'Your earlier records are reused as they are.' : 'It starts empty: only you add or change records.'); },
+      textEnd: 7000, cardAt: 8000, endAt: 11000, cards: function () { return [pwCard('basic')]; } },
+    'Add a High priority section and move progress up': { reads: 'Read Weekly to-dos (revision ' + '1' + ') and its collection schema', ok: function () { return !!PW.ws && PW.ws.layout === 'basic'; }, gone: NOT_OPEN,
+      text: 'I will move the progress panels to the top and add a section for High priority tasks. Only the layout changes: the collection, its fields and every record stay as they are. The preview below uses your current records.',
+      textEnd: 6000, cardAt: 7500, endAt: 10500, cards: function () { return [pwCard('focus')]; } },
+    'Put progress back below the tasks': { reads: 'Read Weekly to-dos and its collection schema', ok: function () { return !!PW.ws && PW.ws.layout === 'focus'; }, gone: NOT_OPEN,
+      text: 'I will put the High priority section away and move progress back below the tasks. Your records stay as they are.',
+      textEnd: 5000, cardAt: 6500, endAt: 9500, cards: function () { return [pwCard('basic')]; } },
     'Fix the shared clock': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, cards: function () { return [answerCard('Fix the shared clock')]; } },
     'Skip it for now': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, cards: function () { return [answerCard('Skip it for now')]; } }
   };
@@ -622,7 +942,7 @@
     function redraw() {
       renderAsst('auto'); renderPhone();
     }
-    var textEnd = complex ? 11500 : Math.max(5000, Math.min(12000, words.length * 155));
+    var textEnd = complex ? (e.textEnd || 11500) : Math.max(5000, Math.min(12000, words.length * 155));
     var chunk = WB.reduced ? 7 : 1;
     for (var i = chunk; i < words.length + chunk; i += chunk) (function (n) {
       at(1800 + (textEnd - 1800) * n / words.length, function () {
@@ -641,7 +961,7 @@
     }
     if (e.cards) {
       var cards = e.cards(); m.cards = [];
-      cards.forEach(function (c, j) { at(15000 + j * 5000, function () {
+      cards.forEach(function (c, j) { at((e.cardAt || 15000) + j * 5000, function () {
         m.cards.push(c); setStage(m, 'Preparing proposed changes · ' + (j + 1) + ' of ' + cards.length); redraw();
       }); });
     }
@@ -650,7 +970,7 @@
       recs.forEach(function (r, j) { at(12500 + j * 3000, function () { m.recs.push(r); setStage(m, 'Weighing your policy and the repository…'); redraw(); }); });
       at(12500 + recs.length * 3000, function () { m.mem = true; setStage(m, 'Citing what I read…'); redraw(); });
     }
-    at(e.ui || e.cards ? 35000 : recs ? 12500 + recs.length * 3000 + 3500 : textEnd + 800, function () {
+    at(e.ui || e.cards ? (e.endAt || 35000) : recs ? 12500 + recs.length * 3000 + 3500 : textEnd + 800, function () {
       as.busy = false; as.timer = null; as.cur = null; m.done = true; m.x = text; finishSteps(m);
       if (m.ui) delete m.ui.progress;
       as.opts = e.cards ? [] : typeof e.next === 'function' ? e.next() : (e.next || backOpts());
@@ -805,7 +1125,7 @@
     var top = '<header class="w-atop"><div class="w-awho"><h2>Salie</h2><button class="w-amodel" type="button" data-a="asst-model">Claude Code<span>· Default</span>' + ic('down', 14) + '</button></div><div class="w-aacts">' + newBtn + closeBtn + '</div></header>';
     return '<div class="w-asst" role="dialog" aria-modal="true" aria-label="Salie">' + top +
       '<div class="w-achatwrap"><div class="w-achat" data-keep="achat"><div class="w-acol">' + chatHTML(phone) + '</div></div>' +
-      '<button class="w-latest" type="button" data-a="asst-latest"' + (AS.behind[phone ? 'phone' : 'desk'] ? '' : ' hidden') + '>' + ic('down', 12) + 'New response below</button></div>' + dockHTML() + '</div>';
+      '<button class="w-latest" type="button" data-a="asst-latest"' + (AS.behind[phone ? 'phone' : 'desk'] ? '' : ' hidden') + '>' + ic('down', 12) + 'New response below</button></div>' + dockHTML(phone) + '</div>';
   }
   function chatHTML(phone) {
     if (!AS.msgs.length) return '<div class="w-aempty">' + mark(40) + '<h2>What can I help with?</h2><p>Pick a message below. I will ask you before I change anything.</p></div>';
@@ -814,7 +1134,7 @@
       // While a reply is being written: the pixel mark and what it is doing, opening to the stages reported so far.
       var line = m.done ? '' : '<div class="w-activity"><button class="w-progress" type="button" data-a="asst-act" data-id="' + i + '" aria-expanded="' + !!m.actOpen + '">' + M.markHTML(24, m.mark.study, i) + '<span data-stage>' + esc(m.stopping ? 'Stopping…' : m.stage || 'Working on it…') + '</span></button>' +
         (m.actOpen ? '<ul class="w-actsteps">' + m.steps.map(function (x) { return '<li>' + esc(x.x) + ' · ' + (x.done ? 'Completed' : m.stopping ? 'Stopping' : 'Running') + '</li>'; }).join('') + '</ul>' : '') + '</div>';
-      var cards = m.cards ? m.cards.map(function (c, ci) { return assistCardHTML(c, i, ci); }).join('') : '';
+      var cards = m.cards ? m.cards.map(function (c, ci) { return assistCardHTML(c, i, ci, phone); }).join('') : '';
       var left = m.done && m.cards ? m.cards.filter(function (c) { return !c.state; }).length : 0;
       var bar = left >= 2 ? '<div class="w-aall" role="group" aria-label="All the changes waiting"><span>' + left + ' changes are waiting for you.</span><button class="w-btn pri sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="yes">Confirm all ' + left + '</button><button class="w-btn sm" type="button" data-a="asst-all" data-id="' + i + '" data-v="no">Not now</button></div>' : '';
       var sugs = m.recs && m.recs.length ? '<section class="w-sugs" aria-label="Suggested next steps">' + m.recs.map(function (r, ri) { return recHTML(r, i, ri, phone); }).join('') + '</section>' : '';
@@ -846,7 +1166,8 @@
     else { P.at = 'project'; P.proj = 'my-app'; P.tab = 'board'; P.task = r.open.task; P.ptab = 'activity'; }
     render();
   }
-  function assistCardHTML(c, mi, ci) {
+  function assistCardHTML(c, mi, ci, phone) {
+    if (c.op === 'workspace') return pwCardHTML(c, mi, ci, phone);
     var label = ({ task: 'Create task', ticket: 'Create ticket', answer: 'Answer a question' })[c.op];
     var st = !c.state ? 'Needs you' : c.state === 'yes' ? 'Done' : c.state === 'no' ? 'Declined' : 'Not sent';
     var body;
@@ -857,7 +1178,7 @@
     return '<section class="w-acard" data-state="' + (c.state || 'wait') + '" aria-label="' + label + ': ' + st + '"><p class="w-lab">' + label + '<span class="st"><i></i>' + st + '</span></p><h3>' + esc(c.title) + '</h3>' +
       '<p class="dest">' + esc(c.dest) + '</p>' + (c.detail ? '<p class="detail">' + esc(c.detail) + '</p>' : '') + body + '</section>';
   }
-  function dockHTML() {
+  function dockHTML(phone) {
     var pills = (waitingChanges() ? [] : optsNow()).map(function (o) { return '<button class="w-apill" type="button" data-a="asst-ask" data-id="" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('');
     var note = AS.busy ? '' : waitingChanges() ? 'Confirm or decline the changes above to continue.' : 'Pick a message. Replies are scripted in this demo, and nothing is sent to a model.';
     var stop = AS.busy ? '<div class="w-stoprow"><button class="w-btn" type="button" data-a="asst-stop"' + (AS.cur && AS.cur.stopping ? ' disabled' : '') + '>' + ic('stop', 14) + (AS.cur && AS.cur.stopping ? 'Stopping…' : 'Stop') + '</button><p class="w-anote">' + (AS.cur && AS.cur.stopping ? 'Waiting for the work to confirm it has stopped.' : 'Working on it.') + '</p></div>' : '';
@@ -983,7 +1304,7 @@
   }
 
   /* Settings, Devices & Hosting and Help are pages of the window: any other place in the sidebar leaves them. */
-  function leave() { D.set = null; D.page = null; }
+  function leave() { D.set = null; D.page = null; PW.menu = false; PW.panel = ''; PW.ed = null; PW.delId = null; PW.setf = null; PW.mode = ''; }
   var PROJVIEWS = ['overview', 'board', 'calendar', 'git', 'runs', 'psettings'];
   function inProject() { return D.ws === 'individual' && PROJVIEWS.indexOf(D.view) > -1 && D.set === null && !D.page; }
   /* What a project has going: its agents' work and what waits for a person. */
@@ -1036,6 +1357,7 @@
     }
     // Settings is a page of its own: while it is open, no other place in the sidebar is current.
     if (D.set !== null || D.page) body = body.replace(/ aria-current="page"/g, '');
+    body += pwRail();
     var foot = '<div class="w-rfoot"><button class="w-nav" type="button" data-a="settings"' + (D.set !== null ? ' aria-current="page"' : '') + '>' + ic('settings') + 'Settings</button>' +
       '<div class="w-rrow"><button class="w-nav w-devices" type="button" data-a="page" data-id="devices"' + (D.page === 'devices' ? ' aria-current="page"' : '') + '><span class="w-ic">' + ic('runner') + '</span><span>Devices &amp; Hosting</span></button>' +
       '<button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div>';
@@ -2152,7 +2474,10 @@
     keepScroll(deskRoot, D.scroll);
     var fk = focusKey(deskRoot);
     var main, panel = '';
+    pwUnder();
     if (D.set !== null) main = settingsHTML();
+    else if (D.page === 'pw') main = pwPage();
+    else if (D.page === 'pwlib') main = pwLibPage();
     else if (D.page === 'devices') main = devicesPage();
     else if (D.page === 'help') main = helpPage(false);
     else if (D.ws === 'universal') main = ({ mywork: myWorkHTML, calendar: ucalHTML, inbox: inboxHTML })[D.uv]();
@@ -2257,7 +2582,7 @@
       body = '<p>Workflow buttons turn a task you repeat into one tap. Your paired computer does the work: no new task to write, no settings to fill in each time.</p><div class="w-workflows">' + WORKFLOWS.map(function (w) {
         var on = w[0] === 'bugs';
         return '<button class="w-card w-workflow-option" type="button"' + (on ? ' data-a="deckadd"' : ' disabled') + '>' + ic(w[1], 20) + '<span><strong>' + w[2] + '</strong><span>' + w[3] + '</span><small>' + (on ? (P.deckAdded ? 'On your deck · settings' : 'Add to your deck') : 'Not in this demo') + '</small></span></button>';
-      }).join('') + '</div><p class="w-mm">Navigation keys open a page. In the app, the pencil above the deck replaces, removes or moves any of the nine.</p>';
+      }).join('') + '</div><p class="w-mm">Navigation keys open a page. In the app, the pencil above the deck replaces, removes or moves any of the nine.</p>' + pwDeckLibrary();
     } else if (kind === 'wfpick') {
       title = 'Run Find Bugs'; focus = 'input[name="wfrepo"]:checked';
       body = '<p>Choose a repository. Your computer looks for bugs it can reproduce and suggests fixes. No files are changed.</p><fieldset class="w-repos"><legend class="w-lab">Repository</legend>' +
@@ -2303,6 +2628,7 @@
     var c = keyCounts();
     var keys = KEYS.map(function (k) {
       if (k[0] === 'bugs') {
+        if (P.deckWs) return pwDeckKey();
         if (!P.deckAdded) return '<button class="w-dkey empty" type="button" data-a="decklibrary" data-mk="k-add" aria-label="Add a button to position 9"><span class="cap"><span class="face"><span class="glyph">' + ic('plus', 26) + '</span><span class="name">Add button</span></span></span></button>';
         // A workflow key: tap to run, hold to configure. It shows its icon and name only; where it runs is in its settings,
         // and is read out to a screen reader (the label below).
@@ -2319,7 +2645,7 @@
       '<button class="w-btn ic" type="button" data-a="help" aria-label="Help and shortcuts">' + ic('help') + '</button>' +
       '<button class="w-btn ic" type="button" data-a="settings" aria-label="Settings">' + ic('settings') + '</button></nav></header>' +
       wfBanner() +
-      '<section class="w-housing" aria-label="Control Deck"><div class="w-keys" data-mp="deck">' + keys + '</div></section>' + (P.wf && !P.wf.dismissed ? '<section class="w-deckhistory" aria-label="Workflow executions"><h2>Workflow executions</h2><p>Find Bugs · ' + esc(P.wf.repo) + '</p><p class="w-mm" data-wf="count">Claude Code · ' + wfLines().count + '</p><p data-wf="stage">' + wfLines().stage + ' · ' + esc(P.wf.repo) + '</p>' + (P.wf.ended && !P.wf.stopped ? '<p>2 bugs found · 2 suggested fixes · no files changed</p>' : '') + '</section>' : '') + '</div>';
+      '<section class="w-housing" aria-label="Control Deck"><div class="w-keys" data-mp="deck">' + keys + '</div></section>' + pwDeckSection() + (P.wf && !P.wf.dismissed ? '<section class="w-deckhistory" aria-label="Workflow executions"><h2>Workflow executions</h2><p>Find Bugs · ' + esc(P.wf.repo) + '</p><p class="w-mm" data-wf="count">Claude Code · ' + wfLines().count + '</p><p data-wf="stage">' + wfLines().stage + ' · ' + esc(P.wf.repo) + '</p>' + (P.wf.ended && !P.wf.stopped ? '<p>2 bugs found · 2 suggested fixes · no files changed</p>' : '') + '</section>' : '') + '</div>';
   }
   /* A page under the deck: Back, its name, and one line on how its subject stands (the app's subtitle.ts). */
   function pageHead(title, sub, back, tone) {
@@ -2444,10 +2770,12 @@
     if (!phoneRoot) return;
     VIEW = P;
     keepScroll(phoneRoot, P.scroll);
+    if (P.at === 'pw' && !PW.ws) P.at = 'deck';
     var fk = focusKey(phoneRoot), at = P.at, page;
     if (at === 'deck') page = phoneDeck();
     else if (at === 'project') page = phoneProject();
     else if (at === 'team') page = phoneTeam();
+    else if (at === 'pw' && PW.ws) page = pwPhone();
     else if (at === 'settings') page = phoneSettings();
     else if (at === 'help') page = helpPage(true);
     else page = pageHead(PLACES[at], subtitle(at), parentOf(at) === 'deck' ? 'the Control Deck' : 'Projects', at === 'agents' ? (agentCards().some(function (c) { return c.state === 'Waiting for you'; }) ? 'ask' : fleet().running ? 'ok' : 'neutral') : '') + PAGE[at]();
@@ -2613,6 +2941,7 @@
       var a = b.dataset.a, id = b.dataset.id, v = b.dataset.v;
       if (b.tagName === 'A') e.preventDefault();
       VIEW = V;
+      if (a.indexOf('pw-') === 0) { pwActs(a, id, v, where, root); return; }
       if (RO[a]) { var rt = get(isNaN(+id) ? id : +id); if (rt && rt.ro) { toast(roText(rt)); return; } }
       switch (a) {
         case 'view': nav(where, id); D.ws = where === 'desk' ? 'individual' : D.ws; leave(); dropOverlay(); render(); break;
@@ -2651,7 +2980,7 @@
         case 'calmode': D.cal = id; render(); break;
         case 'pgo': P.at = id; P.task = null; P.set = null; dropOverlay(); render(); break;
         case 'decklibrary': workflowSheet('decklibrary'); break;
-        case 'deckadd': if (P.deckAdded) workflowSheet('wfconfig'); else { P.deckAdded = true; dropOverlay(); toast('Find Bugs is on your deck. Tap to run, hold to configure.'); render(); ackPencil(); } break;
+        case 'deckadd': if (P.deckWs) { dropOverlay(); toast('Your Control Deck is full. Remove a button first.'); break; } if (P.deckAdded) workflowSheet('wfconfig'); else { P.deckAdded = true; dropOverlay(); toast('Find Bugs is on your deck. Tap to run, hold to configure.'); render(); ackPencil(); } break;
         case 'wftap': tapWorkflow(); break;
         case 'wfrun': var picked = phoneRoot.querySelector('input[name="wfrepo"]:checked'); runWorkflow(picked ? picked.value : REPOS[0]); dropOverlay(); render(); break;
         case 'wfsave': saveWorkflow(); dropOverlay(); render(); ackPencil(); break;
@@ -2745,6 +3074,17 @@
         if (where === 'desk') { if (D.view === 'control') D.view = 'board'; } else { P.at = 'project'; P.tab = 'board'; P.task = null; P.col = startNow ? 'doing' : 'backlog'; }
         if (startNow) startTask(t.id); else toast('“' + title + '” is in Backlog. Start it now, or drag it onto the Calendar.');
         render();
+      } else if (f.dataset.form === 'pw-rec' && PW.col && PW.ed) {
+        var fe = f.elements, ttl = fe.title.value.trim(); if (!ttl) { fe.title.focus(); return; }
+        var rv = { title: ttl, done: fe.done.checked, due: fe.due.value, priority: fe.priority.value, notes: fe.notes.value.trim() };
+        if (PW.ed.id == null) { rv.id = PW.col.next++; PW.col.recs.push(rv); PW.note = 'Saved “' + ttl + '”.'; }
+        else { var er = PW.col.recs.filter(function (x) { return x.id === PW.ed.id; })[0]; if (er) { Object.keys(rv).forEach(function (k) { er[k] = rv[k]; }); PW.note = 'Saved “' + ttl + '”.'; } }
+        PW.ed = null; PW.draft = {}; render();
+      } else if (f.dataset.form === 'pw-set' && PW.ws) {
+        var ss = PW.setf; if (!ss || !ss.name.trim()) return;
+        PW.ws.name = ss.name.trim(); PW.ws.icon = ss.icon; PW.ws.loc = { uni: !!ss.uni, ind: !!ss.ind, team: !!ss.team };
+        pwSave(''); PW.note = 'Saved as revision ' + PW.ws.rev + '. Locations control navigation only.'; PW.panel = ''; PW.setf = null;
+        if (!pwVisible()) { toast('This workspace is no longer shown here. It is still in the Personal data library.'); pwAway(); } else render();
       } else if (f.dataset.form === 'comment') {
         if (postComment(+f.dataset.n, f.elements.text.value)) { setOverlay(root, sheetHTML(V.sheet, where === 'phone'), 'textarea'); render(); } else f.elements.text.focus();
       } else if (f.dataset.form === 'msg') {
@@ -2773,6 +3113,13 @@
         if (ui && body) { ui.q = e.target.value; body.innerHTML = uiBodyHTML(ui); }
         return;
       }
+      var pe = e.target;
+      if (pe.matches('[data-pw-d]')) { PW.draft[pe.dataset.pwD] = pe.type === 'checkbox' ? pe.checked : pe.value; return; }
+      if (pe.matches('[data-pw-sf]')) { if (PW.setf) PW.setf[pe.dataset.pwSf] = pe.type === 'checkbox' ? pe.checked : pe.value; return; }
+      if (pe.matches('[data-pw-h]')) { PW.hsel = +pe.value; PW.hrev = 0; render(); return; }
+      if (pe.matches('[data-pw-q]')) { PW.q[pe.dataset.pwQ] = pe.value; pwRegion(root, pe.dataset.pwQ); return; }
+      if (pe.matches('[data-pw-f]')) { PW.f[pe.dataset.pwF] = pe.value; pwRegion(root, pe.dataset.pwF.split(':')[0]); return; }
+      if (pe.matches('[data-pw-s]')) { PW.sk[pe.dataset.pwS] = pe.value; PW.sd[pe.dataset.pwS] = true; pwRegion(root, pe.dataset.pwS); return; }
       if (e.target.matches('[data-mcp-paste]')) { V.mcpText = e.target.value; return; }
       if (e.target.matches('[data-pal]')) { var l = root.querySelector('[data-pallist]'); if (l) l.innerHTML = palListHTML(e.target.value, where); }
     });
@@ -2782,6 +3129,7 @@
       if (m) m.open = d.open;
       var mm = d.tagName === 'DETAILS' && d.dataset.j != null ? AS.msgs[+d.dataset.j] : null;
       if (mm) mm.memOpen = d.open;
+      if (d.tagName === 'DETAILS' && d.hasAttribute('data-pwteam')) { if (PW.teamOpen !== d.open) { PW.teamOpen = d.open; render(); } }
       if (d.tagName === 'DETAILS' && d.dataset.dv) DAYS_OPEN[d.dataset.dv] = d.open;
       if (d.tagName === 'DETAILS' && d.hasAttribute('data-mcpopen')) V.mcpOpen = d.open;
     }, true);
@@ -3271,7 +3619,7 @@
     Object.keys(G.f).forEach(function (key) { if (key.indexOf('phone-') === 0) delete G.f[key]; });
     Object.keys(G.s).forEach(function (key) { if (key.indexOf('phone-') === 0) delete G.s[key]; });
     window.dispatchEvent(new CustomEvent('wb-demo-view', { detail: 'phone' }));
-    P.at = 'deck'; P.task = null; P.deckAdded = false; P.repo = null; P.wf = null; P.scope = 'individual'; P.proj = 'my-app'; P.scroll = {};
+    P.at = 'deck'; P.task = null; P.deckAdded = false; P.deckWs = false; P.repo = null; P.wf = null; P.scope = 'individual'; P.proj = 'my-app'; P.scroll = {};
     render();
   }
   function endSpec(w) {
@@ -3395,7 +3743,7 @@
   }
   function guideReset() {
     G.active = true; G.mode = 'core'; G.exitAsk = false;
-    halt(); asstFresh(); clearTimeout(toastTimer); xferTimers.forEach(clearTimeout); xferTimers = []; INSP = {}; DAYS_OPEN = {};
+    halt(); asstFresh(); PW = pwFresh(); clearTimeout(toastTimer); xferTimers.forEach(clearTimeout); xferTimers = []; INSP = {}; DAYS_OPEN = {};
     var fresh = JSON.parse(initialState);
     Object.keys(S).forEach(function (k) { S[k] = fresh[k]; });
     G.f = {}; G.s = {}; G.floor = 0; G.hide = null; G.left = null; G.deskSw = null; revealed = ''; placed = {};
@@ -3403,7 +3751,7 @@
     [D, P].forEach(function (v) { v.task = null; v.sheet = null; v.scroll = {}; });
     D.ws = 'universal'; D.uv = 'mywork'; D.tv = 'board'; D.view = 'control'; D.proj = 'my-app'; D.page = null; D.set = null; D.alerts = false; D.share = 0; D.mine = false; D.sw = false; D.pal = null; D.pick = null; D.week = 0; D.dayN = 0; D.mode = 'week'; D.cal = 'calendar';
     D.arch = D.tarch = false; D.fa = D.fp = 'any'; D.aq = ''; D.hq = ''; D.gsub = 'overview'; D.ccp = D.cca = 'all'; D.an = analyticsState(); D.tdays = 30; D.cc = 'all';
-    P.deckAdded = false; P.repo = null; P.scope = 'individual'; P.at = 'deck'; P.tab = 'board'; P.proj = 'my-app'; P.set = null; P.col = 'backlog'; P.day = TODAY; P.cc = 'all'; P.wf = null; P.af = 'all';
+    P.deckAdded = false; P.deckWs = false; P.repo = null; P.scope = 'individual'; P.at = 'deck'; P.tab = 'board'; P.proj = 'my-app'; P.set = null; P.col = 'backlog'; P.day = TODAY; P.cc = 'all'; P.wf = null; P.af = 'all';
     P.arch = false; P.fa = P.fp = 'any'; P.aq = ''; P.hq = ''; P.gsub = 'overview'; P.ccp = P.cca = 'all'; P.an = analyticsState(); P.teamTab = 'board';
     [deskRoot, phoneRoot].forEach(function (root) { setOverlay(root, ''); root.querySelector('.w-toast').classList.remove('show'); });
     render(); go();
@@ -3417,6 +3765,7 @@
     if (root.contains(document.activeElement)) document.activeElement.blur();
     if (V.sheet || (where === 'desk' && (D.pal !== null || D.sw))) { dropOverlay(); render(); return true; }
     if (AS.open) { closeAsst(where); return true; }
+    if ((where === 'desk' ? D.page === 'pw' : P.at === 'pw') && (PW.menu || PW.panel || PW.ed || PW.delId != null)) { PW.menu = false; PW.panel = ''; PW.ed = null; PW.delId = null; PW.setf = null; PW.mode = ''; render(); return true; }
     if (V.task) { V.task = null; render(); return true; }
     return false;
   }
