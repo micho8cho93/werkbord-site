@@ -220,14 +220,14 @@
   var PROJECTS = ['my-app', 'api-server', 'marketing-site'];
 
   /* ---------- views: each surface has its own navigation ---------- */
-  var D = { ws: 'universal', uv: 'mywork', tv: 'board', view: 'control', proj: 'my-app', page: null, set: null, alerts: false, share: 0, mine: false, sw: false, task: null, ptab: 'activity', sheet: null, pal: null, week: 0, dayN: 0, mode: 'week', cal: 'calendar', pick: null, cc: 'all', fa: 'any', fp: 'any', arch: false, tarch: false, aq: '', gsub: 'overview', an: analyticsState(), tan: 'Activity', hq: '', drag: null, scroll: {} };
-  var P = { scope: 'individual', teamTab: 'board', deckAdded: false, deckWs: false, repo: null, at: 'deck', tab: 'board', proj: 'my-app', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', fa: 'any', fp: 'any', arch: false, aq: '', gsub: 'overview', an: analyticsState(), set: null, hq: '', wf: null, af: 'all', scroll: {} };
+  var D = { ws: 'universal', uv: 'mywork', tv: 'board', view: 'control', proj: 'my-app', page: null, pwk: 'todo', set: null, alerts: false, share: 0, mine: false, sw: false, task: null, ptab: 'activity', sheet: null, pal: null, week: 0, dayN: 0, mode: 'week', cal: 'calendar', pick: null, cc: 'all', fa: 'any', fp: 'any', arch: false, tarch: false, aq: '', gsub: 'overview', an: analyticsState(), tan: 'Activity', hq: '', drag: null, scroll: {} };
+  var P = { scope: 'individual', teamTab: 'board', deckAdded: false, deckWs: false, pwk: 'todo', repo: null, at: 'deck', tab: 'board', proj: 'my-app', task: null, ptab: 'activity', sheet: null, col: 'backlog', day: TODAY, mode: 'day', cc: 'all', fa: 'any', fp: 'any', arch: false, aq: '', gsub: 'overview', an: analyticsState(), set: null, hq: '', wf: null, af: 'all', scroll: {} };
   // The visible surface being drawn: the per-project pages read its project, filters and archive from it.
   var VIEW = D;
 
   // my-app starts with only its finished history, so the visitor sees an idea become a working board.
   var initialState = JSON.stringify(S);
-  var PW = pwFresh();
+  var PW, PWS;
   var G = { mode: 'core', active: false, f: {}, s: {}, floor: 0, cur: null, where: null, hide: null, exitAsk: false };
 
   function get(id) {
@@ -416,43 +416,90 @@
     toast('Scheduled for ' + dayLabel(d) + ', ' + clock(m) + '. It starts by itself, even with this window closed.');
   }
 
-  /* ---------- personal generative workspaces (the app's 4.72) ----------
+  /* ---------- personal generative workspaces (the app's 4.72 and 4.73) ----------
      Salie can propose a private interface that is saved on this computer: a layout of panels over a collection of records. The
      proposal is a card with a read only preview and its own Confirm, as in the app. Once saved it is listed under Create with Salie in
-     the sidebar, and its records are the person's to add, tick off, edit and delete. The demo keeps one workspace over one collection
-     (Weekly tasks), and what it draws follows the product's own renderer (web/src/lib/personal, web/src/shell): bordered panels, a
-     shaded filter band over each list or table, and more room between sections. Desktop only: a phone credential has no route to
-     personal workspaces, so the phone never offers them. */
-  var PW_ID = 'pws_h3k7q2m9x4c6b8da';
-  var PW_ICONS = ['check', 'folder', 'analytics', 'calendar', 'activity', 'overview'];
-  var PW_PRIO = ['Low', 'Normal', 'High'];
-  var PW_CREATE = 'Create a weekly to-do list', PW_FOCUS = 'Add a High priority section and move progress up', PW_BACK = 'Put progress back below the tasks';
-  var PW_INTRO = 'Your weekly tasks, saved on this computer. Add them directly, tick them off, and come back whenever you need the list.';
-  var PW_LAYOUT = {
-    basic: [['text', PW_INTRO], ['view', 'todos'], ['grid', 'progress', 'status'], ['card', 'Priority overview', 'chart'], ['view', 'table']],
-    focus: [['text', PW_INTRO], ['grid', 'progress', 'status'], ['view', 'urgent'], ['view', 'todos'], ['card', 'Priority overview', 'chart'], ['view', 'table']],
-    table: [['view', 'records']]
+     the sidebar, and its records are the person's to add, tick off, edit and delete. Salie draws the page; it never reads or changes
+     the records. The demo has two examples, each over one collection of its own. Individual's is a weekly to-do list. A Team's is a
+     tracker of what the person is waiting on from teammates: a workspace can be shown in a Team, and Team display keeps it private to
+     the person. What a page draws follows the product's own renderer (web/src/lib/personal, web/src/shell): bordered panels, a shaded
+     filter band over each list or table, and more room between sections. A phone lists every workspace on its deck and works with its
+     records (4.73); making or reshaping one there goes through Salie, and renaming, history and deleting stay on the computer. */
+  var PW_ICONS = ['check', 'folder', 'analytics', 'calendar', 'activity', 'overview', 'people'];
+  var PW_KINDS = ['todo', 'team'];
+  var PWK = {
+    todo: {
+      id: 'pws_h3k7q2m9x4c6b8da', home: 'individual', loc: { uni: true, ind: true, team: false },
+      name: 'Weekly to-dos', icon: 'check', col: 'Weekly tasks',
+      create: 'Create a weekly to-do list', focus: 'Add a High priority section and move progress up', back: 'Put progress back below the tasks',
+      intro: 'Your weekly tasks, saved on this computer. Add them directly, tick them off, and come back whenever you need the list.',
+      fields: [['title', 'Task', 'text'], ['done', 'Completed', 'boolean'], ['due', 'Due date', 'date'], ['priority', 'Priority', 'select'], ['notes', 'Notes', 'text']],
+      sel: 'priority', opts: ['Low', 'Normal', 'High'], dflt: 'Normal', hot: 'High', hotName: 'High priority', main: 'This week', card: 'Priority overview', chart: 'Tasks by priority', ph: 'Ship the weekly report',
+      sample: { title: 'Send the weekly report', sel: 'High', due: 1 },
+      seed: [{ title: 'Send the weekly report', done: false, due: 1, priority: 'High', notes: '' }, { title: 'Renew the domain', done: false, due: 3, priority: 'Normal', notes: 'It expires next week' }, { title: 'Book flights for the offsite', done: true, due: -1, priority: 'Low', notes: '' }],
+      say: 'Here is a weekly to-do list with deadlines and priorities. It keeps one collection of tasks on this computer: the task, whether it is done, a due date, a priority and notes. The page shows this week’s tasks as a checklist, with progress, a status line, a chart by priority and a table of every record.',
+      focusSay: 'I will move the progress panels to the top and add a section for High priority tasks. Only the layout changes: the collection, its fields and every record stay as they are. The preview below uses your current records.',
+      backSay: 'I will put the High priority section away and move progress back below the tasks. Your records stay as they are.'
+    },
+    team: {
+      id: 'pws_t5n8w2r6y3d9f7ka', home: 'team', loc: { uni: false, ind: false, team: true },
+      name: 'Team follow-ups', icon: 'people', col: 'Follow-ups',
+      create: 'Create a team follow-up tracker', focus: 'Add a section for Maya and move progress up', back: 'Put progress back below the follow-ups',
+      intro: 'What you are waiting on from your teammates, saved on this computer. ' + S.team.name + ' shows it in your sidebar, and your teammates cannot see it. Add a follow-up, and tick it off when it arrives.',
+      fields: [['title', 'Follow-up', 'text'], ['done', 'Done', 'boolean'], ['due', 'Needed by', 'date'], ['who', 'Teammate', 'select'], ['notes', 'Notes', 'text']],
+      sel: 'who', opts: ['Maya', 'Jonas', 'Priya', 'Sam'], dflt: 'Maya', hot: 'Maya', hotName: 'Waiting on Maya', main: 'Open follow-ups', card: 'Who it is with', chart: 'Follow-ups by teammate', ph: 'Review of the pull request',
+      sample: { title: 'Review of pull request 212 (WB-40)', sel: 'Priya', due: 1 },
+      seed: [{ title: 'Review of pull request 212 (WB-40)', done: false, due: 1, who: 'Priya', notes: 'The audit log filters' }, { title: 'API notes for the reports page (WB-45)', done: false, due: 3, who: 'Maya', notes: '' },
+        { title: 'Scope for the invoice export (WB-47)', done: false, due: 6, who: 'Sam', notes: '' }, { title: 'Rounding check on the tax line (WB-42)', done: true, due: -1, who: 'Jonas', notes: 'It matches the invoice' }],
+      say: 'Here is a tracker for what you are waiting on from your team. It keeps one collection of follow-ups on this computer: the follow-up, whether it is done, a due date, the teammate and notes. The page shows open follow-ups as a checklist, with progress, a status line, a chart by teammate and a table of every record. It appears in ' + S.team.name + ' and stays private to you.',
+      focusSay: 'I will move the progress panels to the top and add a section for follow-ups with Maya. Only the layout changes: the collection, its fields and every record stay as they are. The preview below uses your current records.',
+      backSay: 'I will put the Maya section away and move progress back below the follow-ups. Your records stay as they are.'
+    }
   };
-  function pwFresh() {
-    return { ws: null, col: null, menu: false, panel: '', ed: null, draft: {}, q: {}, f: {}, sk: {}, sd: {}, delId: null, delView: '', mode: '', cfm: false, hsel: 0, hrev: 0, inspect: false, note: '', teamOpen: false, setf: null };
+  /* The same three layouts for every example: the page as made, the page with a section for one value and progress on top, and the
+     fixed table the data library makes when it reuses a collection. */
+  PW_KINDS.forEach(function (k) {
+    var K = PWK[k], head = ['text', K.intro];
+    K.layouts = {
+      basic: [head, ['view', 'todos'], ['grid', 'progress', 'status'], ['card', K.card, 'chart'], ['view', 'table']],
+      focus: [head, ['grid', 'progress', 'status'], ['view', 'urgent'], ['view', 'todos'], ['card', K.card, 'chart'], ['view', 'table']],
+      table: [['view', 'records']]
+    };
+  });
+  /* One state per example: the saved workspace, its collection, and what its page has open. PW is the one being drawn or acted on. */
+  var pwLibNote = '';
+  function pwNew(k) {
+    return { k: k, K: PWK[k], ws: null, col: null, menu: false, panel: '', ed: null, draft: {}, q: {}, f: {}, sk: {}, sd: {}, delId: null, delView: '', mode: '', cfm: false, hsel: 0, hrev: 0, inspect: false, note: '', teamOpen: false, setf: null };
   }
+  function pwReset() { PWS = {}; PW_KINDS.forEach(function (k) { PWS[k] = pwNew(k); }); PW = PWS.todo; pwLibNote = ''; }
+  /* The workspace a control belongs to: the one whose page it is on. */
+  function pwOf(el) { var n = el.closest && el.closest('[data-pw-key]'); return n ? pwUse(n.getAttribute('data-pw-key')) : PW; }
+  function pwUse(k) { if (PWS[k]) PW = PWS[k]; return PW; }
+  function pwIdle(s) { s.menu = false; s.panel = ''; s.ed = null; s.delId = null; s.setf = null; s.mode = ''; }
+  function pwAny() { return PW_KINDS.some(function (k) { return !!PWS[k].ws; }); }
+  function pwRecs(k) { return PWS[k].col ? PWS[k].col.recs.length : 0; }
   function pwViews() {
+    var K = PW.K, hot = {}; hot[K.sel] = K.hot;
     return {
-      todos: { id: 'todos', name: 'This week', kind: 'checklist', ops: ['create', 'update', 'delete'] },
-      urgent: { id: 'urgent', name: 'High priority', kind: 'checklist', ops: ['update'], filt: { priority: 'High' } },
+      todos: { id: 'todos', name: K.main, kind: 'checklist', ops: ['create', 'update', 'delete'] },
+      urgent: { id: 'urgent', name: K.hotName, kind: 'checklist', ops: ['update'], filt: hot },
       table: { id: 'table', name: 'All records', kind: 'table', ops: ['create', 'update', 'delete'] },
       progress: { id: 'progress', name: 'Progress', kind: 'progress' },
       status: { id: 'status', name: 'Current status', kind: 'status' },
-      chart: { id: 'chart', name: 'Tasks by priority', kind: 'chart' },
+      chart: { id: 'chart', name: K.chart, kind: 'chart' },
       records: { id: 'records', name: PW.col ? PW.col.name : 'Records', kind: 'table', ops: ['create', 'update', 'delete'] }
     };
   }
-  var PW_FIELDS = [['title', 'Task', 'text'], ['done', 'Completed', 'boolean'], ['due', 'Due date', 'date'], ['priority', 'Priority', 'select'], ['notes', 'Notes', 'text']];
-  function iso(x) { return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); }
+  function pwLabel(k) { return PW.K.fields.filter(function (f) { return f[0] === k; })[0][1]; }
   function pwShow(v) { return v === undefined || v === '' || v === null ? '–' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v); }
-  function pwOpts() { return !PW.ws ? [PW_CREATE] : PW.ws.layout === 'basic' ? [PW_FOCUS] : PW.ws.layout === 'focus' ? [PW_BACK] : []; }
+  /* What Salie offers about a workspace: to make it, or to reshape the one that is saved. */
+  function pwKindOpts(k) { var K = PWK[k], s = PWS[k]; return !s.ws ? [K.create] : s.ws.layout === 'basic' ? [K.focus] : s.ws.layout === 'focus' ? [K.back] : []; }
+  function pwOpts(ks, making) {
+    var pool = making && ks.some(function (k) { return !PWS[k].ws; }) ? ks.filter(function (k) { return !PWS[k].ws; }) : ks;
+    return pool.reduce(function (o, k) { return o.concat(pwKindOpts(k)); }, []);
+  }
   function pwWhere() { return D.ws === 'universal' ? 'uni' : D.ws === 'individual' ? 'ind' : 'team'; }
-  function pwVisible() { return !!PW.ws && !!PW.ws.loc[pwWhere()]; }
+  function pwVisible(k) { var s = PWS[k || PW.k]; return !!s.ws && !!s.ws.loc[pwWhere()]; }
   function pwLocs(loc) { return [loc.uni ? 'Universal' : '', loc.ind ? 'Individual' : '', loc.team ? S.team.name : ''].filter(Boolean).join(', ') || 'no location'; }
   function pwSave(note) {
     var w = PW.ws; w.rev++;
@@ -460,52 +507,84 @@
     PW.note = note || '';
   }
   function pwMake(layout) {
-    var reuse = !!PW.col;
-    if (!PW.col) PW.col = { name: 'Weekly tasks', recs: [], next: 1, owned: true }; else PW.col.owned = false;
-    PW.ws = { id: PW_ID, rev: 0, name: layout === 'table' ? PW.col.name : 'Weekly to-dos', icon: layout === 'table' ? 'folder' : 'check', layout: layout, loc: { uni: true, ind: true, team: false }, hist: [] };
+    var K = PW.K, reuse = !!PW.col;
+    if (!PW.col) PW.col = { name: K.col, recs: [], next: 1, owned: true }; else PW.col.owned = false;
+    PW.ws = { id: K.id, rev: 0, name: layout === 'table' ? PW.col.name : K.name, icon: layout === 'table' ? 'folder' : K.icon, layout: layout, loc: { uni: K.loc.uni, ind: K.loc.ind, team: K.loc.team }, hist: [] };
     pwSave(reuse ? 'Saved. Your earlier records are back in the workspace.' : '');
   }
+  /* What the phone lesson finds when nothing was made on the computer first: what a person would have made there. */
+  function pwSeed() {
+    PW_KINDS.forEach(function (k) {
+      pwUse(k);
+      if (!PW.ws) pwMake('basic');
+      if (!PW.col.recs.length) PW.K.seed.forEach(function (r) { var x = { id: PW.col.next++ }; Object.keys(r).forEach(function (key) { x[key] = r[key]; }); x.due = iso(dateOf(r.due)); PW.col.recs.push(x); });
+      PW.note = '';
+    });
+  }
   /* The card Salie proposes: creating the workspace, or changing its layout (a new revision, with the records untouched). */
-  function pwCard(layout) {
-    var edit = !!PW.ws, rev = edit ? PW.ws.rev : 0;
-    return { op: 'workspace', edit: edit, layout: layout, rev: rev, title: edit ? PW.ws.name : 'Weekly to-dos',
+  function pwCard(k, layout) {
+    pwUse(k);
+    var K = PW.K, edit = !!PW.ws, rev = edit ? PW.ws.rev : 0;
+    return { op: 'workspace', k: k, edit: edit, layout: layout, rev: rev, title: edit ? PW.ws.name : K.name,
       detail: edit ? 'Update “' + PW.ws.name + '” with a new layout. Records are preserved. Review the interface, schemas and display locations below.'
-        : 'Create “Weekly to-dos” with 1 personal collection. Records are ' + (PW.col ? 'preserved' : 'saved only when you add them') + '. Review the interface, schemas and display locations below.',
-      ok: function () { return edit ? !!PW.ws && PW.ws.rev === rev : !PW.ws; },
+        : 'Create “' + K.name + '” with 1 personal collection. Records are ' + (PW.col ? 'preserved' : 'saved only when you add them') + '. Review the interface, schemas and display locations below.',
+      ok: function () { var s = PWS[k]; return edit ? !!s.ws && s.ws.rev === rev : !s.ws; },
       run: function () {
+        pwUse(k);
         if (edit) { PW.ws.layout = layout; pwSave('Layout updated. Your records did not change.'); } else pwMake(layout);
         this.saved = PW.ws.rev;
       } };
   }
+  /* The page's outline, by section, as the confirmation card lists a saved definition. */
+  function pwOutline(layout) {
+    var V = pwViews();
+    return PW.K.layouts[layout].map(function (n) { return n[0] === 'text' ? 'text' : n[0] === 'view' ? V[n[1]].name : n[0] === 'grid' ? 'Progress and status' : n[1]; });
+  }
   /* What the confirmation card shows before anything is saved: where it appears, its fields and record controls, and the
      interface itself with every control switched off. */
   function pwPreview(c) {
-    var w = PW.ws, recs = PW.col ? PW.col.recs : [], V = pwViews();
-    var fields = '<h4>' + esc(PW.col ? PW.col.name : 'Weekly tasks') + '</h4><ul>' + PW_FIELDS.map(function (f) { return '<li>' + f[1] + ' (' + f[0] + ') · ' + f[2] + (f[0] === 'title' || f[0] === 'done' || f[0] === 'priority' ? ' · required' : ' · optional') + (f[0] === 'priority' ? ' · ' + PW_PRIO.join(', ') : '') + '</li>'; }).join('') + '</ul>';
-    var ops = Object.keys(V).filter(function (k) { return V[k].kind !== 'records' && PW_LAYOUT[c.layout].some(function (n) { return n.indexOf(k) > 0; }); }).map(function (k) {
-      return '<p>' + V[k].name + ': ' + (V[k].ops ? V[k].ops.join(', ') : 'read only') + (V[k].filt ? ' · priority = High' : '') + '</p>'; }).join('');
-    var prev = c.edit ? '<details><summary>Previous definition and locations</summary><pre>' + esc(JSON.stringify({ id: w.id, name: w.name, icon: w.icon, revision: w.rev, layout: w.layout === 'basic' ? ['text', 'This week', 'Progress and status', 'Priority overview', 'All records'] : ['text', 'Progress and status', 'High priority', 'This week', 'Priority overview', 'All records'], visibility: { universal: w.loc.uni, individual: w.loc.ind, team: w.loc.team } }, null, 2)) + '</pre></details>' : '';
-    return '<section class="w-pwprev" aria-label="Proposed workspace"><h3>' + ic(c.edit ? w.icon : 'check', 18) + esc(c.edit ? w.name : 'Weekly to-dos') + '</h3>' +
+    var w = PW.ws, K = PW.K, recs = PW.col ? PW.col.recs : [], V = pwViews(), req = ['title', 'done', K.sel], loc = c.edit ? w.loc : K.loc;
+    var fields = '<h4>' + esc(PW.col ? PW.col.name : K.col) + '</h4><ul>' + K.fields.map(function (f) { return '<li>' + f[1] + ' (' + f[0] + ') · ' + f[2] + (req.indexOf(f[0]) > -1 ? ' · required' : ' · optional') + (f[0] === K.sel ? ' · ' + K.opts.join(', ') : '') + '</li>'; }).join('') + '</ul>';
+    var ops = Object.keys(V).filter(function (k) { return K.layouts[c.layout].some(function (n) { return n.indexOf(k) > 0; }); }).map(function (k) {
+      return '<p>' + V[k].name + ': ' + (V[k].ops ? V[k].ops.join(', ') : 'read only') + (V[k].filt ? ' · ' + K.sel + ' = ' + K.hot : '') + '</p>'; }).join('');
+    var prev = c.edit ? '<details><summary>Previous definition and locations</summary><pre>' + esc(JSON.stringify({ id: w.id, name: w.name, icon: w.icon, revision: w.rev, layout: pwOutline(w.layout), visibility: { universal: w.loc.uni, individual: w.loc.ind, team: w.loc.team } }, null, 2)) + '</pre></details>' : '';
+    return '<section class="w-pwprev" aria-label="Proposed workspace"><h3>' + ic(c.edit ? w.icon : K.icon, 18) + esc(c.edit ? w.name : K.name) + '</h3>' +
       '<p>' + (c.edit ? 'Editing ' + esc(w.name) + ' · revision ' + w.rev + ' · ' + w.id : 'New workspace · ' + (PW.col ? 'reuses saved personal data' : 'collections start empty')) + '</p>' +
-      '<p>Show in: ' + esc(c.edit ? pwLocs(w.loc) : 'Universal, Individual') + '</p>' + prev +
+      '<p>Show in: ' + esc(pwLocs(loc)) + '</p>' + (loc.team ? '<p>Private to you. ' + esc(S.team.name) + ' shows it in your sidebar, and teammates cannot see it or its records.</p>' : '') + prev +
       '<details><summary>Review fields and record controls</summary>' + fields + ops + '</details>' +
       '<p>Preview only. Confirm below to save this definition. Existing records keep their IDs and values.</p>' + pwRender(c.layout, { ro: true, recs: recs }) + '</section>';
   }
   function pwCardHTML(c, mi, ci, phone) {
+    pwUse(c.k);
     var st = !c.state ? 'Needs you' : c.state === 'yes' ? 'Done' : c.state === 'no' ? 'Declined' : 'Not sent';
     var label = c.edit ? 'Update personal workspace' : 'Save personal workspace', body;
     if (AS.busy && !c.state) body = '<p class="w-mm">Preparing proposal…</p>';
     else if (!c.state) body = pwPreview(c) + '<div class="acts"><button class="w-btn pri sm" type="button" data-a="asst-ok" data-id="' + mi + '" data-v="' + ci + '">Confirm</button><button class="w-btn sm" type="button" data-a="asst-no" data-id="' + mi + '" data-v="' + ci + '">Not now</button></div><p class="w-muted fine">Nothing changes until you confirm. Open until ' + clock(S.now + 15) + '.</p>';
-    else if (c.state === 'yes') body = '<p class="res ok">' + ic('check', 14) + 'Done. Saved personal workspace ' + PW_ID + ', revision ' + c.saved + '.' + ' <button class="link" type="button" data-a="pw-openfrom">Open saved workspace</button>' + '</p>';
+    else if (c.state === 'yes') body = '<p class="res ok">' + ic('check', 14) + 'Done. Saved personal workspace ' + PW.K.id + ', revision ' + c.saved + '.' + ' <button class="link" type="button" data-a="pw-openfrom" data-k="' + c.k + '">Open saved workspace</button>' + '</p>';
     else body = '<p class="res">' + (c.state === 'no' ? 'Not done. You said no.' : 'This changed before you confirmed, so nothing was sent.') + '</p>';
     return '<section class="w-acard" data-state="' + (c.state || 'wait') + '" aria-label="' + label + ': ' + st + '"><p class="w-lab">' + label + '<span class="st"><i></i>' + st + '</span></p><p class="detail">' + esc(c.detail) + '</p>' + body + '</section>';
+  }
+  /* Both examples have a scripted exchange for making them and for reshaping them. */
+  function pwReplies() {
+    var out = {};
+    PW_KINDS.forEach(function (k) {
+      var K = PWK[k], ws = function () { return PWS[k].ws; };
+      out[K.create] = { reads: 'Read your saved personal workspaces', ok: function () { return !ws(); }, gone: K.name + ' is already saved on this computer. Open it from the sidebar, or choose Customize with Salie there. I will not create a duplicate.',
+        text: function () { return K.say + ' ' + (PWS[k].col ? 'Your earlier records are reused as they are.' : 'It starts empty: only you add or change records.'); },
+        textEnd: 7000, cardAt: 8000, endAt: 11000, cards: function () { return [pwCard(k, 'basic')]; } };
+      out[K.focus] = { reads: 'Read ' + K.name + ' (revision 1) and its collection schema', ok: function () { return !!ws() && ws().layout === 'basic'; }, gone: NOT_OPEN,
+        text: K.focusSay, textEnd: 6000, cardAt: 7500, endAt: 10500, cards: function () { return [pwCard(k, 'focus')]; } };
+      out[K.back] = { reads: 'Read ' + K.name + ' and its collection schema', ok: function () { return !!ws() && ws().layout === 'focus'; }, gone: NOT_OPEN,
+        text: K.backSay, textEnd: 5000, cardAt: 6500, endAt: 9500, cards: function () { return [pwCard(k, 'basic')]; } };
+    });
+    return out;
   }
 
   /* ---- the interface: one renderer for the proposal's preview and the saved page ---- */
   function pwMatch(r, v) { if (!v.filt) return true; return Object.keys(v.filt).every(function (k) { return r[k] === v.filt[k]; }); }
   function pwRender(layout, o) {
     var V = pwViews();
-    return '<div class="w-pwstack">' + PW_LAYOUT[layout].map(function (n) {
+    return '<div class="w-pwstack">' + PW.K.layouts[layout].map(function (n) {
       if (n[0] === 'text') return '<p class="w-pwtext">' + esc(n[1]) + '</p>';
       if (n[0] === 'view') return pwView(V[n[1]], o);
       if (n[0] === 'grid') return '<div class="w-pwgrid">' + n.slice(1).map(function (k) { return pwView(V[k], o); }).join('') + '</div>';
@@ -513,17 +592,17 @@
     }).join('') + '</div>';
   }
   function pwShown(v, o) {
-    var q = (o.ro ? '' : PW.q[v.id] || '').toLowerCase(), sk = o.ro ? '' : PW.sk[v.id] || '', dir = PW.sd[v.id] === false ? -1 : 1;
+    var K = PW.K, q = (o.ro ? '' : PW.q[v.id] || '').toLowerCase(), sk = o.ro ? '' : PW.sk[v.id] || '', dir = PW.sd[v.id] === false ? -1 : 1;
     var rows = o.recs.filter(function (r) {
       if (!pwMatch(r, v)) return false;
-      if (q && !PW_FIELDS.some(function (f) { return pwShow(r[f[0]]).toLowerCase().indexOf(q) > -1; })) return false;
-      return ['done', 'priority'].every(function (k) { var fv = o.ro ? '' : PW.f[v.id + ':' + k]; return !fv || String(r[k]) === fv; });
+      if (q && !K.fields.some(function (f) { return pwShow(r[f[0]]).toLowerCase().indexOf(q) > -1; })) return false;
+      return ['done', K.sel].every(function (k) { var fv = o.ro ? '' : PW.f[v.id + ':' + k]; return !fv || String(r[k]) === fv; });
     });
     if (sk) rows = rows.slice().sort(function (a, b) { return pwShow(a[sk]).localeCompare(pwShow(b[sk]), undefined, { numeric: true }) * dir; });
     return rows;
   }
   function pwRows(v, o) {
-    var all = o.recs.filter(function (r) { return pwMatch(r, v); }), rows = pwShown(v, o), ops = v.ops || [], upd = ops.indexOf('update') > -1, del = ops.indexOf('delete') > -1;
+    var K = PW.K, all = o.recs.filter(function (r) { return pwMatch(r, v); }), rows = pwShown(v, o), ops = v.ops || [], upd = ops.indexOf('update') > -1, del = ops.indexOf('delete') > -1;
     var out = '<p class="ct">' + rows.length + ' of ' + all.length + ' records</p>';
     var actions = function (r) {
       return '<div class="ra">' + (upd ? '<button class="w-btn sm" type="button"' + (o.ro ? ' disabled' : ' data-a="pw-edit" data-id="' + r.id + '" data-v="' + v.id + '" aria-label="Edit ' + esc(r.title) + '"') + '>Edit</button>' : '') +
@@ -531,49 +610,49 @@
     };
     if (!rows.length) return out + '<p class="none">' + (all.length ? 'No records match these filters.' : 'No records yet. Add your first record to get started.') + '</p>';
     if (v.kind === 'table' && !o.phone) {
-      var th = PW_FIELDS.map(function (f) {
+      var th = K.fields.map(function (f) {
         var on = !o.ro && PW.sk[v.id] === f[0];
         return '<th scope="col" aria-sort="' + (on ? (PW.sd[v.id] === false ? 'descending' : 'ascending') : 'none') + '"><button type="button"' + (o.ro ? ' disabled' : ' data-a="pw-sort" data-id="' + v.id + '" data-v="' + f[0] + '"') + '>' + f[1] + ic('down', 12) + '</button></th>';
       }).join('') + (upd || del ? '<th scope="col">Actions</th>' : '');
       return out + '<div class="scroll"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows.map(function (r) {
-        return '<tr>' + PW_FIELDS.map(function (f) { return '<td>' + esc(pwShow(r[f[0]])) + '</td>'; }).join('') + (upd || del ? '<td>' + actions(r) + '</td>' : '') + '</tr>'; }).join('') + '</tbody></table></div>';
+        return '<tr>' + K.fields.map(function (f) { return '<td>' + esc(pwShow(r[f[0]])) + '</td>'; }).join('') + (upd || del ? '<td>' + actions(r) + '</td>' : '') + '</tr>'; }).join('') + '</tbody></table></div>';
     }
     return out + '<ul class="recs">' + rows.map(function (r) {
       var chk = v.kind === 'checklist' ? '<label class="dn"><input class="done" type="checkbox"' + (r.done ? ' checked' : '') + (!upd || o.ro ? ' disabled' : ' data-a="pw-chk" data-id="' + r.id + '"') + ' aria-label="Complete ' + esc(r.title) + '"></label>' : '';
-      return '<li>' + chk + '<div class="rc"><strong' + (v.kind === 'checklist' && r.done ? ' class="fin"' : '') + '>' + esc(r.title) + '</strong><dl>' + PW_FIELDS.slice(v.kind === 'checklist' ? 2 : 1).map(function (f) { return '<div><dt>' + f[1] + '</dt><dd>' + esc(pwShow(r[f[0]])) + '</dd></div>'; }).join('') + '</dl></div>' + (upd || del ? actions(r) : '') + '</li>';
+      return '<li>' + chk + '<div class="rc"><strong' + (v.kind === 'checklist' && r.done ? ' class="fin"' : '') + '>' + esc(r.title) + '</strong><dl>' + K.fields.slice(v.kind === 'checklist' ? 2 : 1).map(function (f) { return '<div><dt>' + f[1] + '</dt><dd>' + esc(pwShow(r[f[0]])) + '</dd></div>'; }).join('') + '</dl></div>' + (upd || del ? actions(r) : '') + '</li>';
     }).join('') + '</ul>';
   }
   function pwEditor(v, o) {
-    var r = PW.ed.id == null ? null : o.recs.filter(function (x) { return x.id === PW.ed.id; })[0], d = PW.draft;
+    var K = PW.K, r = PW.ed.id == null ? null : o.recs.filter(function (x) { return x.id === PW.ed.id; })[0], d = PW.draft;
     var f = function (k, def) { return d[k] === undefined ? def : d[k]; };
     var x = o.sfx || '';
     return '<form class="editor" data-form="pw-rec" aria-label="' + (r ? 'Edit record' : 'Add record') + '"><h4>' + (r ? 'Edit record' : 'Add record') + '</h4><div class="fields">' +
-      '<div class="fld"><label for="pw-title' + x + '">Task (required)</label><input id="pw-title' + x + '" name="title" type="text" required maxlength="120" data-pw-d="title" value="' + esc(f('title', '')) + '" placeholder="Ship the weekly report" autocomplete="off"></div>' +
-      '<div class="fld"><label for="pw-due' + x + '">Due date</label><input id="pw-due' + x + '" name="due" type="date" data-pw-d="due" value="' + esc(f('due', '')) + '"></div>' +
-      '<div class="fld"><label for="pw-priority' + x + '">Priority (required)</label><select id="pw-priority' + x + '" name="priority" required data-pw-d="priority">' + PW_PRIO.map(function (p) { return '<option' + (f('priority', 'Normal') === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div>' +
-      '<div class="fld"><label for="pw-notes' + x + '">Notes</label><input id="pw-notes' + x + '" name="notes" type="text" data-pw-d="notes" value="' + esc(f('notes', '')) + '" autocomplete="off"></div>' +
-      '<div class="fld chk"><label for="pw-done' + x + '">Completed (required)</label><input id="pw-done' + x + '" name="done" type="checkbox" data-pw-d="done"' + (f('done', false) ? ' checked' : '') + '></div></div>' +
+      '<div class="fld"><label for="pw-title' + x + '">' + pwLabel('title') + ' (required)</label><input id="pw-title' + x + '" name="title" type="text" required maxlength="120" data-pw-d="title" value="' + esc(f('title', '')) + '" placeholder="' + esc(K.ph) + '" autocomplete="off"></div>' +
+      '<div class="fld"><label for="pw-due' + x + '">' + pwLabel('due') + '</label><input id="pw-due' + x + '" name="due" type="date" data-pw-d="due" value="' + esc(f('due', '')) + '"></div>' +
+      '<div class="fld"><label for="pw-sel' + x + '">' + pwLabel(K.sel) + ' (required)</label><select id="pw-sel' + x + '" name="' + K.sel + '" required data-pw-d="' + K.sel + '">' + K.opts.map(function (p) { return '<option' + (f(K.sel, K.dflt) === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div>' +
+      '<div class="fld"><label for="pw-notes' + x + '">' + pwLabel('notes') + '</label><input id="pw-notes' + x + '" name="notes" type="text" data-pw-d="notes" value="' + esc(f('notes', '')) + '" autocomplete="off"></div>' +
+      '<div class="fld chk"><label for="pw-done' + x + '">' + pwLabel('done') + ' (required)</label><input id="pw-done' + x + '" name="done" type="checkbox" data-pw-d="done"' + (f('done', false) ? ' checked' : '') + '></div></div>' +
       '<div class="acts"><button class="w-btn pri" type="submit">Save record</button><button class="w-btn" type="button" data-a="pw-cancel">Cancel</button></div></form>';
   }
   function pwView(v, o) {
-    var recs = o.recs, rows = recs.filter(function (r) { return pwMatch(r, v); }), done = rows.filter(function (r) { return r.done; }).length;
+    var K = PW.K, recs = o.recs, rows = recs.filter(function (r) { return pwMatch(r, v); }), done = rows.filter(function (r) { return r.done; }).length;
     if (v.kind === 'progress') return '<section class="w-pwc" aria-label="' + v.name + '"><div class="pr"><h3>' + v.name + '</h3>' + (rows.length ? '<span class="ct">' + done + ' of ' + rows.length + '</span>' : '') + '</div>' +
       (rows.length ? '<div class="pgs" role="progressbar" aria-valuemin="0" aria-valuemax="' + rows.length + '" aria-valuenow="' + done + '"><span style="width:' + Math.round(done / rows.length * 100) + '%"></span></div>' : '<p class="mut">No total is recorded for this view.</p>') + '</section>';
     if (v.kind === 'status') return '<section class="w-pwc" aria-label="' + v.name + '"><h3 class="big">' + v.name + '</h3><p class="mut"><span class="ok">' + done + ' completed</span> · ' + (rows.length - done) + ' remaining</p></section>';
     if (v.kind === 'chart') {
-      var counts = PW_PRIO.map(function (p) { return rows.filter(function (r) { return r.priority === p; }).length; }), peak = Math.max.apply(null, counts.concat(0));
-      return '<section class="w-pwc" aria-label="' + v.name + '"><h3>' + v.name + '</h3><div class="bars">' + PW_PRIO.map(function (p, i) {
+      var counts = K.opts.map(function (p) { return rows.filter(function (r) { return r[K.sel] === p; }).length; }), peak = Math.max.apply(null, counts.concat(0));
+      return '<section class="w-pwc" aria-label="' + v.name + '"><h3>' + v.name + '</h3><div class="bars">' + K.opts.map(function (p, i) {
         return '<div class="bar"><span class="c">' + p + '</span><span class="track"><span style="width:' + (peak ? Math.round(counts[i] / peak * 100) : 0) + '%"></span></span><span class="n">' + counts[i] + '</span></div>'; }).join('') + '</div><p class="mut">' + rows.length + ' records. Unassigned: 0.</p></section>';
     }
     var ops = v.ops || [], uid = o.ro ? '' : v.id;
     var sel = function (k, label, opts) {
       return '<label>' + label + '<select' + (o.ro ? ' disabled' : ' data-pw-f="' + v.id + ':' + k + '"') + '><option value="">All</option>' + opts.map(function (p) { return '<option value="' + p[0] + '"' + (!o.ro && PW.f[v.id + ':' + k] === p[0] ? ' selected' : '') + '>' + p[1] + '</option>'; }).join('') + '</select></label>';
     };
-    var sortSel = v.kind !== 'table' || o.phone ? '<label>Sort by<select' + (o.ro ? ' disabled' : ' data-pw-s="' + v.id + '"') + '><option value="">Record order</option>' + PW_FIELDS.map(function (f) { return '<option value="' + f[0] + '"' + (!o.ro && PW.sk[v.id] === f[0] ? ' selected' : '') + '>' + f[1] + '</option>'; }).join('') + '</select></label>' : '';
+    var sortSel = v.kind !== 'table' || o.phone ? '<label>Sort by<select' + (o.ro ? ' disabled' : ' data-pw-s="' + v.id + '"') + '><option value="">Record order</option>' + K.fields.map(function (f) { return '<option value="' + f[0] + '"' + (!o.ro && PW.sk[v.id] === f[0] ? ' selected' : '') + '>' + f[1] + '</option>'; }).join('') + '</select></label>' : '';
     var mine = !o.ro && PW.ed && PW.ed.view === v.id, gone = !o.ro && PW.delId != null && PW.delView === v.id ? o.recs.filter(function (r) { return r.id === PW.delId; })[0] : null;
     return '<section class="w-pwc" aria-label="' + esc(v.name) + '"><div class="vh"><h3>' + esc(v.name) + '</h3>' + (ops.indexOf('create') > -1 ? '<button class="w-btn sm"' + (o.ro ? ' disabled' : ' type="button" data-a="pw-add" data-id="' + v.id + '"' + (PW.ed ? ' disabled' : '')) + '>' + ic('plus', 14) + 'Add record</button>' : '') + '</div>' +
       '<div class="fil"><label class="sch">Filter records<input type="search"' + (o.ro ? ' disabled' : ' data-pw-q="' + v.id + '" value="' + esc(PW.q[v.id] || '') + '"') + ' placeholder="Search this view" autocomplete="off"></label>' +
-      (v.kind === 'checklist' || v.kind === 'table' ? sel('done', 'Completed', [['true', 'Yes'], ['false', 'No']]) : '') + sel('priority', 'Priority', PW_PRIO.map(function (p) { return [p, p]; })) + sortSel + '</div>' +
+      (v.kind === 'checklist' || v.kind === 'table' ? sel('done', pwLabel('done'), [['true', 'Yes'], ['false', 'No']]) : '') + sel(K.sel, pwLabel(K.sel), K.opts.map(function (p) { return [p, p]; })) + sortSel + '</div>' +
       (mine ? pwEditor(v, o) : '') +
       (gone ? '<div class="dc" role="group" aria-label="Delete record"><p>Delete “' + esc(gone.title) + '”?</p><button class="w-btn danger" type="button" data-a="pw-delgo">Delete record</button><button class="w-btn" type="button" data-a="pw-cancel">Keep record</button></div>' : '') +
       '<div data-pwr="' + uid + '">' + pwRows(v, o) + '</div></section>';
@@ -587,7 +666,7 @@
     var head = '<header class="w-pwhead"><div class="ti">' + ic(w.icon, 20) + '<h1>' + esc(w.name) + '</h1></div><button class="w-btn" type="button" data-a="pw-custom">Customize with Salie</button><button class="w-btn" type="button" data-a="pw-reload">Reload workspace</button>' +
       '<div class="more"><button class="w-btn ic" type="button" data-a="pw-menu" aria-haspopup="menu" aria-expanded="' + !!PW.menu + '" aria-label="Manage workspace" title="Manage workspace">' + ic('more') + '</button>' + (PW.menu ? '<div class="menu" role="menu">' + menu + '</div>' : '') + '</div>' + pwManage() + '</header>';
     var team = w.loc.team ? '<details class="team" data-pwteam' + (PW.teamOpen ? ' open' : '') + '><summary>Team projects · ' + esc(S.team.name) + ' · read-only</summary>' + (PW.teamOpen ? '<p class="mut">Read-only · Checked ' + clock(S.now) + '</p><ul><li>' + esc(S.team.project) + '</li></ul>' : '') + '</details>' : '';
-    return '<main class="w-main" data-keep="main-pw"><div class="w-pw" data-pw-workspace="' + w.id + '">' + head + '<div class="w-pwstatus" aria-live="polite">' + esc(PW.note) + '</div>' + pwRender(w.layout, o) + team + '</div></main>';
+    return '<main class="w-main" data-keep="main-pw"><div class="w-pw" data-pw-workspace="' + w.id + '" data-pw-key="' + PW.k + '">' + head + '<div class="w-pwstatus" aria-live="polite">' + esc(PW.note) + '</div>' + pwRender(w.layout, o) + team + '</div></main>';
   }
   function pwManage() {
     var w = PW.ws, p = PW.panel; if (!p) return '';
@@ -615,77 +694,104 @@
 
 
   /* On a phone (4.73): the workspace's page has Back, its records, Edit with Salie and a Control Deck button, and no management
-     menu and no data library. A table is read as labelled cards. The deck lists every workspace and offers Create with Salie. */
+     menu and no data library. A table is read as labelled cards. The deck lists every workspace, wherever it is shown on the
+     computer, and offers Create with Salie. It is the same workspace and the same records as on the computer. */
   function pwPhone() {
     var w = PW.ws, o = { ro: false, recs: PW.col.recs, phone: true, sfx: 'p' };
-    return pageHead(esc(w.name), 'Saved on your computer', 'the Control Deck') + '<div class="w-mpage"><div class="w-pw w-pwphone" data-pw-workspace="' + w.id + '"><div class="w-pwacts"><button class="w-btn pri" type="button" data-a="pw-custom">Edit with Salie</button>' +
-      '<button class="w-btn" type="button" data-a="pw-reload">Reload workspace</button><button class="w-btn" type="button" data-a="pw-deck">' + (P.deckWs ? 'Remove from Control Deck' : 'Add to Control Deck') + '</button></div>' +
+    return pageHead(esc(w.name), 'Saved on your computer', 'the Control Deck') + '<div class="w-mpage"><div class="w-pw w-pwphone" data-pw-workspace="' + w.id + '" data-pw-key="' + PW.k + '"><div class="w-pwacts"><button class="w-btn pri" type="button" data-a="pw-custom">Edit with Salie</button>' +
+      '<button class="w-btn" type="button" data-a="pw-reload">Reload workspace</button>' +
+      // The phone lesson keeps the ninth position for its own Find Bugs key until that is on the deck.
+      (G.active && G.mode === 'phone' && !P.deckAdded && P.deckWs !== PW.k ? '' : '<button class="w-btn" type="button" data-a="pw-deck">' + (P.deckWs === PW.k ? 'Remove from Control Deck' : 'Add to Control Deck') + '</button>') + '</div>' +
       '<div class="w-pwstatus" aria-live="polite">' + esc(PW.note) + '</div>' + pwRender(w.layout, o) + '</div></div>';
   }
   function pwDeckSection() {
-    if (G.active) return '';
-    return '<section class="w-pwdeck" aria-label="Workspaces" data-testid="deck-workspaces"><h2>Workspaces</h2>' +
-      (PW.ws ? '<a class="w-pwrow" href="#" data-a="pw-open">' + ic(PW.ws.icon, 18) + '<span>' + esc(PW.ws.name) + '</span></a>' : '') +
-      '<button class="w-btn" type="button" data-a="pw-create">' + ic('plus', 16) + 'Create with Salie</button>' + (PW.ws ? '<p class="w-muted">To put one on a button, use Edit Deck.</p>' : '') + '</section>';
+    if (G.active && G.mode === 'core' && !pwAny()) return '';
+    var rows = PW_KINDS.filter(function (k) { return PWS[k].ws; }).map(function (k) { var w = PWS[k].ws; return '<a class="w-pwrow" href="#" data-a="pw-open" data-k="' + k + '">' + ic(w.icon, 18) + '<span>' + esc(w.name) + '</span></a>'; }).join('');
+    return '<section class="w-pwdeck" aria-label="Workspaces" data-testid="deck-workspaces"><h2>Workspaces</h2>' + rows +
+      '<button class="w-btn" type="button" data-a="pw-create">' + ic('plus', 16) + 'Create with Salie</button>' + (rows ? '<p class="w-muted">To put one on a button, use Edit Deck.</p>' : '') + '</section>';
   }
   /* The ninth key, when a workspace holds it. A workspace that was deleted at the computer says so, and the button can be removed. */
   function pwDeckKey() {
-    var w = PW.ws;
-    return '<a class="w-dkey" href="#" data-a="' + (w ? 'pw-open' : 'pw-deckrm') + '" data-key="workspace" data-mk="k-pw" aria-label="' + (w ? esc(w.name) : 'Removed workspace. Remove this button') + '"><span class="cap"><span class="face"><span class="glyph">' + ic(w ? w.icon : 'folder', 26) + '</span><span class="name">' + (w ? esc(w.name) : 'Removed workspace') + '</span></span></span></a>';
+    var w = PWS[P.deckWs] && PWS[P.deckWs].ws;
+    return '<a class="w-dkey" href="#" data-a="' + (w ? 'pw-open' : 'pw-deckrm') + '" data-k="' + P.deckWs + '" data-key="workspace" data-mk="k-pw" aria-label="' + (w ? esc(w.name) : 'Removed workspace. Remove this button') + '"><span class="cap"><span class="face"><span class="glyph">' + ic(w ? w.icon : 'folder', 26) + '</span><span class="name">' + (w ? esc(w.name) : 'Removed workspace') + '</span></span></span></a>';
   }
   function pwDeckLibrary() {
-    if (G.active || (!PW.ws && !P.deckWs)) return '';
-    return '<h3 class="w-lab" style="margin-top:6px">Your workspaces</h3><p>Open a workspace you made with Salie. These buttons do not start agents.</p>' + (PW.ws ? '<div class="w-workflows"><button class="w-card w-workflow-option" type="button" data-a="pw-deck">' + ic(PW.ws.icon, 20) + '<span><strong>' + esc(PW.ws.name) + '</strong><small>' + (P.deckWs ? 'On your deck · remove' : 'Add to your deck') + '</small></span></button></div>' : '<div class="w-workflows"><button class="w-card w-workflow-option" type="button" data-a="pw-deckrm">' + ic('folder', 20) + '<span><strong>Removed workspace</strong><small>No longer saved. Remove this button</small></span></button></div>');
+    var held = P.deckWs && PWS[P.deckWs] && !PWS[P.deckWs].ws;
+    if (G.active || (!pwAny() && !held)) return '';
+    var opts = PW_KINDS.filter(function (k) { return PWS[k].ws; }).map(function (k) { var w = PWS[k].ws; return '<button class="w-card w-workflow-option" type="button" data-a="pw-deck" data-k="' + k + '">' + ic(w.icon, 20) + '<span><strong>' + esc(w.name) + '</strong><small>' + (P.deckWs === k ? 'On your deck · remove' : 'Add to your deck') + '</small></span></button>'; }).join('');
+    return '<h3 class="w-lab" style="margin-top:6px">Your workspaces</h3><p>Open a workspace you made with Salie. These buttons do not start agents.</p>' + (opts || held ? '<div class="w-workflows">' + opts + (held ? '<button class="w-card w-workflow-option" type="button" data-a="pw-deckrm">' + ic('folder', 20) + '<span><strong>Removed workspace</strong><small>No longer saved. Remove this button</small></span></button>' : '') + '</div>' : '');
   }
 
   /* ---- the Personal data library ---- */
   function pwLibPage() {
-    var c = PW.col, rows = c ? '<section class="row" aria-label="' + esc(c.name) + '"><div><h3>' + esc(c.name) + '</h3><p>' + c.recs.length + ' records · ' + (PW.ws ? '1 workspace references' : 'Retained data, no workspace') + '</p></div><div class="rs"><button class="w-btn" type="button" data-a="pw-inspect">Inspect records</button><button class="w-btn" type="button" data-a="pw-reuse">Use in new workspace</button></div></section>' : '<p>No personal collections are saved.</p>';
-    var V = pwViews(), view = { id: 'inspect', name: c ? c.name : '', kind: 'table', ops: [] };
+    var cols = PW_KINDS.filter(function (k) { return PWS[k].col; }), saved = PW_KINDS.filter(function (k) { return PWS[k].ws; });
+    var rows = cols.map(function (k) {
+      var s = PWS[k], c = s.col;
+      return '<section class="row" aria-label="' + esc(c.name) + '"><div><h3>' + esc(c.name) + '</h3><p>' + c.recs.length + ' records · ' + (s.ws ? '1 workspace references' : 'Retained data, no workspace') + '</p></div><div class="rs"><button class="w-btn" type="button" data-a="pw-inspect" data-k="' + k + '">Inspect records</button><button class="w-btn" type="button" data-a="pw-reuse" data-k="' + k + '">Use in new workspace</button></div></section>';
+    }).join('') || '<p>No personal collections are saved.</p>';
+    var seen = cols.filter(function (k) { return PWS[k].inspect; }).map(function (k) {
+      pwUse(k);
+      return '<h2>Collection records</h2><div class="w-pw w-pwins">' + pwView({ id: 'inspect', name: PW.col.name, kind: 'table', ops: [] }, { ro: true, recs: PW.col.recs }) + '</div>';
+    }).join('');
     return '<main class="w-main" data-keep="main-pwlib"><div class="w-pwlib"><header><h1>Personal data library</h1><button class="w-btn" type="button" data-a="pw-reload">Reload library</button></header>' +
       '<p>Collections kept after deleting a workspace remain here. Inspect their records or use them in a new workspace. All data stays on this computer.</p>' +
-      (PW.note ? '<p role="status" class="sts">' + esc(PW.note) + '</p>' : '') +
-      (PW.ws ? '<h2>Saved workspaces</h2><p>Includes workspaces with no display locations.</p><div class="rs"><button class="w-btn" type="button" data-a="pw-open">' + esc(PW.ws.name) + '</button></div>' : '') +
-      '<h2>Personal collections</h2>' + rows + (PW.inspect && c ? '<h2>Collection records</h2><div class="w-pw w-pwins">' + pwView(view, { ro: true, recs: c.recs }) + '</div>' : '') + '</div></main>';
+      (pwLibNote ? '<p role="status" class="sts">' + esc(pwLibNote) + '</p>' : '') +
+      (saved.length ? '<h2>Saved workspaces</h2><p>Includes workspaces with no display locations.</p><div class="rs">' + saved.map(function (k) { return '<button class="w-btn" type="button" data-a="pw-open" data-k="' + k + '">' + esc(PWS[k].ws.name) + '</button>'; }).join('') + '</div>' : '') +
+      '<h2>Personal collections</h2>' + rows + seen + '</div></main>';
   }
+  /* The sidebar's group: Create with Salie (Individual and a Team, not Universal), then each workspace shown here, then the library. */
   function pwRail() {
     var gen = function (attrs, icon, label, cur) { return '<button class="w-nav" type="button" ' + attrs + (cur ? ' aria-current="page"' : '') + ' title="' + esc(label) + '">' + ic(icon) + '<span class="name">' + esc(label) + '</span></button>'; };
-    return '<div class="w-gen">' + (D.ws === 'universal' ? '' : gen('data-a="pw-create"', 'plus', 'Create with Salie', false)) + (pwVisible() ? gen('data-a="pw-open"', PW.ws.icon, PW.ws.name, D.page === 'pw') : '') + gen('data-a="page" data-id="pwlib"', 'database', 'Personal data library', D.page === 'pwlib') + '</div>';
+    var home = D.ws === 'team' ? 'team' : 'todo';
+    return '<div class="w-gen">' + (D.ws === 'universal' ? '' : gen('data-a="pw-create" data-k="' + home + '"', 'plus', 'Create with Salie', false)) +
+      PW_KINDS.filter(function (k) { return pwVisible(k); }).map(function (k) { return gen('data-a="pw-open" data-k="' + k + '"', PWS[k].ws.icon, PWS[k].ws.name, D.page === 'pw' && D.pwk === k); }).join('') +
+      gen('data-a="page" data-id="pwlib"', 'database', 'Personal data library', D.page === 'pwlib') + '</div>';
   }
   function pwUnder() {
+    pwUse(D.pwk);
     if (D.page === 'pw' && !PW.ws) D.page = null;
   }
   function pwRegion(root, id) {
     var v = pwViews()[id], box = root.querySelector('[data-pwr="' + id + '"]');
-    if (v && box && PW.col) box.innerHTML = pwRows(v, { ro: false, recs: PW.col.recs });
+    if (v && box && PW.col) box.innerHTML = pwRows(v, { ro: false, recs: PW.col.recs, phone: root === phoneRoot });
   }
-  function pwOpenPhone() {
-    dropOverlay(); P.at = 'pw'; P.task = null; PW.ed = null; PW.delId = null; PW.note = '';
+  function pwOpenPhone(k) {
+    dropOverlay(); pwUse(k); if (P.at !== 'pw' || P.pwk !== k) PW.note = '';
+    P.at = 'pw'; P.pwk = k; P.task = null; PW.ed = null; PW.delId = null;
     render();
   }
-  function pwOpen() {
-    var was = D.page; leave(); dropOverlay();
+  /* A workspace is shown where it is set to be shown: the page opens in a workspace that lists it. */
+  function pwOpen(k) {
+    var was = D.page === 'pw' && D.pwk === k; pwUse(k); leave(); dropOverlay();
     if (!pwVisible()) D.ws = PW.ws.loc.ind ? 'individual' : PW.ws.loc.uni ? 'universal' : 'team';
-    D.page = 'pw'; D.task = null; if (was !== 'pw') PW.note = '';
+    D.page = 'pw'; D.pwk = k; D.task = null; if (!was) PW.note = '';
     render();
   }
   function pwAway() { leave(); dropOverlay(); if (D.ws !== 'universal' && !D.view) D.view = 'control'; render(); }
-  function pwActs(a, id, v, where, root) {
+  function pwActs(a, id, v, where, root, b) {
     VIEW = where === 'phone' ? P : D;
-    var c = PW.col;
-    if (a === 'pw-create') { dropOverlay(); openAsst(where); if (!AS.busy && !waitingChanges()) { AS.opts = pwOpts(); renderAsst(false); } return; }
-    if (a === 'pw-custom') { dropOverlay(); openAsst(where); if (!AS.busy && !waitingChanges()) { AS.opts = pwOpts(); renderAsst(false); } return; }
-    if (a === 'pw-openfrom') { AS.open = false; renderAsst(false); if (where === 'phone') pwOpenPhone(); else pwOpen(); return; }
-    if (a === 'pw-open') { PW.inspect = false; if (where === 'phone') pwOpenPhone(); else pwOpen(); return; }
+    // The workspace an action is about: the button's own (the sidebar, the deck, a card), else the page it is on.
+    var scope = b && b.closest('[data-pw-key]'), ak = b && b.getAttribute('data-k');
+    pwUse(ak || (scope && scope.getAttribute('data-pw-key')) || (where === 'phone' ? P.pwk : D.pwk));
+    var c = PW.col, K = PW.K;
+    if (a === 'pw-create' || a === 'pw-custom') {
+      var ks = ak ? [ak] : scope ? [PW.k] : PW_KINDS;
+      if (a === 'pw-create' && ak) G.f['gen-' + ak] = true;
+      dropOverlay(); openAsst(where);
+      if (!AS.busy && !waitingChanges()) { var offer = pwOpts(ks, a === 'pw-create' && !ak); AS.opts = offer.length ? offer : null; renderAsst(false); }
+      return;
+    }
+    if (a === 'pw-openfrom') { AS.open = false; renderAsst(false); if (where === 'phone') pwOpenPhone(PW.k); else pwOpen(PW.k); return; }
+    if (a === 'pw-open') { PW.inspect = false; if (where === 'phone') pwOpenPhone(PW.k); else pwOpen(PW.k); return; }
     if (a === 'pw-deck') {
       if (!PW.ws) return;
-      if (P.deckWs) { P.deckWs = false; PW.note = 'Removed from the Control Deck.'; toast('Removed from the Control Deck.'); }
-      else if (P.deckAdded) { PW.note = 'Your Control Deck is full. Remove a button first.'; toast('Your Control Deck is full. Remove a button first.'); }
-      else { P.deckWs = true; PW.note = 'Added to the Control Deck.'; toast('Added to the Control Deck.'); }
+      if (P.deckWs === PW.k) { P.deckWs = false; PW.note = 'Removed from the Control Deck.'; toast('Removed from the Control Deck.'); }
+      else if (P.deckAdded || P.deckWs) { PW.note = 'Your Control Deck is full. Remove a button first.'; toast('Your Control Deck is full. Remove a button first.'); }
+      else { P.deckWs = PW.k; PW.note = 'Added to the Control Deck.'; toast('Added to the Control Deck.'); }
       dropOverlay(); render(); return;
     }
     if (a === 'pw-deckrm') { P.deckWs = false; dropOverlay(); toast('Removed the button.'); render(); return; }
-    if (a === 'pw-reload') { PW.note = ''; render(); toast(D.page === 'pwlib' ? 'Loaded again from this computer.' : 'Loaded again from this computer. Your records are safe.'); return; }
+    if (a === 'pw-reload') { PW.note = ''; pwLibNote = ''; render(); toast(D.page === 'pwlib' ? 'Loaded again from this computer.' : 'Loaded again from this computer. Your records are safe.'); return; }
     if (!PW.ws && !c) return;
     switch (a) {
       case 'pw-menu': PW.menu = !PW.menu; render(); var first = PW.menu && root.querySelector('.w-pwhead .menu .w-btn'); if (first) first.focus({ preventScroll: true }); break;
@@ -697,9 +803,13 @@
         PW.menu = false; PW.ws.loc[pwWhere()] = false; pwSave('Removed from ' + (pwWhere() === 'uni' ? 'Universal' : pwWhere() === 'ind' ? 'Individual' : S.team.name) + '. The workspace and its records are still saved.');
         toast('Removed from this location. It is still in the Personal data library.'); pwAway(); break;
       case 'pw-cancel': PW.menu = false; PW.panel = ''; PW.ed = null; PW.delId = null; PW.setf = null; PW.mode = ''; render(); break;
-      case 'pw-add': PW.ed = { view: id, id: null }; PW.draft = { priority: 'Normal', due: iso(dateOf(3)), done: false }; render(); var t = root.querySelector('form[data-form="pw-rec"] [name="title"]'); if (t) t.focus({ preventScroll: true }); break;
-      case 'pw-edit': var r = c.recs.filter(function (x) { return x.id === +id; })[0]; if (r) { PW.ed = { view: v, id: r.id }; PW.draft = { title: r.title, done: r.done, due: r.due || '', priority: r.priority, notes: r.notes || '' }; PW.delId = null; render(); var t2 = root.querySelector('form[data-form="pw-rec"] [name="title"]'); if (t2) t2.focus({ preventScroll: true }); } break;
-      case 'pw-chk': var cr = c.recs.filter(function (x) { return x.id === +id; })[0]; if (cr) { cr.done = !cr.done; PW.note = '“' + cr.title + '” ' + (cr.done ? 'is complete.' : 'is open again.'); render(); } break;
+      case 'pw-add':
+        PW.ed = { view: id, id: null }; PW.draft = { due: iso(dateOf(3)), done: false }; PW.draft[K.sel] = K.dflt;
+        // In the walkthrough the first record is filled in, so the visitor only has to save it.
+        if (G.active && G.mode === 'core' && !c.recs.length) { PW.draft.title = K.sample.title; PW.draft[K.sel] = K.sample.sel; PW.draft.due = iso(dateOf(K.sample.due)); }
+        render(); var t = root.querySelector('form[data-form="pw-rec"] [name="title"]'); if (t) t.focus({ preventScroll: true }); break;
+      case 'pw-edit': var r = c.recs.filter(function (x) { return x.id === +id; })[0]; if (r) { PW.ed = { view: v, id: r.id }; PW.draft = { title: r.title, done: r.done, due: r.due || '', notes: r.notes || '' }; PW.draft[K.sel] = r[K.sel]; PW.delId = null; render(); var t2 = root.querySelector('form[data-form="pw-rec"] [name="title"]'); if (t2) t2.focus({ preventScroll: true }); } break;
+      case 'pw-chk': var cr = c.recs.filter(function (x) { return x.id === +id; })[0]; if (cr) { cr.done = !cr.done; PW.note = '“' + cr.title + '” ' + (cr.done ? 'is complete.' : 'is open again.'); if (where === 'phone') G.f['phone-ws-tick'] = true; render(); } break;
       case 'pw-del': PW.delId = +id; PW.delView = v; PW.ed = null; render(); break;
       case 'pw-delgo': var gone = c.recs.filter(function (x) { return x.id === PW.delId; })[0]; c.recs = c.recs.filter(function (x) { return x.id !== PW.delId; }); PW.delId = null; PW.note = gone ? '“' + gone.title + '” was deleted.' : ''; render(); break;
       case 'pw-sort': if (PW.sk[id] === v) PW.sd[id] = PW.sd[id] === false; else { PW.sk[id] = v; PW.sd[id] = true; } render(); break;
@@ -715,14 +825,16 @@
         var removed = PW.mode === 'data' && c.owned;
         PW.ws = null; PW.panel = ''; PW.menu = false; PW.mode = ''; PW.cfm = false; PW.ed = null; PW.inspect = false;
         if (removed) PW.col = null;
-        PW.note = removed ? 'Workspace and its exclusively owned personal data deleted.' : 'Workspace deleted. Preserved personal collections are available in the Personal data library.';
-        leave(); D.page = 'pwlib'; render(); break;
+        leave(); D.page = 'pwlib';
+        pwLibNote = removed ? 'Workspace and its exclusively owned personal data deleted.' : 'Workspace deleted. Preserved personal collections are available in the Personal data library.';
+        render(); break;
       case 'pw-inspect': PW.inspect = !PW.inspect; render(); break;
       case 'pw-reuse':
-        if (PW.ws) { toast('The demo keeps one personal workspace, and it already uses this collection. Delete it first to reuse the data.'); break; }
-        pwMake('table'); PW.inspect = false; pwOpen(); PW.note = 'Recovered records in a new personal workspace.'; render(); break;
+        if (PW.ws) { toast(PW.ws.name + ' already uses this collection. Delete it first to reuse the data.'); break; }
+        pwMake('table'); PW.inspect = false; pwOpen(PW.k); PW.note = 'Recovered records in a new personal workspace.'; render(); break;
     }
   }
+  pwReset();
 
   /* ---------- Salie: predefined messages, scripted replies ----------
      The person picks one of the messages on offer; there is no text box. Each message has a reply written in advance, which
@@ -742,12 +854,12 @@
   }
   var NEXT_Q = 'What should I do next on my-app?';
   function rootOpts() {
-    return ['What is on my plate this week?', 'Plan CSV export for reports', NEXT_Q, 'What needs me today?'].concat(pwOpts());
+    return ['What is on my plate this week?', 'Plan CSV export for reports', NEXT_Q, 'What needs me today?'];
   }
   function backOpts(extra) {
     var o = (extra || []).concat(['What is on my plate this week?', NEXT_Q, 'What needs me today?']);
     if (!planned()) o.unshift('Plan CSV export for reports');
-    return o.filter(function (l, i) { return o.indexOf(l) === i; }).slice(0, 4).concat(pwOpts());
+    return o.filter(function (l, i) { return o.indexOf(l) === i; }).slice(0, 4);
   }
   function optsNow() { return AS.opts || rootOpts(); }
 
@@ -904,18 +1016,11 @@
     'Answer the auth test question': { reads: 'Read “Fix flaky auth test” and its question',
       text: 'There are two options. Fix the shared clock so the test passes in the full suite, or skip the test for now. Which one should the agent use?',
       ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, next: function () { return ['Fix the shared clock', 'Skip it for now', 'What needs me today?']; } },
-    'Create a weekly to-do list': { reads: 'Read your saved personal workspaces', ok: function () { return !PW.ws; }, gone: 'Weekly to-dos is already saved on this computer. Open it from the sidebar, or choose Customize with Salie there. I will not create a duplicate.',
-      text: function () { return 'Here is a weekly to-do list with deadlines and priorities. It keeps one collection of tasks on this computer: the task, whether it is done, a due date, a priority and notes. The page shows this week’s tasks as a checklist, with progress, a status line, a chart by priority and a table of every record. ' + (PW.col ? 'Your earlier records are reused as they are.' : 'It starts empty: only you add or change records.'); },
-      textEnd: 7000, cardAt: 8000, endAt: 11000, cards: function () { return [pwCard('basic')]; } },
-    'Add a High priority section and move progress up': { reads: 'Read Weekly to-dos (revision ' + '1' + ') and its collection schema', ok: function () { return !!PW.ws && PW.ws.layout === 'basic'; }, gone: NOT_OPEN,
-      text: 'I will move the progress panels to the top and add a section for High priority tasks. Only the layout changes: the collection, its fields and every record stay as they are. The preview below uses your current records.',
-      textEnd: 6000, cardAt: 7500, endAt: 10500, cards: function () { return [pwCard('focus')]; } },
-    'Put progress back below the tasks': { reads: 'Read Weekly to-dos and its collection schema', ok: function () { return !!PW.ws && PW.ws.layout === 'focus'; }, gone: NOT_OPEN,
-      text: 'I will put the High priority section away and move progress back below the tasks. Your records stay as they are.',
-      textEnd: 5000, cardAt: 6500, endAt: 9500, cards: function () { return [pwCard('basic')]; } },
     'Fix the shared clock': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, cards: function () { return [answerCard('Fix the shared clock')]; } },
     'Skip it for now': { reads: 'Read the task and its question', text: CARD_LEAD, ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, cards: function () { return [answerCard('Skip it for now')]; } }
   };
+  // Making each workspace, and reshaping it, are scripted exchanges too: one set for each example (see the workspaces above).
+  (function () { var more = pwReplies(); Object.keys(more).forEach(function (k) { REPLY[k] = more[k]; }); })();
 
   function askAsst(label) {
     var e = REPLY[label];
@@ -923,6 +1028,7 @@
     if (label === 'What is on my plate this week?') G.f.plate = true;
     if (label === 'Plan CSV export for reports') G.f.planAsk = true;
     if (label === NEXT_Q) G.f.nextAsk = true;
+    PW_KINDS.forEach(function (k) { if (label === PWK[k].create) G.f['ask-' + k] = true; });
     AS.msgs.push({ r: 'me', x: label });
     AS.opts = [];
     if (e.ok && !e.ok()) { replyAsst({ text: e.gone, next: backOpts }); return; }
@@ -1304,7 +1410,7 @@
   }
 
   /* Settings, Devices & Hosting and Help are pages of the window: any other place in the sidebar leaves them. */
-  function leave() { D.set = null; D.page = null; PW.menu = false; PW.panel = ''; PW.ed = null; PW.delId = null; PW.setf = null; PW.mode = ''; }
+  function leave() { D.set = null; D.page = null; PW_KINDS.forEach(function (k) { pwIdle(PWS[k]); }); pwLibNote = ''; }
   var PROJVIEWS = ['overview', 'board', 'calendar', 'git', 'runs', 'psettings'];
   function inProject() { return D.ws === 'individual' && PROJVIEWS.indexOf(D.view) > -1 && D.set === null && !D.page; }
   /* What a project has going: its agents' work and what waits for a person. */
@@ -2770,12 +2876,12 @@
     if (!phoneRoot) return;
     VIEW = P;
     keepScroll(phoneRoot, P.scroll);
-    if (P.at === 'pw' && !PW.ws) P.at = 'deck';
+    if (P.at === 'pw') { pwUse(P.pwk); if (!PW.ws) P.at = 'deck'; }
     var fk = focusKey(phoneRoot), at = P.at, page;
     if (at === 'deck') page = phoneDeck();
     else if (at === 'project') page = phoneProject();
     else if (at === 'team') page = phoneTeam();
-    else if (at === 'pw' && PW.ws) page = pwPhone();
+    else if (at === 'pw') page = pwPhone();
     else if (at === 'settings') page = phoneSettings();
     else if (at === 'help') page = helpPage(true);
     else page = pageHead(PLACES[at], subtitle(at), parentOf(at) === 'deck' ? 'the Control Deck' : 'Projects', at === 'agents' ? (agentCards().some(function (c) { return c.state === 'Waiting for you'; }) ? 'ask' : fleet().running ? 'ok' : 'neutral') : '') + PAGE[at]();
@@ -2941,7 +3047,7 @@
       var a = b.dataset.a, id = b.dataset.id, v = b.dataset.v;
       if (b.tagName === 'A') e.preventDefault();
       VIEW = V;
-      if (a.indexOf('pw-') === 0) { pwActs(a, id, v, where, root); return; }
+      if (a.indexOf('pw-') === 0) { pwActs(a, id, v, where, root, b); return; }
       if (RO[a]) { var rt = get(isNaN(+id) ? id : +id); if (rt && rt.ro) { toast(roText(rt)); return; } }
       switch (a) {
         case 'view': nav(where, id); D.ws = where === 'desk' ? 'individual' : D.ws; leave(); dropOverlay(); render(); break;
@@ -3074,13 +3180,14 @@
         if (where === 'desk') { if (D.view === 'control') D.view = 'board'; } else { P.at = 'project'; P.tab = 'board'; P.task = null; P.col = startNow ? 'doing' : 'backlog'; }
         if (startNow) startTask(t.id); else toast('“' + title + '” is in Backlog. Start it now, or drag it onto the Calendar.');
         render();
-      } else if (f.dataset.form === 'pw-rec' && PW.col && PW.ed) {
+      } else if (f.dataset.form === 'pw-rec' && pwOf(f).col && PW.ed) {
         var fe = f.elements, ttl = fe.title.value.trim(); if (!ttl) { fe.title.focus(); return; }
-        var rv = { title: ttl, done: fe.done.checked, due: fe.due.value, priority: fe.priority.value, notes: fe.notes.value.trim() };
+        var rv = { title: ttl, done: fe.done.checked, due: fe.due.value, notes: fe.notes.value.trim() };
+        rv[PW.K.sel] = fe[PW.K.sel].value;
         if (PW.ed.id == null) { rv.id = PW.col.next++; PW.col.recs.push(rv); PW.note = 'Saved “' + ttl + '”.'; }
         else { var er = PW.col.recs.filter(function (x) { return x.id === PW.ed.id; })[0]; if (er) { Object.keys(rv).forEach(function (k) { er[k] = rv[k]; }); PW.note = 'Saved “' + ttl + '”.'; } }
         PW.ed = null; PW.draft = {}; render();
-      } else if (f.dataset.form === 'pw-set' && PW.ws) {
+      } else if (f.dataset.form === 'pw-set' && pwOf(f).ws) {
         var ss = PW.setf; if (!ss || !ss.name.trim()) return;
         PW.ws.name = ss.name.trim(); PW.ws.icon = ss.icon; PW.ws.loc = { uni: !!ss.uni, ind: !!ss.ind, team: !!ss.team };
         pwSave(''); PW.note = 'Saved as revision ' + PW.ws.rev + '. Locations control navigation only.'; PW.panel = ''; PW.setf = null;
@@ -3114,6 +3221,7 @@
         return;
       }
       var pe = e.target;
+      if (pe.matches('[data-pw-d], [data-pw-sf], [data-pw-h], [data-pw-q], [data-pw-f], [data-pw-s]')) pwOf(pe);
       if (pe.matches('[data-pw-d]')) { PW.draft[pe.dataset.pwD] = pe.type === 'checkbox' ? pe.checked : pe.value; return; }
       if (pe.matches('[data-pw-sf]')) { if (PW.setf) PW.setf[pe.dataset.pwSf] = pe.type === 'checkbox' ? pe.checked : pe.value; return; }
       if (pe.matches('[data-pw-h]')) { PW.hsel = +pe.value; PW.hrev = 0; render(); return; }
@@ -3129,7 +3237,7 @@
       if (m) m.open = d.open;
       var mm = d.tagName === 'DETAILS' && d.dataset.j != null ? AS.msgs[+d.dataset.j] : null;
       if (mm) mm.memOpen = d.open;
-      if (d.tagName === 'DETAILS' && d.hasAttribute('data-pwteam')) { if (PW.teamOpen !== d.open) { PW.teamOpen = d.open; render(); } }
+      if (d.tagName === 'DETAILS' && d.hasAttribute('data-pwteam')) { pwOf(d); if (PW.teamOpen !== d.open) { PW.teamOpen = d.open; render(); } }
       if (d.tagName === 'DETAILS' && d.dataset.dv) DAYS_OPEN[d.dataset.dv] = d.open;
       if (d.tagName === 'DETAILS' && d.hasAttribute('data-mcpopen')) V.mcpOpen = d.open;
     }, true);
@@ -3256,7 +3364,7 @@
      points at the next control on the way there (the switcher, a tab, a layer to close). A chapter can be skipped from the
      bar: it then makes what the skipped part would have made. Both surfaces share progress; a separate phone tour teaches
      workflow shortcuts after the core story. demo-guide.js draws the ring, the line and the note. */
-  var CHAPTERS = ['Plan', 'Run', 'Review'];
+  var CHAPTERS = ['Plan', 'Run', 'Review', 'Make it yours'];
   var guideSection = document.getElementById('demo');
   var guideEl = document.querySelector('[data-guide]');
   var small = window.matchMedia('(max-width: 767px)');
@@ -3278,6 +3386,39 @@
     return P.at === 'project' ? (tab === 'board' ? boardNeed('phone', col) : { at: 'project', tab: tab }) : { at: page };
   }
   function onDeck(w) { return w === 'phone' ? { at: 'deck' } : boardNeed(w, 'doing'); }
+  /* Make it yours: Salie builds a workspace around how the person works, once in Individual and once in a Team. Both are made the
+     same way (Create with Salie, a request, a card to confirm, a page that works), so the steps come from one description. Desktop
+     only: on a phone the lesson shows the same workspaces on the phone. */
+  function genSteps(k) {
+    var K = PWK[k], team = k === 'team', ws = team ? 'team' : 'individual', tag = 'gen-' + k, here = function () { return { ws: ws, here: true }; }, page = function () { return { ws: ws, pw: k }; };
+    var asked = function () { return { asst: true, opener: '.w-gen [data-a="pw-create"]' }; };
+    return [
+      { id: tag, ch: 3, desk: true, kind: 'press', kick: 'Create with Salie', sticky: true, hops: true,
+        need: here, aim: function () { return ['.w-gen [data-a="pw-create"]']; },
+        text: function (h) { return h ? (team && h.kind === 'sw' ? 'Now your team. Open the switcher.' : '') : team ? 'Your team can have one too. Choose Create with Salie.' : 'Salie can also build a workspace around how you work. Choose Create with Salie.'; },
+        done: function () { return !!PWS[k].ws || !!G.f[tag]; } },
+      { id: tag + '-ask', ch: 3, desk: true, kind: 'press', kick: 'Create with Salie', wait: true,
+        need: asked, aim: function () { return AS.busy ? [] : ['.w-apill[data-v="' + K.create + '"]']; },
+        text: function () { return AS.busy ? 'Salie is designing the page and its collection.' : team ? 'Say what you need. Salie builds a tracker for what you are waiting on from your team.' : 'Say what you need. Salie builds a page for it: a list, progress and a chart.'; },
+        done: function () { return !!PWS[k].ws || (!!G.f['ask-' + k] && !AS.busy && waitingChanges() > 0); } },
+      { id: tag + '-card', ch: 3, desk: true, kind: 'press', kick: 'Confirm first',
+        need: function () { return { asst: true }; }, aim: function () { return ['.w-acard [data-a="asst-ok"]']; },
+        text: team ? 'It will show only in ' + S.team.name + ', and it is private to you. Nothing is saved until you confirm.' : 'The card previews the page, its fields and where it will show. Nothing is saved until you confirm.',
+        done: function () { return !!PWS[k].ws; } },
+      { id: tag + '-open', ch: 3, desk: true, kind: 'press', kick: 'Saved on this computer', sticky: true,
+        need: function () { return { asst: true }; }, aim: function () { return ['.w-acard [data-a="pw-openfrom"][data-k="' + k + '"]']; },
+        text: 'Saved on this computer. Open it.',
+        done: function () { return !AS.open; } },
+      { id: tag + '-add', ch: 3, desk: true, kind: 'press', kick: 'A working page', sticky: true,
+        need: page, aim: function () { return PWS[k].ed ? ['.w-pw form[data-form="pw-rec"] [type="submit"]'] : ['.w-pw [data-a="pw-add"]']; },
+        text: function () { return PWS[k].ed ? 'The first one is filled in for you. Save it.' : 'It is a working page, not a picture. Add your first ' + (team ? 'follow-up' : 'task') + '.'; },
+        done: function () { return !PWS[k].ws || pwRecs(k) > 0; } },
+      { id: tag + '-kept', ch: 3, desk: true, kind: 'area', next: true, sticky: true, kick: 'Your records',
+        need: page, aim: function () { return team ? ['.w-pw .team'] : ['.w-pw .w-pwstack']; },
+        text: team ? 'It sits in ' + S.team.name + ' beside your team’s work, and it is private to you. The Team projects list below is read only.' : 'Salie drew the page. Your records stay on this computer, and Salie cannot read or change them. Customize with Salie reshapes the page and leaves them as they are.',
+        done: function () { return false; } }
+    ];
+  }
   var STORY = [
     { id: 'deck', ch: 0, phone: true, kind: 'area', next: true, sticky: true, kick: 'Control Deck',
       need: function () { return { at: 'deck' }; }, aim: function () { return ['.w-housing']; },
@@ -3311,7 +3452,7 @@
       need: function () { return { asst: true }; }, aim: function () { return AS.busy ? [] : ['.w-apill[data-v="Plan CSV export for reports"]']; },
       text: function () { return AS.busy ? 'Salie is splitting the idea into scoped tasks. Each proposal arrives as a card, and none of them changes anything yet.' : 'Now turn an idea into work, in one request.'; },
       done: function () { return planned() || (G.f.planAsk && !AS.busy && waitingChanges() > 0); } },
-    { id: 'confirm', ch: 0, kind: 'press', kick: 'Salie',
+    { id: 'confirm', ch: 0, kind: 'press', kick: 'Salie', sticky: true,
       need: function () { return { asst: true }; }, aim: function () { return [['.w-aall [data-a="asst-all"][data-v="yes"]', '[data-a="asst-ok"]']]; },
       text: function (h, w) { return 'Three tasks for my-app and a ticket for your team.' + ' Nothing is created until you confirm.'; },
       done: function () { return planned() && waitingChanges() === 0; } },
@@ -3409,17 +3550,17 @@
     { id: 'merged', ch: 2, kind: 'press',
       need: function () { return { sheet: true }; }, aim: function () { return ['.w-sheet [data-a="mergego"]']; },
       text: 'Checked now, and again when you confirm. The merge is local; nothing is pushed.',
-      done: function () { var t = lead(); return !t || t.state === 'done'; } },
-
-    { id: 'home', ch: 2, desk: true, kind: 'press', sticky: true, hops: true,
+      done: function () { var t = lead(); return !t || t.state === 'done'; } }
+  ].concat(genSteps('todo'), genSteps('team'), [
+    { id: 'home', ch: 3, desk: true, kind: 'press', sticky: true, hops: true,
       need: function () { return { ws: 'universal', uv: 'mywork' }; }, aim: function () { return []; },
       text: function (h) { return h && h.kind === 'sw' ? 'Last stop: back to Universal. Open the switcher.' : ''; },
       done: function () { return !!lead() && lead().state === 'done' && D.ws === 'universal'; } },
-    { id: 'settings', ch: 2, desk: true, kind: 'press', next: true, kick: 'Settings',
+    { id: 'settings', ch: 3, desk: true, kind: 'press', next: true, kick: 'Settings',
       need: function () { return { ws: 'universal', settings: true }; }, aim: function () { return ['.w-rail [data-a="settings"]']; },
       text: 'One last place. Settings is one screen for Universal, Individual and each Team. Alerts tell you from another app when an agent needs you.',
       done: function () { return D.set !== null; } }
-  ];
+  ]);
 
   /* The phone lesson, after the core story: only what is different on the phone. The deck is the way in, and a workflow key
      runs a task you repeat on the paired computer: tap it and choose a repository, or hold it and save one. Each step reads
@@ -3429,6 +3570,18 @@
     { id: 'phone-intro', ch: 0, kind: 'area', next: true, sticky: true, kick: 'Desktop and phone, paired',
       need: function () { return { at: 'deck' }; }, aim: function () { return ['.w-housing']; },
       text: 'Your desktop is the detailed control center. Your phone is paired with it: the same control, distilled into one deck of keys, with a count on each for what is waiting for you.',
+      done: function () { return false; } },
+    { id: 'phone-ws', ch: 0, kind: 'press', kick: 'Made on your computer', sticky: true,
+      need: function () { return { at: 'deck' }; }, aim: function () { return ['.w-pwdeck [data-a="pw-open"]']; },
+      text: function () { return 'What you build with Salie on your computer is on your phone too, with its records: ' + PW_KINDS.filter(function (k) { return PWS[k].ws; }).map(function (k) { return PWS[k].ws.name; }).join(' and ') + '. Open the first.'; },
+      done: function () { return P.at === 'pw'; } },
+    { id: 'phone-ws-use', ch: 0, kind: 'press', kick: 'One workspace, two screens', sticky: true,
+      need: function () { return { at: 'pw' }; }, aim: function () { return [['.w-pwphone input.done:not(:checked)', '.w-pwphone .w-pwc']]; },
+      text: 'The same workspace and the same records, laid out for a phone. Tick one off, and it is ticked on your computer too.',
+      done: function () { return !!G.f['phone-ws-tick']; } },
+    { id: 'phone-ws-more', ch: 0, kind: 'area', next: true, sticky: true, kick: 'Reshape it from here',
+      need: function () { return { at: 'pw' }; }, aim: function () { return ['.w-pwacts']; },
+      text: 'Edit with Salie reshapes it from your phone, with the same Confirm card. Renaming, history and deleting stay on your computer.',
       done: function () { return false; } },
     { id: 'phone-add', ch: 0, kind: 'press', kick: 'Make the deck yours',
       need: function () { return { at: 'deck', sheet: wfSheet('decklibrary') }; },
@@ -3494,7 +3647,7 @@
     // need.task: true allows any open task; an id allows that task only.
     function taskOk(open) { return !open || need.task === true || need.task === open; }
     if (AS.open && !need.asst) return { sel: phone ? '.w-tabbar [data-a="pdeck"]' : '[data-a="asst-x"]', kind: 'close-asst' };
-    if (!AS.open && need.asst) return { sel: '[data-a="asst-open"]', kind: 'open-asst' };
+    if (!AS.open && need.asst) return need.opener ? { sel: need.opener, kind: 'pw-create' } : { sel: '[data-a="asst-open"]', kind: 'open-asst' };
     if (need.sheet && V.sheet) return null;
     if (V.sheet && !need.sheet) return { sel: '.w-sheet [data-a="sheetx"].ic', kind: 'close-sheet' };
     if (phone) {
@@ -3504,6 +3657,8 @@
       if (need.at === 'team' && P.at === 'projects') return { sel: '[data-a="pteam"]', kind: 'teamproject' };
       if (need.at === 'team' && P.at === 'team' && need.teamTab && P.teamTab !== need.teamTab) return { sel: '[data-a="pteamtab"][data-id="' + need.teamTab + '"]', kind: 'nav', to: need.teamTab };
       if (P.task && !taskOk(P.task)) return { sel: '.w-mtask [data-a="close"]', kind: 'back' };
+      // A workspace's page: reached from the deck's list, and left by the tab bar.
+      if (need.at === 'pw') return P.at === 'pw' ? null : P.at === 'deck' ? { sel: '.w-pwdeck [data-a="pw-open"]', kind: 'pw', to: PW_KINDS.filter(function (k) { return PWS[k].ws; })[0] || 'todo' } : { sel: '.w-tabbar [data-a="pdeck"]', kind: 'deck' };
       if (need.at && !P.task) {
         if (P.at !== need.at) {
           if (need.at === 'project' && P.at === 'projects') return { sel: '[data-a="pproject"][data-id="my-app"]', kind: 'project' };
@@ -3519,6 +3674,9 @@
     if (D.pal !== null) return null;
     if (need.ws && D.ws !== need.ws) return D.sw ? { sel: '.w-menu [data-a="ws"][data-id="' + need.ws + '"]', kind: 'ws', to: need.ws } : { sel: '.w-rail [data-a="sw"]', kind: 'sw', to: need.ws };
     if (D.sw) return null;
+    // A workspace's own page, or any page of the workspace the step is in (need.here): the sidebar is on every one of them.
+    if (need.pw) return D.page === 'pw' && D.pwk === need.pw ? null : { sel: '.w-rail [data-a="pw-open"][data-k="' + need.pw + '"]', kind: 'pw', to: need.pw };
+    if (need.here) return null;
     // Settings is a page of the window: a step that needs another place leaves it by the sidebar.
     if ((D.set !== null || D.page) && !need.settings && (need.ws || need.uv || need.tv || need.view)) {
       var out = need.ws === 'universal' ? ['uv', need.uv || 'mywork'] : need.ws === 'team' ? ['tv', need.tv || 'board'] : need.view && need.view !== 'control' ? ['proj', 'my-app'] : ['view', 'control'];
@@ -3538,6 +3696,7 @@
     sw: function (h) { return 'Open the switcher to get to ' + (WSNAME[h.to] || S.team.name) + '.'; },
     ws: function (h) { return 'Choose ' + (WSNAME[h.to] || S.team.name) + '.'; },
     project: 'Open my-app.',
+    pw: function (h) { return 'Open ' + (PWS[h.to] && PWS[h.to].ws ? PWS[h.to].ws.name : PWK[h.to].name) + '.'; }, 'pw-create': 'Choose Create with Salie.',
     nav: function (h) { return 'Open ' + (VIEWNAME[h.to] || 'the page') + '.'; },
     tab: function (h) { return 'Open ' + (VIEWNAME[h.to] || 'the page') + '.'; },
     col: function (h) { return 'Open ' + (VIEWNAME[h.to] || 'the column') + '.'; } };
@@ -3619,13 +3778,14 @@
     Object.keys(G.f).forEach(function (key) { if (key.indexOf('phone-') === 0) delete G.f[key]; });
     Object.keys(G.s).forEach(function (key) { if (key.indexOf('phone-') === 0) delete G.s[key]; });
     window.dispatchEvent(new CustomEvent('wb-demo-view', { detail: 'phone' }));
-    P.at = 'deck'; P.task = null; P.deckAdded = false; P.deckWs = false; P.repo = null; P.wf = null; P.scope = 'individual'; P.proj = 'my-app'; P.scroll = {};
+    P.at = 'deck'; P.task = null; P.deckAdded = false; P.deckWs = false; P.pwk = 'todo'; P.repo = null; P.wf = null; P.scope = 'individual'; P.proj = 'my-app'; P.scroll = {};
+    pwSeed();
     render();
   }
   function endSpec(w) {
-    if (G.mode === 'phone') return { id: 'phone-end', kicker: 'Desktop and phone, paired', text: 'Use them together. The desktop is the detailed control center; the phone keeps the same control in reach, and its workflow keys get you the same results with a tap while you are away.', els: [], kind: 'area', actions: [{ key: 'restart', label: 'Restart' }, { key: 'phone-tour', label: 'Replay phone demo', primary: true }] };
-    if (w === 'phone') return { id: 'end', kicker: 'Plan, run, review', text: 'That is the whole loop, on your phone, with the same board the desktop shows. Now see what is special about the phone: a deck you set up yourself, and workflow keys that run a task with a tap.', els: [], kind: 'area', actions: [{ key: 'restart', label: 'Restart' }, { key: 'phone-tour', label: 'See what’s special on the phone', primary: true }] };
-    return { id: 'end', kicker: 'Plan, run, review', text: 'That is the whole loop, and your phone can drive all of it too. The phone demo shows only what is different there: a deck you set up yourself, and workflow keys that run a task with a tap.', els: [], kind: 'area', actions: [{ key: 'restart', label: 'Restart' }, { key: 'phone-tour', label: 'Phone demo', primary: true }] };
+    if (G.mode === 'phone') return { id: 'phone-end', kicker: 'Desktop and phone, paired', text: 'Use them together. The desktop is the detailed control center; the phone keeps the same control in reach. A workspace you build with Salie on one is on the other, and a workflow key gets you the same result with a tap while you are away.', els: [], kind: 'area', actions: [{ key: 'restart', label: 'Restart' }, { key: 'phone-tour', label: 'Replay phone demo', primary: true }] };
+    if (w === 'phone') return { id: 'end', kicker: 'Plan, run, review', text: 'That is the whole loop, on your phone, with the same board the desktop shows. Now see what is special about the phone: the workspaces Salie builds on your computer, a deck you set up yourself, and workflow keys that run a task with a tap.', els: [], kind: 'area', actions: [{ key: 'restart', label: 'Restart' }, { key: 'phone-tour', label: 'See what’s special on the phone', primary: true }] };
+    return { id: 'end', kicker: 'Plan, run, review', text: 'That is the whole loop, and your phone can drive all of it too. The phone demo shows only what is different there: the workspaces you just made, a deck you set up yourself, and workflow keys that run a task with a tap.', els: [], kind: 'area', actions: [{ key: 'restart', label: 'Restart' }, { key: 'phone-tour', label: 'Phone demo', primary: true }] };
   }
   function paintChapters(w, step) {
     var list = guideEl.querySelector('.guide-chapters');
@@ -3662,7 +3822,7 @@
     if (tip) tip.hidden = G.hide !== key;
     if (G.hide === key) { WBGuide.hide(); return; }
     // The X on a note asks first: leaving the walkthrough ends the guided steps, so it is confirmed before it happens.
-    var spec = G.exitAsk ? { id: 'exit-ask', kicker: 'Exit the walkthrough', text: 'By clicking X, you exit the walkthrough. Are you sure you want to exit it?', els: [], kind: 'area', actions: [{ key: 'exit-yes', label: 'Yes, exit', primary: true }, { key: 'exit-no', label: 'No, keep going' }] } : G.mode === 'phone' && w === 'desk' && step ? { id: 'phone-resume', kicker: 'Desktop and phone, paired', text: P.wf ? 'The same Find Bugs run shows here, at the top of the window: one computer does the work, and either screen follows it. The phone demo carries on on the phone.' : 'The phone demo carries on on the phone. Anything you start there shows here too.', els: [], actions: [{ key: 'phone-resume', label: 'Back to the phone', primary: true }] } : step ? stepSpec(step, w, surface) : endSpec(w);
+    var spec = G.exitAsk ? { id: 'exit-ask', kicker: 'Exit the walkthrough', text: 'By clicking X, you exit the walkthrough. Are you sure you want to exit it?', els: [], kind: 'area', actions: [{ key: 'exit-yes', label: 'Yes, exit', primary: true }, { key: 'exit-no', label: 'No, keep going' }] } : G.mode === 'phone' && w === 'desk' && step ? { id: 'phone-resume', kicker: 'Desktop and phone, paired', text: P.wf ? 'The same Find Bugs run shows here, at the top of the window: one computer does the work, and either screen follows it. The phone demo carries on on the phone.' : D.page === 'pw' ? 'The same workspace, with the same records. A change on either screen is on the other. The phone demo carries on on the phone.' : 'The phone demo carries on on the phone. Anything you start there shows here too.', els: [], actions: [{ key: 'phone-resume', label: 'Back to the phone', primary: true }] } : step ? stepSpec(step, w, surface) : endSpec(w);
     [deskRoot, phoneRoot].forEach(function (r) { r.querySelectorAll('[aria-describedby="demo-guide-note"]').forEach(function (n) { n.removeAttribute('aria-describedby'); }); });
     var open = deskRoot.querySelector('.w-asst');
     if (open) open.classList.toggle('room', w === 'desk');
@@ -3680,7 +3840,7 @@
     if (spec.shown) reveal.apply(null, spec.shown);
   }
   /* Where a surface is: enough to put the visitor back, and to tell whether they moved while they were there. */
-  var NAV = { desk: ['ws', 'uv', 'tv', 'view', 'proj', 'page', 'set', 'task', 'ptab'], phone: ['at', 'tab', 'proj', 'set', 'scope', 'teamTab', 'task', 'ptab', 'col'] };
+  var NAV = { desk: ['ws', 'uv', 'tv', 'view', 'proj', 'page', 'pwk', 'set', 'task', 'ptab'], phone: ['at', 'tab', 'proj', 'pwk', 'set', 'scope', 'teamTab', 'task', 'ptab', 'col'] };
   function navOf(w) { var V = w === 'phone' ? P : D, o = { sheet: V.sheet }; NAV[w].forEach(function (k) { o[k] = V[k]; }); return o; }
   function navSig(w) { var o = navOf(w); o.sheet = o.sheet ? o.sheet.kind + ':' + (o.sheet.id || '') : ''; return JSON.stringify(o); }
   function guideLayout() {
@@ -3705,12 +3865,20 @@
         }
         // Universal is the desktop's home, and the deck is the phone's.
         else P.at = D.uv === 'inbox' ? 'control' : D.uv === 'calendar' ? 'calendar' : 'deck';
+        // A workspace Salie made is on the phone too, and its page stays open.
+        if (D.page === 'pw' && PWS[D.pwk].ws) { P.at = 'pw'; P.pwk = D.pwk; }
         if (P.task && get(P.task)) P.col = get(P.task).state;
       } else {
         D.task = P.task; D.ptab = P.ptab; D.set = null; D.sheet = P.sheet && ['merge', 'new', 'workflow-report'].indexOf(P.sheet.kind) >= 0 ? P.sheet : null;
+        D.page = null;
         if (P.at === 'team') { D.ws = 'team'; D.tv = P.teamTab; }
         else if (P.at === 'project') { D.ws = 'individual'; D.proj = P.proj; D.view = P.tab; }
         else if (P.at === 'mywork') { D.ws = 'universal'; D.uv = 'mywork'; }
+        else if (P.at === 'pw' && PWS[P.pwk].ws) {
+          var at = PWS[P.pwk].ws.loc, here = { universal: 'uni', individual: 'ind', team: 'team' };
+          if (!at[here[D.ws]]) D.ws = at.ind ? 'individual' : at.uni ? 'universal' : 'team';
+          D.page = 'pw'; D.pwk = P.pwk;
+        }
         else if (P.at !== 'deck' && P.at !== 'projects') { D.ws = 'individual'; D.proj = 'my-app'; D.view = P.at === 'agents' ? 'runs' : P.at === 'reviews' ? 'board' : ['control', 'calendar', 'git', 'analytics'].indexOf(P.at) >= 0 ? P.at : 'control'; }
       }
       G.left = { to: w, saved: saved, landed: navSig(w) };
@@ -3738,20 +3906,20 @@
     G.floor = ch; D.task = null; D.pick = null; leave();
     if (ch === 0) { D.ws = 'universal'; D.uv = 'mywork'; }
     if (ch === 1) { D.ws = 'individual'; D.proj = 'my-app'; D.view = 'board'; }
-    if (ch === 2) { [story(1), story(2)].forEach(function (t) { if (!t.run) startTask(t.id, true); finish(t); }); D.ws = 'individual'; D.proj = 'my-app'; D.view = 'board'; }
+    if (ch >= 2) { [story(1), story(2)].forEach(function (t) { if (!t.run) startTask(t.id, true); finish(t); if (ch === 3) mergeTask(t.id); }); D.ws = 'individual'; D.proj = 'my-app'; D.view = 'board'; }
     render();
   }
   function guideReset() {
     G.active = true; G.mode = 'core'; G.exitAsk = false;
-    halt(); asstFresh(); PW = pwFresh(); clearTimeout(toastTimer); xferTimers.forEach(clearTimeout); xferTimers = []; INSP = {}; DAYS_OPEN = {};
+    halt(); asstFresh(); pwReset(); clearTimeout(toastTimer); xferTimers.forEach(clearTimeout); xferTimers = []; INSP = {}; DAYS_OPEN = {};
     var fresh = JSON.parse(initialState);
     Object.keys(S).forEach(function (k) { S[k] = fresh[k]; });
     G.f = {}; G.s = {}; G.floor = 0; G.hide = null; G.left = null; G.deskSw = null; revealed = ''; placed = {};
     AS.open = false;
     [D, P].forEach(function (v) { v.task = null; v.sheet = null; v.scroll = {}; });
-    D.ws = 'universal'; D.uv = 'mywork'; D.tv = 'board'; D.view = 'control'; D.proj = 'my-app'; D.page = null; D.set = null; D.alerts = false; D.share = 0; D.mine = false; D.sw = false; D.pal = null; D.pick = null; D.week = 0; D.dayN = 0; D.mode = 'week'; D.cal = 'calendar';
+    D.ws = 'universal'; D.uv = 'mywork'; D.tv = 'board'; D.view = 'control'; D.proj = 'my-app'; D.page = null; D.pwk = 'todo'; D.set = null; D.alerts = false; D.share = 0; D.mine = false; D.sw = false; D.pal = null; D.pick = null; D.week = 0; D.dayN = 0; D.mode = 'week'; D.cal = 'calendar';
     D.arch = D.tarch = false; D.fa = D.fp = 'any'; D.aq = ''; D.hq = ''; D.gsub = 'overview'; D.ccp = D.cca = 'all'; D.an = analyticsState(); D.tdays = 30; D.cc = 'all';
-    P.deckAdded = false; P.deckWs = false; P.repo = null; P.scope = 'individual'; P.at = 'deck'; P.tab = 'board'; P.proj = 'my-app'; P.set = null; P.col = 'backlog'; P.day = TODAY; P.cc = 'all'; P.wf = null; P.af = 'all';
+    P.deckAdded = false; P.deckWs = false; P.pwk = 'todo'; P.repo = null; P.scope = 'individual'; P.at = 'deck'; P.tab = 'board'; P.proj = 'my-app'; P.set = null; P.col = 'backlog'; P.day = TODAY; P.cc = 'all'; P.wf = null; P.af = 'all';
     P.arch = false; P.fa = P.fp = 'any'; P.aq = ''; P.hq = ''; P.gsub = 'overview'; P.ccp = P.cca = 'all'; P.an = analyticsState(); P.teamTab = 'board';
     [deskRoot, phoneRoot].forEach(function (root) { setOverlay(root, ''); root.querySelector('.w-toast').classList.remove('show'); });
     render(); go();
@@ -3765,7 +3933,10 @@
     if (root.contains(document.activeElement)) document.activeElement.blur();
     if (V.sheet || (where === 'desk' && (D.pal !== null || D.sw))) { dropOverlay(); render(); return true; }
     if (AS.open) { closeAsst(where); return true; }
-    if ((where === 'desk' ? D.page === 'pw' : P.at === 'pw') && (PW.menu || PW.panel || PW.ed || PW.delId != null)) { PW.menu = false; PW.panel = ''; PW.ed = null; PW.delId = null; PW.setf = null; PW.mode = ''; render(); return true; }
+    if (where === 'desk' ? D.page === 'pw' : P.at === 'pw') {
+      pwUse(where === 'desk' ? D.pwk : P.pwk);
+      if (PW.menu || PW.panel || PW.ed || PW.delId != null) { pwIdle(PW); render(); return true; }
+    }
     if (V.task) { V.task = null; render(); return true; }
     return false;
   }

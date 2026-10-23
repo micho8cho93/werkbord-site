@@ -235,3 +235,35 @@ test('on a phone the site is two pages: Try the demo is in the header, and it op
   assert.ok(/if \(welcome && !welcomed\) openWelcomePage\(\);\s*else openFull\(\);/.test(view), 'Try the demo opens the card first, and the demo once a choice was made');
   assert.ok(!view.includes('scrollIntoView'), 'Try the demo must not scroll the page');
 });
+
+test('Create with Salie makes two workspaces in the demo: a to-do list for Individual and a follow-up tracker for the Team, private to the person', () => {
+  const js = read('assets/js/app-demo.js');
+  const spec = js.match(/var PWK = \{[\s\S]*?\n  \};/)[0];
+  assert.ok(/todo: \{[\s\S]*?home: 'individual'[\s\S]*?loc: \{ uni: true, ind: true, team: false \}/.test(spec), 'the to-do list belongs to Individual');
+  assert.ok(/team: \{[\s\S]*?home: 'team'[\s\S]*?loc: \{ uni: false, ind: false, team: true \}/.test(spec), 'the follow-up tracker is shown in the Team only');
+  assert.ok(spec.includes("create: 'Create a weekly to-do list'") && spec.includes("create: 'Create a team follow-up tracker'"), 'each example has its own request');
+  // The app's own words: Team display keeps a workspace private to the person. The demo must not promise sharing.
+  assert.ok(js.includes('Team display keeps them private to you'), 'the app\'s wording on Team display is gone');
+  assert.ok(js.includes('teammates cannot see it or its records'), 'the Team proposal must say who can see the workspace');
+  assert.doesNotMatch(js, /shared with (your )?(team|teammates)|your teammates can (see|edit)/i, 'a generated workspace is not shared in the app yet');
+  // Create with Salie is offered in Individual and a Team, not in Universal, as in the app.
+  assert.ok(js.includes("(D.ws === 'universal' ? '' : gen('data-a=\"pw-create\""), 'Universal must not offer Create with Salie');
+});
+
+test('the walkthrough ends with a chapter that makes both workspaces, and the phone lesson shows them on the phone', () => {
+  const js = read('assets/js/app-demo.js');
+  assert.ok(js.includes("var CHAPTERS = ['Plan', 'Run', 'Review', 'Make it yours'];"), 'the chapter is missing from the bar');
+  assert.ok(js.includes(".concat(genSteps('todo'), genSteps('team'), ["), 'the story has to make both workspaces');
+  for (const id of ["'phone-ws'", "'phone-ws-use'", "'phone-ws-more'"]) assert.ok(js.includes('{ id: ' + id), 'the phone lesson lost a workspace step: ' + id);
+  // Skipping the chapter, or opening the phone lesson first, still leaves workspaces on the phone to look at.
+  assert.ok(/pwSeed\(\);\s*render\(\);/.test(js), 'the phone lesson must seed what was made on the computer');
+  assert.ok(js.includes('if (D.page === \'pw\' && PWS[D.pwk].ws) { P.at = \'pw\'; P.pwk = D.pwk; }'), 'a workspace open on the desktop stays open on the phone');
+  assert.ok(js.includes('The same workspace, with the same records. A change on either screen is on the other.'), 'the desktop must say it is the same workspace');
+});
+
+test('Salie draws a workspace and never reads its records, and the phone does not manage workspaces', () => {
+  const js = read('assets/js/app-demo.js');
+  assert.ok(js.includes('Salie cannot read or change them'), 'the walkthrough must say Salie does not read the records');
+  assert.ok(js.includes('Renaming, history and deleting stay on your computer'), 'the phone must not rename, restore or delete a workspace');
+  assert.doesNotMatch(js.match(/function pwPhone\(\)[\s\S]*?\n  \}/)[0], /pw-menu|pw-delete|pw-history|pwlib/, 'the phone page has no management menu or data library');
+});
