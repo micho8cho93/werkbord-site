@@ -245,3 +245,10 @@ html:not(.js) .demo-guide { display: none; }
 @media (min-width: 1200px) and (orientation: landscape) {
   .demo-welcome-wrap { bottom: auto; height: min(100cqh, calc(100cqw * .625 + 30px)); }
 }
+
+/* Plan facts expand on request so the waitlist remains the primary action. */
+.plan-details { color: var(--t2); font-size: 12px; line-height: 1.5; }
+.plan-details summary { color: var(--tx); cursor: pointer; width: fit-content; padding: 6px 0; }
+.plan-details summary:focus-visible { outline: 2px solid var(--ac); outline-offset: 3px; }
+.plan-details p { margin: 8px 0 0; }
+.plan-details[open] { max-height: 180px; overflow-y: auto; }

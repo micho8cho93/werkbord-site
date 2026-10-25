@@ -1,21 +1,26 @@
 # werkbord
 
-> werkbord is a local-first team workspace for AI agents. Plan and approve the work on one board. Claude Code and Codex do the work in their own Git worktrees, and nothing merges without a person.
+> Werkbord is one local-first app with Personal and Team projects, and Free and Premium plans. Agents run on the user's own machines with their own credentials. Nothing merges without a person.
 
 ## Page
 
-- [werkbord](https://micho8cho93.github.io/werkbord-site/): the headline, a beta waitlist with a live count of the first 50 places, and a guided demo of the app at desktop and phone width: your work across workspaces in Universal, Salie (with next-step suggestions that cite what it remembers, and personal workspaces it generates and saves on your computer, one in Individual and one in a Team), agents running in parallel, review and merge, and a Team (claims, comments and @mentions), with projects, analytics, settings and help to open; the phone demo follows the app's Control Deck layout and shows those workspaces on the phone.
+- [werkbord](https://micho8cho93.github.io/werkbord-site/): the beta waitlist, Free/Premium facts and a scripted desktop/phone demo with made-up data. The demo illustrates workflows; it is not a live product session or production acceptance evidence.
 
-## Facts on the page
+## Product facts
 
-- werkbord is a local-first team workspace for AI agents. People plan and approve the work on one board. Agents do the work in their own Git worktrees, one per task.
-- werkbord is a meta-harness: a layer between the person and all of their agents. Each agent is a harness around a model; werkbord coordinates them in one workspace, with tasks, Git branches and memory together.
-- Claude Code and Codex work with werkbord today, through their own command-line tools and the user's own accounts.
-- Nothing merges without a person. Agents do not merge their own work.
-- Beta: the first 50 people to sign up get beta access. It covers individual and team apps.
-- The waitlist asks for an email address and, optionally, the team size: 2, 3, 4, 5 or 6 or more.
-- The demo runs in the page on a made-up repository and a made-up team. It needs no install. The Team part is early access.
+- One product, one build, one release and one download for both plans. Personal and Team are project kinds, not separate products.
+- Free includes all Personal work and any number of teams with up to two people, owner included. Extra devices do not count as people.
+- Teams of three or more need Premium for every member. A member without proof retains read-only access; ordinary permissions still apply. Returning to two restores access.
+- Premium is a per-person signed unlock key checked offline by the app and Team host. A one-time purchase is planned, but Premium is not yet on sale. No subscription, expiry, vendor account or runtime Werkbord cloud service.
+- Home, Calendar, Reviews and Analytics span connected workspaces; the sidebar groups Personal projects and each team's projects. The go-to palette opens with Command-K.
+- New team or join uses one flow. Hosting needs customer-owned infrastructure; the Mac installer asks for administrator authorisation. Connecting a runner is explicit and every run follows local approvals.
+- Move project reviews the name, remote reference and ticket text before native confirmation. Import is atomic and safe to retry; the source is archived with its history. Runs, files, credentials and agent output stay at the source. Team to Personal creates a work board without a checkout.
+- Claude Code, Codex, Gemini CLI and OpenCode work through the user's own installed command-line tools and sign-ins.
+- Team coordinates tickets and people. Each member retains their own runner and credentials; Team never executes developer work.
+- Salie has sidebar and floating entry points. The planned Team read-only restriction is not yet enforced; the current approved ticket-creation bridge remains.
+- The waitlist asks for an email and optional team size. Joining it does not purchase Premium or approve production use.
+- Production admission remains blocked pending independent acceptance. macOS preview first; Linux packages are opt-in after acceptance and Windows publication is deferred.
 
-## Planned, not available today
+## Not offered
 
-- Support for AI models other than Claude Code and Codex.
+A hosted Team cloud, payments, a separate Premium build, and production approval through the demo or waitlist.

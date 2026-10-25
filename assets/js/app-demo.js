@@ -1,4 +1,4 @@
-/* A working replica of werkbord: the Mac app (Universal, Individual and a Team) and the phone, sharing one controller.
+/* A working replica of werkbord: the Mac app (Home, Personal and a Team) and the phone, sharing one controller.
    The markup, wording and states follow the product's Svelte components (web/src) so the simulator looks and behaves
    like the app. Start an agent on the desktop and it shows up on the phone; answer on the phone and the desktop moves on.
    The guided story walks through it with quiet notes (demo-guide.js), and nothing is locked. Nothing leaves the page. */
@@ -73,11 +73,11 @@
   var S = {
     now: 10 * 60 + 42, nextId: 30, seq: 0x4f2a,
     finding: false,
-    // The rest of Individual and a Team: a backdrop that Universal reads beside my-app. See "the other workspaces" below.
+    // The rest of Personal and a Team: a backdrop that Home reads beside my-app. See "the other workspaces" below.
     ext: {
       ask: { id: 102, title: 'Fix flaky auth test', project: 'api-server', agent: 'Claude Code', prio: 'high', st: 'needs', asked: 9 * 60 + 52,
         q: 'The session test passes alone and fails in the full suite. Fix the shared clock, or skip the test for now?', choices: ['Fix the shared clock', 'Skip it for now'] },
-      // The Team's dated tickets, drawn on Universal's calendar. Individual's come from the projects' own scheduled tasks.
+      // The Team's dated tickets, drawn on Home's calendar. Personal's come from the projects' own scheduled tasks.
       cal: [
         { title: 'WB-40 Add audit log filters', project: 'storefront', tag: 'Northwind', d: 0, s: 13 * 60, dur: 90 },
         { title: 'WB-44 Rate-limit login attempts', project: 'storefront', tag: 'Northwind', d: 1, s: 10 * 60, dur: 120 },
@@ -170,7 +170,7 @@
   ];
 
   /* api-server and marketing-site, as they stand today. Every task here is read only: the demo drives my-app. The question
-     api-server is waiting on (S.ext.ask) is live, and is answered from Workspace, from Universal or by Salie. */
+     api-server is waiting on (S.ext.ask) is live, and is answered from Workspace, from Home or by Salie. */
   function sx(project, t) { t.project = project; t.ro = true; return t; }
   var FXT = {
     'api-server': [
@@ -420,7 +420,7 @@
      Salie can propose a private interface that is saved on this computer: a layout of panels over a collection of records. The
      proposal is a card with a read only preview and its own Confirm, as in the app. Once saved it is listed under Create with Salie in
      the sidebar, and its records are the person's to add, tick off, edit and delete. Salie draws the page; it never reads or changes
-     the records. The demo has two examples, each over one collection of its own. Individual's is a weekly to-do list. A Team's is a
+     the records. The demo has two examples, each over one collection of its own. Personal's is a weekly to-do list. A Team's is a
      tracker of what the person is waiting on from teammates: a workspace can be shown in a Team, and Team display keeps it private to
      the person. What a page draws follows the product's own renderer (web/src/lib/personal, web/src/shell): bordered panels, a shaded
      filter band over each list or table, and more room between sections. A phone lists every workspace on its deck and works with its
@@ -500,7 +500,7 @@
   }
   function pwWhere() { return D.ws === 'universal' ? 'uni' : D.ws === 'individual' ? 'ind' : 'team'; }
   function pwVisible(k) { var s = PWS[k || PW.k]; return !!s.ws && !!s.ws.loc[pwWhere()]; }
-  function pwLocs(loc) { return [loc.uni ? 'Universal' : '', loc.ind ? 'Individual' : '', loc.team ? S.team.name : ''].filter(Boolean).join(', ') || 'no location'; }
+  function pwLocs(loc) { return [loc.uni ? 'Home' : '', loc.ind ? 'Personal' : '', loc.team ? S.team.name : ''].filter(Boolean).join(', ') || 'no location'; }
   function pwSave(note) {
     var w = PW.ws; w.rev++;
     w.hist.push({ rev: w.rev, name: w.name, icon: w.icon, layout: w.layout, loc: { uni: w.loc.uni, ind: w.loc.ind, team: w.loc.team }, at: clock(S.now) });
@@ -675,7 +675,7 @@
       var s = PW.setf || (PW.setf = { name: w.name, icon: w.icon, uni: w.loc.uni, ind: w.loc.ind, team: w.loc.team });
       body = '<form data-form="pw-set"><label class="f">Name<input class="w-input" name="name" data-pw-sf="name" required maxlength="120" value="' + esc(s.name) + '"></label>' +
         '<label class="f">Icon<select class="w-select" name="icon" data-pw-sf="icon" aria-label="Icon">' + PW_ICONS.map(function (i) { return '<option' + (s.icon === i ? ' selected' : '') + '>' + i + '</option>'; }).join('') + '</select></label>' +
-        '<fieldset><legend>Show in</legend>' + [['uni', 'Universal'], ['ind', 'Individual'], ['team', S.team.name]].map(function (l) { return '<label><input type="checkbox" name="' + l[0] + '" data-pw-sf="' + l[0] + '"' + (s[l[0]] ? ' checked' : '') + '> ' + esc(l[1]) + '</label>'; }).join('') + '</fieldset>' +
+        '<fieldset><legend>Show in</legend>' + [['uni', 'Home'], ['ind', 'Personal'], ['team', S.team.name]].map(function (l) { return '<label><input type="checkbox" name="' + l[0] + '" data-pw-sf="' + l[0] + '"' + (s[l[0]] ? ' checked' : '') + '> ' + esc(l[1]) + '</label>'; }).join('') + '</fieldset>' +
         '<p>Locations control navigation only. Your workspace and personal records stay saved, even with no locations selected. Team display keeps them private to you.</p><div class="acts"><button class="w-btn pri" type="submit">Save changes</button></div></form>';
     } else if (p === 'history') {
       var earlier = w.hist.filter(function (h) { return h.rev < w.rev; }), pick = PW.hsel || (earlier.length ? earlier[earlier.length - 1].rev : 0), shown = PW.hrev && earlier.filter(function (h) { return h.rev === PW.hrev; })[0];
@@ -739,7 +739,7 @@
       (saved.length ? '<h2>Saved workspaces</h2><p>Includes workspaces with no display locations.</p><div class="rs">' + saved.map(function (k) { return '<button class="w-btn" type="button" data-a="pw-open" data-k="' + k + '">' + esc(PWS[k].ws.name) + '</button>'; }).join('') + '</div>' : '') +
       '<h2>Personal collections</h2>' + rows + seen + '</div></main>';
   }
-  /* The sidebar's group: Create with Salie (Individual and a Team, not Universal), then each workspace shown here, then the library. */
+  /* The sidebar's group: Create with Salie (Personal and a Team, not Home), then each workspace shown here, then the library. */
   function pwRail() {
     var gen = function (attrs, icon, label, cur) { return '<button class="w-nav" type="button" ' + attrs + (cur ? ' aria-current="page"' : '') + ' title="' + esc(label) + '">' + ic(icon) + '<span class="name">' + esc(label) + '</span></button>'; };
     var home = D.ws === 'team' ? 'team' : 'todo';
@@ -800,7 +800,7 @@
       case 'pw-delete': PW.menu = false; PW.panel = 'delete'; PW.mode = ''; PW.cfm = false; render(); break;
       case 'pw-lib': PW.menu = false; PW.panel = ''; leave(); D.page = 'pwlib'; render(); break;
       case 'pw-away':
-        PW.menu = false; PW.ws.loc[pwWhere()] = false; pwSave('Removed from ' + (pwWhere() === 'uni' ? 'Universal' : pwWhere() === 'ind' ? 'Individual' : S.team.name) + '. The workspace and its records are still saved.');
+        PW.menu = false; PW.ws.loc[pwWhere()] = false; pwSave('Removed from ' + (pwWhere() === 'uni' ? 'Home' : pwWhere() === 'ind' ? 'Personal' : S.team.name) + '. The workspace and its records are still saved.');
         toast('Removed from this location. It is still in the Personal data library.'); pwAway(); break;
       case 'pw-cancel': PW.menu = false; PW.panel = ''; PW.ed = null; PW.delId = null; PW.setf = null; PW.mode = ''; render(); break;
       case 'pw-add':
@@ -842,7 +842,7 @@
      OpenUI blocks the product draws inline: figures, a chart, a table that sorts and filters here, all read only) and
      changes to confirm. Nothing changes until the person confirms it, one card at a time or all at once. Each surface keeps
      its own conversation, as in the product: the desktop assistant reaches the Team workspaces connected to the window, and
-     a phone sees Individual only. The replies read the demo's current state. */
+     a phone sees Personal only. The replies read the demo's current state. */
   var CARD_LEAD = 'Here is what I will do. Nothing changes until you confirm.';
   var NOT_OPEN = 'That is already settled, so nothing needs to change.';
   var AS = { msgs: [], opts: null, busy: false, timer: null, open: false, cur: null, away: { desk: false, phone: false }, behind: { desk: false, phone: false } };
@@ -876,14 +876,14 @@
   }
   function agendaText() {
     var rows = S.tasks.filter(function (t) { return t.sched && t.state !== 'done'; }).map(function (t) { return { at: schedAbs(t), d: t.sched.d, s: t.sched.s, title: t.title }; });
-    extSched().forEach(function (e) { if (e.tag === 'Individual') rows.push({ at: e.d * 1440 + e.s, d: e.d, s: e.s, title: e.title }); });
+    extSched().forEach(function (e) { if (e.tag === 'Personal') rows.push({ at: e.d * 1440 + e.s, d: e.d, s: e.s, title: e.title }); });
     rows.sort(function (a, b) { return a.at - b.at; });
-    if (!rows.length) return 'Nothing is scheduled in Individual yet.';
+    if (!rows.length) return 'Nothing is scheduled in Personal yet.';
     return 'Here is the schedule across your projects, in order. ' + rows.map(function (r) { return dayLabel(r.d) + ' at ' + clock(r.s) + ': ' + r.title; }).join('. ') + '.';
   }
   function plateText() {
     var n = rowsAll().length;
-    return 'Here is your week across Individual and ' + S.team.name + '. ' + (n ? n + (n === 1 ? ' thing is' : ' things are') + ' waiting on you, and the rest is moving.' : 'Nothing is waiting on you, and the rest is moving.');
+    return 'Here is your week across Personal and ' + S.team.name + '. ' + (n ? n + (n === 1 ? ' thing is' : ' things are') + ' waiting on you, and the rest is moving.' : 'Nothing is waiting on you, and the rest is moving.');
   }
 
   /* The generated interface for "What is on my plate this week?": what the registry's blocks make from the same rows My Work
@@ -893,8 +893,8 @@
     var rows = [];
     myWorkRows().forEach(function (r) { rows.push([r.title, r.wsName, r.project, execWord(r.exec) || (r.status === 'review' ? 'In review' : 'In progress')]); });
     S.team.tickets.forEach(function (k) { if (k.st === 'review' && k.who !== ME) rows.push(['WB-' + k.n + ' ' + k.title, S.team.name, S.team.project, 'Needs you']); });
-    S.tasks.forEach(function (t) { if (t.sched && t.state === 'backlog') rows.push([t.title, 'Individual', 'my-app', 'Planned ' + dayLabel(t.sched.d).split(' ')[0] + ' ' + clock(t.sched.s)]); });
-    extSched().forEach(function (e) { if (e.tag === 'Individual') rows.push([e.title, 'Individual', e.project, 'Planned ' + dayLabel(e.d).split(' ')[0] + ' ' + clock(e.s)]); });
+    S.tasks.forEach(function (t) { if (t.sched && t.state === 'backlog') rows.push([t.title, 'Personal', 'my-app', 'Planned ' + dayLabel(t.sched.d).split(' ')[0] + ' ' + clock(t.sched.s)]); });
+    extSched().forEach(function (e) { if (e.tag === 'Personal') rows.push([e.title, 'Personal', e.project, 'Planned ' + dayLabel(e.d).split(' ')[0] + ' ' + clock(e.s)]); });
     return rows;
   }
   function plateUI() {
@@ -1003,7 +1003,7 @@
      next: the messages offered after it. ok and gone: the message is only open while ok() holds. ui: generated interface.
      cards: changes to confirm. */
   var REPLY = {
-    'What is on my plate this week?': { reads: 'Read My Work, the schedules and what is waiting in Individual and Northwind', text: plateText, ui: plateUI,
+    'What is on my plate this week?': { reads: 'Read My Work, the schedules and what is waiting in Personal and Northwind', text: plateText, ui: plateUI,
       next: function () { return backOpts(); } },
     'Plan CSV export for reports': { reads: 'Read the reports tasks and project context',
       ok: function () { return !story(1); }, gone: 'The CSV export is already planned. You will find it in Backlog.',
@@ -1012,7 +1012,7 @@
     'What should I do next on my-app?': { reads: 'Read your saved policy and decisions, the repository and the tasks in my-app', text: nextText, recs: nextRecs, memory: true, next: function () { return backOpts(); } },
     'What needs me today?': { reads: 'Read the attention lists', text: needsText,
       next: function () { return backOpts(S.ext.ask.st === 'needs' ? ['Answer the auth test question'] : []); } },
-    'What is planned for this week?': { reads: 'Read the schedules in Individual', text: agendaText, next: function () { return backOpts(); } },
+    'What is planned for this week?': { reads: 'Read the schedules in Personal', text: agendaText, next: function () { return backOpts(); } },
     'Answer the auth test question': { reads: 'Read “Fix flaky auth test” and its question',
       text: 'There are two options. Fix the shared clock so the test passes in the full suite, or skip the test for now. Which one should the agent use?',
       ok: function () { return S.ext.ask.st === 'needs'; }, gone: NOT_OPEN, next: function () { return ['Fix the shared clock', 'Skip it for now', 'What needs me today?']; } },
@@ -1316,8 +1316,8 @@
   }
 
   /* ---------- the other workspaces: the story's backdrop ----------
-     The window holds three places to be: Universal (your work from every workspace), Individual (this computer) and a Team.
-     The guided story is about my-app, so the rest of Individual (api-server) and the Team are a fixed backdrop that Universal
+     The window holds three places to be: Home (your work from every workspace), Personal (this computer) and a Team.
+     The guided story is about my-app, so the rest of Personal (api-server) and the Team are a fixed backdrop that Home
      reads beside it. What the story creates, and what the visitor answers, claims or signs off, shows up there too. */
   var ME = 'You';
   function story(i) { for (var j = 0; j < S.tasks.length; j++) if (S.tasks[j].story === i) return S.tasks[j]; return null; }
@@ -1328,7 +1328,7 @@
   function initials(n) { return n.split(' ').map(function (w) { return w.charAt(0); }).join('').slice(0, 2).toUpperCase(); }
   function execOf(r) { return !r ? null : ({ running: 'running', needs: 'needs_input', blocked: 'blocked', queued: 'queued', completed: 'completed' })[r.st] || null; }
 
-  /* api-server has two agents beside my-app. The question is answered from Workspace, from Universal or by Salie. */
+  /* api-server has two agents beside my-app. The question is answered from Workspace, from Home or by Salie. */
   function extTask() {
     var a = S.ext.ask, answered = a.st !== 'needs', start = a.asked - 14;
     var logs = ['Reading internal/auth/session_test.go', 'The test passes alone and fails in the full suite', 'It shares a clock with the token tests'];
@@ -1345,7 +1345,7 @@
     toast('Sent. ' + a.agent + ' carries on with “' + v + '”.');
   }
   function needsInd() { return needsYou() + (S.ext.ask.st === 'needs' ? 1 : 0); }
-  /* What waits for the person, as the shell lists it: Individual's (every project), a Team's reviews, then both together. */
+  /* What waits for the person, as the shell lists it: Personal's (every project), a Team's reviews, then both together. */
   function rowsInd() {
     var out = [];
     if (S.ext.ask.st === 'needs') out.push({ ws: 'individual', project: S.ext.ask.project, kind: 'question', t: extTask() });
@@ -1357,16 +1357,16 @@
   }
   function rowsAll() { return rowsInd().concat(rowsTeam()); }
   function needsAll() { return rowsAll().length; }
-  /* The person's own work: the agents' tasks in Individual and the tickets they hold in the Team. */
+  /* The person's own work: the agents' tasks in Personal and the tickets they hold in the Team. */
   function myWorkRows() {
     var rows = [];
     ['api-server', 'marketing-site'].forEach(function (p) {
       projTasks(p).forEach(function (t) {
-        if ((t.state === 'doing' || t.state === 'review') && t.run && !t.archived) rows.push({ ws: 'individual', wsName: 'Individual', project: p, title: t.title, status: t.state, exec: execOf(t.run), go: 'ind:' + t.id });
+        if ((t.state === 'doing' || t.state === 'review') && t.run && !t.archived) rows.push({ ws: 'individual', wsName: 'Personal', project: p, title: t.title, status: t.state, exec: execOf(t.run), go: 'ind:' + t.id });
       });
     });
     S.tasks.forEach(function (t) {
-      if ((t.state === 'doing' || t.state === 'review') && t.run && t.run.st !== 'stopped') rows.push({ ws: 'individual', wsName: 'Individual', project: 'my-app', title: t.title, status: t.state, exec: execOf(t.run), go: 'ind:' + t.id });
+      if ((t.state === 'doing' || t.state === 'review') && t.run && t.run.st !== 'stopped') rows.push({ ws: 'individual', wsName: 'Personal', project: 'my-app', title: t.title, status: t.state, exec: execOf(t.run), go: 'ind:' + t.id });
     });
     S.team.tickets.forEach(function (k) {
       if (k.who === ME && (k.st === 'progress' || k.st === 'review')) rows.push({ ws: 'team', wsName: S.team.name, project: S.team.project, title: 'WB-' + k.n + ' ' + k.title, status: k.st === 'progress' ? 'doing' : 'review', exec: k.exec || null, go: 'team' });
@@ -1425,66 +1425,40 @@
   }
 
   /* ================= the window's sidebar and the workspace switcher ================= */
-  function wsName() { return D.ws === 'universal' ? 'Universal' : D.ws === 'individual' ? 'Individual' : S.team.name; }
+  function wsName() { return D.ws === 'universal' ? 'Home' : D.ws === 'individual' ? 'Personal' : S.team.name; }
   function navBtn(attrs, icon, label, cur, badge) {
     return '<button class="w-nav" type="button" ' + attrs + (cur ? ' aria-current="page"' : '') + '>' + ic(icon) + label + (badge ? '<span class="w-num pend">' + badge + '</span>' : '') + '</button>';
   }
   function railHTML() {
-    var n = needsYou(), act = active(), ni = needsInd(), name = wsName();
-    var head = '<button class="w-switch" type="button" data-a="sw" aria-haspopup="menu" aria-expanded="' + !!D.sw + '" aria-label="Switch workspace. Showing ' + esc(name) + '"><span class="brand">' + mark(20) + '<span class="w-wm">werkbord</span></span><span class="mode"><span class="mn">' + esc(name) + '</span>' + ic('down', 14) + '</span></button>' +
+    var selected = D.set === null && !D.page;
+    var head = '<button class="w-switch" type="button" data-a="ws" data-id="universal" aria-label="werkbord. Go to Home"><span class="brand">' + mark(20) + '<span class="w-wm">werkbord</span></span></button>' +
       '<div class="w-ask"><button class="w-askbtn" type="button" data-a="asst-open" aria-haspopup="dialog">' + ic('assistant') + '<span class="w-askl">Salie</span>' + (waitingChanges() ? '<span class="w-num pend">' + waitingChanges() + '</span>' : '') + '</button></div>';
-    var body = '';
-    if (D.ws === 'universal') {
-      body = [['mywork', 'My Work', 'check', 0], ['inbox', 'Workspaces', 'control', needsAll()], ['calendar', 'Calendar', 'calendar', 0]].map(function (p) {
-        return navBtn('data-a="uv" data-id="' + p[0] + '"', p[2], p[1], D.uv === p[0], p[3]);
-      }).join('');
-    } else if (D.ws === 'individual') {
-      var ask = S.ext.ask.st === 'needs';
-      var pj = function (name, badge) {
-        return '<button class="w-nav proj" type="button" data-a="proj" data-id="' + name + '"' + (D.proj === name && PROJVIEWS.indexOf(D.view) > -1 ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">' + name + '</span>' + badge + '</button>';
-      };
-      body = '<div class="w-sec"><span>Individual</span></div>' +
-        navBtn('data-a="view" data-id="control"', 'overview', 'Workspace', D.view === 'control', ni) +
-        navBtn('data-a="view" data-id="projects"', 'folder', 'Projects', D.view === 'projects', 0) +
-        pj('api-server', ask ? '<span class="w-num pend">1</span>' : '<span class="n">' + projStats('api-server').running + '</span>') +
-        pj('marketing-site', '<span class="n">' + projStats('marketing-site').running + '</span>') +
-        pj('my-app', n ? '<span class="w-num pend">' + n + '</span>' : act ? '<span class="n">' + act + '</span>' : '') +
-        '<button class="w-nav proj add" type="button" data-a="addproject">' + ic('plus', 14) + 'Add project</button>' +
-        navBtn('data-a="view" data-id="analytics"', 'analytics', 'Analytics', D.view === 'analytics', 0);
-    } else {
-      var reviews = rowsTeam().length + unreadMentions().length;
-      body = '<div class="w-sec"><span>' + esc(S.team.name) + '</span></div>' +
-        navBtn('data-a="tv" data-id="home"', 'overview', 'Workspace', D.tv === 'home', reviews) +
-        navBtn('data-a="tv" data-id="projects"', 'folder', 'Projects', D.tv === 'projects', 0) +
-        '<button class="w-nav proj" type="button" data-a="tv" data-id="board"' + (['board', 'git', 'activity'].indexOf(D.tv) > -1 ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">' + esc(S.team.project) + '</span></button>' +
-        navBtn('data-a="tv" data-id="reviews"', 'merge', 'Reviews', D.tv === 'reviews', reviews) +
-        navBtn('data-a="tv" data-id="members"', 'people', 'Members', D.tv === 'members', 0) +
-        navBtn('data-a="tv" data-id="analytics"', 'analytics', 'Analytics', D.tv === 'analytics', 0);
-    }
-    // Settings is a page of its own: while it is open, no other place in the sidebar is current.
-    if (D.set !== null || D.page) body = body.replace(/ aria-current="page"/g, '');
-    body += pwRail();
-    var foot = '<div class="w-rfoot"><button class="w-nav" type="button" data-a="settings"' + (D.set !== null ? ' aria-current="page"' : '') + '>' + ic('settings') + 'Settings</button>' +
-      '<div class="w-rrow"><button class="w-nav w-devices" type="button" data-a="page" data-id="devices"' + (D.page === 'devices' ? ' aria-current="page"' : '') + '><span class="w-ic">' + ic('runner') + '</span><span>Devices &amp; Hosting</span></button>' +
-      '<button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div>';
+    var body = navBtn('data-a="uv" data-id="mywork"', 'control', 'Home', selected && D.ws === 'universal' && D.uv !== 'calendar', needsAll()) +
+      navBtn('data-a="uv" data-id="calendar"', 'calendar', 'Calendar', selected && D.ws === 'universal' && D.uv === 'calendar', 0) +
+      navBtn('data-a="tv" data-id="reviews"', 'merge', 'Reviews', selected && D.ws === 'team' && D.tv === 'reviews', rowsTeam().length) +
+      navBtn('data-a="view" data-id="analytics"', 'analytics', 'Analytics', selected && D.ws === 'individual' && D.view === 'analytics', 0) +
+      '<div class="w-sec"><button class="w-btn quiet sm" type="button" data-a="ws" data-id="individual">Personal</button></div>';
+    ['api-server', 'marketing-site', 'my-app'].forEach(function (name) {
+      body += '<button class="w-nav proj" type="button" data-a="proj" data-id="' + name + '"' + (selected && D.ws === 'individual' && D.proj === name && inProject() ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">' + name + '</span></button>';
+    });
+    body += '<button class="w-nav proj add" type="button" data-a="addproject">' + ic('plus', 14) + 'New personal project</button>' +
+      '<div class="w-sec"><button class="w-btn quiet sm" type="button" data-a="ws" data-id="team">' + esc(S.team.name) + '</button></div>' +
+      '<button class="w-nav proj" type="button" data-a="tv" data-id="board"' + (selected && D.ws === 'team' && ['board', 'git', 'activity'].indexOf(D.tv) > -1 ? ' aria-current="page"' : '') + '><span class="sq"></span><span class="name">' + esc(S.team.project) + '</span></button>' +
+      navBtn('data-a="tv" data-id="members"', 'people', 'People', selected && D.ws === 'team' && D.tv === 'members', 0) + pwRail();
+    var foot = '<div class="w-rfoot">' + navBtn('data-a="addteam"', 'plus', 'New team or join…', false, 0) +
+      navBtn('data-a="page" data-id="devices"', 'runner', 'Devices &amp; Hosting', D.page === 'devices', 0) +
+      navBtn('data-a="settings"', 'settings', 'Settings', D.set !== null, 0) +
+      '<div class="w-rrow"><button class="w-nav" type="button" data-a="settings" data-id="general/plan">Premium · Active</button><button class="w-btn quiet sm ic" type="button" data-a="theme" aria-label="Switch theme">' + ic(WB.theme() === 'dark' ? 'sun' : 'moon') + '</button></div></div>';
     return '<aside class="w-rail" aria-label="werkbord">' + head + body + foot + '</aside>';
   }
-  /* The switcher opens under the product name, as in the app: Universal first, Individual, then each Team, then adding one. */
-  function switcherHTML() {
-    function item(id, name, sub, on, live) {
-      return '<button class="w-mi" type="button" role="menuitem" data-a="ws" data-id="' + id + '"' + (on ? ' aria-current="true"' : '') + '><span class="ck">' + (on ? ic('check', 14) : '') + '</span><span class="tx"><b>' + esc(name) + '</b><span>' + esc(sub) + '</span></span>' + (live ? '<i class="w-dot" data-tone="ok"></i>' : '') + '</button>';
-    }
-    return '<div class="w-scrim clear" data-a="swx"></div><div class="w-menu" role="menu" aria-label="Switch workspace">' +
-      item('universal', 'Universal', 'All your workspaces', D.ws === 'universal', false) + item('individual', 'Individual', 'This computer', D.ws === 'individual', true) +
-      '<div class="rule" role="separator"></div>' + item('team', S.team.name, 'Team · ' + S.team.role + ' · early access', D.ws === 'team', true) +
-      '<div class="rule" role="separator"></div><button class="w-mi add" type="button" role="menuitem" data-a="addteam"><span class="ck">' + ic('plus', 14) + '</span><span class="tx"><b>Add a Team…</b></span></button></div>';
-  }
+  // Kept as a go-to palette fallback for a restored demo navigation state.
+  function switcherHTML() { return palHTML('desk'); }
   function goWs(id) {
     dropOverlay();
-    D.ws = id; D.task = null; D.pick = null; leave();
+    D.ws = id; if (id === 'universal') D.uv = 'mywork'; D.task = null; D.pick = null; leave();
     render();
   }
-  /* Where a row of Universal opens: the place it lives in. */
+  /* Where a row of Home opens: the place it lives in. */
   function jump(dest) {
     dropOverlay();
     leave();
@@ -1495,7 +1469,7 @@
     render();
   }
 
-  /* ================= Universal: My Work, Workspaces and Calendar across workspaces ================= */
+  /* ================= Home: My Work, Workspaces and Calendar across workspaces ================= */
   function wsTag(kind, name) { return '<span class="w-ws" data-kind="' + kind + '" title="' + (kind === 'team' ? 'A Team workspace' : 'Your own werkbord on this computer') + '">' + esc(name) + '</span>'; }
   function upage(h, lede, body, head) {
     return '<header class="w-ghead"><div class="w-uh"><h1>' + h + '</h1><p class="w-lede">' + lede + '</p></div>' + (head || '') + '</header><main class="w-main" data-keep="main-u-' + D.uv + '"><div class="w-upage">' + body + '</div></main>';
@@ -1506,7 +1480,7 @@
     var rows = myWorkRows(), n = function (x) { return rows.filter(function (r) { return r.exec === x; }).length; };
     var lede = n('running') + ' reported running · ' + n('queued') + ' queued · across 2 workspaces';
     var status = { doing: 'In progress', review: 'In review' };
-    var groups = [['individual', 'Individual'], ['team', S.team.name]].map(function (g) {
+    var groups = [['individual', 'Personal'], ['team', S.team.name]].map(function (g) {
       var rs = rows.filter(function (r) { return r.ws === g[0]; });
       if (!rs.length) return '';
       return '<section class="w-ugroup" aria-label="' + esc(g[1]) + '"><h2>' + wsTag(g[0], g[1]) + '<span class="count">' + rs.length + '</span></h2><ul class="w-ulist" data-mp="mw-' + g[0] + '">' + rs.map(function (w) {
@@ -1514,7 +1488,7 @@
         return '<li data-mk="w' + w.go + '"><button class="w-wrow" type="button" data-a="go" data-v="' + w.go + '"><span class="ti">' + esc(w.title) + '</span><span class="pj">' + esc(w.project) + '</span><span class="stt">' + status[w.status] + '</span>' + badge + '</button></li>';
       }).join('') + '</ul></section>';
     }).join('');
-    return upage('My Work', lede, groups);
+    return upage('Home', lede, groups);
   }
   function inboxRowHTML(r) {
     if (r.ws === 'team') {
@@ -1522,14 +1496,14 @@
       return '<li data-mk="ik' + k.n + '"><div class="w-irow"><i class="w-dot" data-tone="ok"></i><span class="tx"><span class="ti">WB-' + k.n + ' ' + esc(k.title) + '</span><span class="cx">' + wsTag('team', S.team.name) + '<span>' + esc(S.team.project) + '</span></span><span class="dt">' + esc(k.who) + ' asked for your review. Pull request #' + k.pr.n + ' is merged.</span></span><span class="ac"><button class="w-btn sm pri" type="button" data-a="go" data-v="team:reviews">Review changes</button></span></div></li>';
     }
     var t = r.t, q = r.kind === 'question';
-    return '<li data-mk="it' + t.id + '"><div class="w-irow"><i class="w-dot" data-tone="' + (q ? 'ask' : 'ok') + '"></i><span class="tx"><span class="ti">' + esc(t.title) + '</span><span class="cx">' + wsTag('individual', 'Individual') + '<span>' + esc(r.project) + '</span></span><span class="dt">' +
+    return '<li data-mk="it' + t.id + '"><div class="w-irow"><i class="w-dot" data-tone="' + (q ? 'ask' : 'ok') + '"></i><span class="tx"><span class="ti">' + esc(t.title) + '</span><span class="cx">' + wsTag('individual', 'Personal') + '<span>' + esc(r.project) + '</span></span><span class="dt">' +
       (q ? (t.prio === 'high' ? 'High priority. ' : '') + esc(t.agent) + ' asks: ' + esc(t.run.q) : r.kind === 'blocked' ? 'Stopped rather than guess. ' + esc(t.run.q) : 'Finished and ready for review.') + '</span></span><span class="ac">' +
       (q || r.kind === 'blocked' ? t.run.choices.map(function (c) { return '<button class="w-btn sm" type="button" data-a="answer" data-id="' + t.id + '" data-v="' + esc(c) + '">' + esc(c) + '</button>'; }).join('')
         : '<button class="w-btn sm pri" type="button" data-a="go" data-v="ind:' + t.id + '">Review changes</button>') + '</span></div></li>';
   }
   function inboxHTML() {
     var rows = rowsAll();
-    return upage('Workspaces', 'Questions, blockers, reviews and warnings from all your workspaces',
+    return upage('Home', 'Questions, blockers, reviews and warnings from all your workspaces',
       rows.length ? '<section class="w-ugroup" aria-label="Action needed"><h2>Action needed<span class="count">' + rows.length + '</span></h2><ul class="w-ulist" data-mp="inbox">' + rows.map(inboxRowHTML).join('') + '</ul></section>' : '<p class="w-uempty">Nothing needs you.</p>');
   }
   function ucalHTML() {
@@ -1574,16 +1548,16 @@
     return '<header class="w-ghead"><div class="w-uh"><h1>Devices &amp; Hosting</h1><p class="w-lede">Closing this window stops nothing: your agents, schedules and Team services keep running.</p></div></header>' +
       '<main class="w-main" data-keep="main-devices"><div class="w-upage"><section class="w-pn w-devcard"><header><h2>Team on this computer</h2></header><p class="w-muted">Team is running.</p><div class="w-setrow"><button class="w-btn sm" type="button" data-a="toast" data-v="Stopping the Team service is turned off in the demo.">Stop Team service</button></div></section>' +
       '<ul class="w-devcards">' +
-      card('Individual', 'Individual · this computer', 'Ready · 3 projects, ' + (active() + 2 + FXT['marketing-site'].filter(function (t) { return t.run && t.run.st === 'running'; }).length) + ' agents working', ['Runner'], [['Saving changes', 'On this computer']], go('Runners', 'personal/runners') + '<button class="w-btn sm" type="button" data-a="ws" data-id="individual">Open</button>') +
+      card('Personal', 'Personal · this computer', 'Ready · 3 projects, ' + (active() + 2 + FXT['marketing-site'].filter(function (t) { return t.run && t.run.st === 'running'; }).length) + ' agents working', ['Runner'], [['Saving changes', 'On this computer']], go('Runners', 'personal/runners') + '<button class="w-btn sm" type="button" data-a="ws" data-id="individual">Open</button>') +
       card(esc(S.team.name), 'Team · ' + S.team.role, 'Ready · 5 members, 4 online', ['Runner', 'Workspace Host'], [['Hosts', '2 of 3 online'], ['Saving changes', 'Available'], ['Connectivity', 'Sam’s MacBook Air'], ['Backups', 'Last one today 03:00']],
-        '<button class="w-btn sm" type="button" data-a="ws" data-id="team">Open</button>' + go('Hosts and devices', 'team/hosts') + go('Connectivity', 'team/connectivity') + go('Backups', 'team/backups') + go('Settings', 'team/license')) +
+        '<button class="w-btn sm" type="button" data-a="ws" data-id="team">Open</button>' + go('Hosts and devices', 'team/hosts') + go('Connectivity', 'team/connectivity') + go('Backups', 'team/backups') + go('Settings', 'general/plan')) +
       '</ul><p><button class="w-btn" type="button" data-a="addteam">Add a Team…</button></p></div></main>';
   }
   /* Help: the app's bundled guides (web/src/lib/help.ts), searchable. */
   var HELP = [
     { id: 'mcp', title: 'Setting up an MCP server', dest: 'mcp', link: 'Open MCP setup', summary: 'MCP lets a client use tools from a server. Connect Werkbord to an external server, or connect any compatible client to Werkbord’s built-in board server.',
       example: 'A notes service supplies an MCP URL for Werkbord to use. A separate planning client instead connects to Werkbord to read selected projects and propose changes.',
-      steps: ['Open Settings → Connections → MCP services. To use another service, paste its single-server MCP JSON configuration or choose Add connection and enter its URL or local executable. Use the authentication method documented by that service.', 'Review the imported fields and save. Test and discover checks the server and lists its tools; OAuth opens sign-in if required. Then enable the connection and choose Assistant or Coding agents. Review each tool’s permission before use.', 'To let another client use Werkbord, go to Connect a client to Werkbord on the same page. Give it a name and select only the projects and operations it needs. Create its credential and copy the generated connection settings while they are visible.', 'For a client on another computer, use a reachable private controller address ending in /mcp. For stdio-only clients, select the local process option and install the werkbord command on that client’s computer. Paste the generated settings into your client and reconnect it.', 'Ask the client to list projects to verify the connection. Individual board changes wait in Pending changes for your approval. Team task plans wait in Plans; direct Team ticket writes follow the issued permissions. Credentials are specific to their Individual controller or Team workspace.'],
+      steps: ['Open Settings → Connections → MCP services. To use another service, paste its single-server MCP JSON configuration or choose Add connection and enter its URL or local executable. Use the authentication method documented by that service.', 'Review the imported fields and save. Test and discover checks the server and lists its tools; OAuth opens sign-in if required. Then enable the connection and choose Assistant or Coding agents. Review each tool’s permission before use.', 'To let another client use Werkbord, go to Connect a client to Werkbord on the same page. Give it a name and select only the projects and operations it needs. Create its credential and copy the generated connection settings while they are visible.', 'For a client on another computer, use a reachable private controller address ending in /mcp. For stdio-only clients, select the local process option and install the werkbord command on that client’s computer. Paste the generated settings into your client and reconnect it.', 'Ask the client to list projects to verify the connection. Personal board changes wait in Pending changes for your approval. Team task plans wait in Plans; direct Team ticket writes follow the issued permissions. Credentials are specific to their Personal controller or Team workspace.'],
       recovery: 'If connection fails, check which side is the client, the server address, network access, and authentication. localhost means the computer running the client. Environment references name variables available to the controller process; they are not secret values. Never paste credentials into a chat. If you lose a new credential, revoke it and create another.' },
     { id: 'answer', title: 'Answer an agent', dest: 'control', link: 'Open Workspace', summary: 'Workspace collects questions and other interruptions. Open the task to see its project and the exact request before choosing.',
       example: 'An agent asks, “Commit the fixture work?” Open the question, review its context and options, then choose the answer that matches your intent.',
@@ -1649,16 +1623,16 @@
   function timelineHTML() {
     var N = 14, rows = [];
     function bar(label, project, tag, a, b) { rows.push({ label: label, project: project, tag: tag, a: Math.max(0, a), b: Math.min(N - 1, b) }); }
-    S.tasks.forEach(function (t) { if (t.sched && t.state !== 'done') bar(t.title, 'my-app', 'Individual', t.sched.d, t.sched.d); });
-    ['api-server', 'marketing-site'].forEach(function (p) { FXT[p].forEach(function (t) { if (t.sched && t.state !== 'done') bar(t.title, p, 'Individual', t.sched.d, t.sched.d); }); });
+    S.tasks.forEach(function (t) { if (t.sched && t.state !== 'done') bar(t.title, 'my-app', 'Personal', t.sched.d, t.sched.d); });
+    ['api-server', 'marketing-site'].forEach(function (p) { FXT[p].forEach(function (t) { if (t.sched && t.state !== 'done') bar(t.title, p, 'Personal', t.sched.d, t.sched.d); }); });
     S.team.tickets.forEach(function (k) { if (!k.arch && k.st !== 'done' && (k.start != null || k.due != null)) bar('WB-' + k.n + ' ' + k.title, S.team.project, S.team.name, k.start != null ? k.start : k.due, k.due != null ? k.due : k.start); });
     var head = '';
     for (var i = 0; i < N; i++) head += '<span class="d' + (i === 0 ? ' today' : '') + '">' + dayName(i).slice(0, 2) + '<b>' + dateOf(i).getDate() + '</b></span>';
-    var groups = ['Individual', S.team.name].map(function (tag) {
+    var groups = ['Personal', S.team.name].map(function (tag) {
       var rs = rows.filter(function (r) { return r.tag === tag; });
       if (!rs.length) return '';
-      return '<section class="w-tlgroup"><h2>' + wsTag(tag === 'Individual' ? 'individual' : 'team', tag) + '<span class="count">' + rs.length + '</span></h2>' + rs.map(function (r) {
-        return '<div class="w-tlrow"><span class="who"><b>' + esc(r.label) + '</b><span class="w-mm">' + esc(r.project) + '</span></span><span class="track" style="--n:' + N + '"><span class="w-tlbar' + (r.tag !== 'Individual' ? ' team' : '') + '" style="grid-column:' + (r.a + 1) + ' / ' + (r.b + 2) + '"></span></span></div>';
+      return '<section class="w-tlgroup"><h2>' + wsTag(tag === 'Personal' ? 'individual' : 'team', tag) + '<span class="count">' + rs.length + '</span></h2>' + rs.map(function (r) {
+        return '<div class="w-tlrow"><span class="who"><b>' + esc(r.label) + '</b><span class="w-mm">' + esc(r.project) + '</span></span><span class="track" style="--n:' + N + '"><span class="w-tlbar' + (r.tag !== 'Personal' ? ' team' : '') + '" style="grid-column:' + (r.a + 1) + ' / ' + (r.b + 2) + '"></span></span></div>';
       }).join('') + '</section>';
     }).join('');
     return '<div class="w-tl"><div class="w-tlhead"><span></span><span class="days" style="--n:' + N + '">' + head + '</span></div>' + groups +
@@ -1919,9 +1893,9 @@
       '<section><h3>Where tickets are now</h3>' + barsHTML([{ l: 'Available', v: col('available'), c: 'var(--text-2)' }, { l: 'In Progress', v: col('progress') }, { l: 'Review', v: col('review'), c: 'var(--warn)' }, { l: 'Done', v: col('done'), c: 'var(--ok)' }]) + '</section></div></div>';
   }
 
-  /* ================= Settings: one screen, scoped to Universal, Individual or a Team =================
-     Appearance and Alerts belong to the window; the rest belong to the workspace they change. Universal lists every
-     workspace's sections, a workspace at a time. The records under Individual memory are scripted for the demo. */
+  /* ================= Settings: one screen, scoped to Home, Personal or a Team =================
+     Appearance and Alerts belong to the window; the rest belong to the workspace they change. Home lists every
+     workspace's sections, a workspace at a time. The records under Personal memory are scripted for the demo. */
   var MEM = [
     { id: 'mem_3f9a', label: 'Saved policy', kind: 'approved policy', ver: 'verified', upd: '2 days ago', by: 'Confirmed by you', text: 'Merge a finished branch into main on this computer after reading its diff. Share it through a pull request.', ref: 'Policy saved in my-app settings' },
     { id: 'mem_71c2', label: 'Decision', kind: 'explicit decision', ver: 'verified', upd: '5 days ago', by: 'Verified by controller', text: 'Tests take an injected clock instead of reading time.Now.', ref: 'Run run-5e1f on “Fix flaky auth test”' },
@@ -1929,16 +1903,16 @@
   ];
   function setGroups(ws) {
     ws = ws || D.ws;
-    var u = ws === 'universal', out = [{ label: 'General', sections: [['general/appearance', 'Appearance'], ['general/alerts', 'Alerts']] }];
+    var u = ws === 'universal', out = [{ label: 'General', sections: [['general/appearance', 'Appearance'], ['general/alerts', 'Alerts'], ['general/plan', 'Plan']] }];
     if (u || ws === 'individual') out = out.concat([
-      { owner: 'Individual', label: 'Work', sections: [['personal/defaults', 'Task defaults'], ['personal/routing', 'Routing rules'], ['personal/time', 'Time format']] },
-      { owner: 'Individual', label: 'Machines', sections: [['personal/runners', 'Runners'], ['personal/agents', 'Agents'], ['personal/computer', 'This computer']] },
-      { owner: 'Individual', label: 'Connections', sections: [['personal/phones', 'Phones'], ['personal/github', 'GitHub'], ['personal/mcp', 'MCP services'], ['personal/memory', 'Individual memory']] }]);
+      { owner: 'Personal', label: 'Work', sections: [['personal/defaults', 'Task defaults'], ['personal/routing', 'Routing rules'], ['personal/time', 'Time format']] },
+      { owner: 'Personal', label: 'Machines', sections: [['personal/runners', 'Runners'], ['personal/agents', 'Agents'], ['personal/computer', 'This computer']] },
+      { owner: 'Personal', label: 'Connections', sections: [['personal/phones', 'Phones'], ['personal/github', 'GitHub'], ['personal/mcp', 'MCP services'], ['personal/memory', 'Personal memory']] }]);
     if (u || ws === 'team') out = out.concat([
       { owner: S.team.name, label: 'Work', sections: [['team/labels', 'Labels']] },
       { owner: S.team.name, label: 'Machines', sections: [['team/computer', 'This computer'], ['team/devices', 'Devices'], ['team/hosts', 'Workspace Hosts'], ['team/connectivity', 'Connectivity']] },
       { owner: S.team.name, label: 'Connections', sections: [['team/phones', 'Phones'], ['team/mcp', 'MCP clients'], ['team/memory', 'Team memory']] },
-      { owner: S.team.name, label: 'Workspace', sections: [['team/backups', 'Backups'], ['team/license', 'License']] }]);
+      { owner: S.team.name, label: 'Workspace', sections: [['team/backups', 'Backups']] }]);
     return out;
   }
   function setCurrent() {
@@ -1954,7 +1928,7 @@
     'personal/github': 'Connect GitHub to create repositories and read pull requests. It is optional.', 'personal/mcp': 'Services Salie can call, each off until you turn it on.',
     'team/labels': 'The labels everyone in the Team can put on a ticket.', 'team/computer': 'The Team service this computer hosts for the workspace.', 'team/devices': 'The computers your members have paired.',
     'team/hosts': 'Where the workspace’s data lives.', 'team/connectivity': 'How members reach the workspace host.', 'team/mcp': 'Clients that may read the workspace.',
-    'team/backups': 'Backups of the workspace, and how to restore one.', 'team/license': 'The workspace’s offline license.', 'team/phones': 'Phones paired with this Team. A Team phone shows a summary of the workspace.'
+    'team/backups': 'Backups of the workspace, and how to restore one.', 'general/plan': 'Free and Premium are two plans in the same app.', 'team/phones': 'Phones paired with this Team. A Team phone shows a summary of the workspace.'
   };
   /* The rest of Settings, filled in as a working setup would look: what a person has chosen, what is connected, what is running.
      It is shown as it stands. Anything that would add or change something says so instead (see roToast). */
@@ -2065,8 +2039,8 @@
     'team/backups': function () {
       return pnl('Backups', SET_NOTE['team/backups'], kvl([['Last backup', 'Today 03:00 · 14 MB'], ['Schedule', 'Every night'], ['Kept', 'The last 14']]) + '<ul class="w-setlist">' + srow('Today 03:00', '14 MB · verified', sbtn('Restore', 'Restoring is turned off in the demo.')) + srow('Yesterday 03:00', '14 MB · verified', sbtn('Restore', 'Restoring is turned off in the demo.')) + srow('2 days ago 03:00', '13 MB · verified', sbtn('Restore', 'Restoring is turned off in the demo.')) + '</ul><div><button class="w-btn" type="button" data-a="toast" data-v="Backing up is turned off in the demo.">Back up now</button></div>');
     },
-    'team/license': function () {
-      return pnl('License', SET_NOTE['team/license'], kvl([['Plan', 'Early access'], ['Your seat', S.team.role], ['Checked', 'On this computer, offline']]) + '<p class="w-muted fine">The license is a file that lives with the workspace. Nothing is checked over the network.</p>');
+    'general/plan': function () {
+      return pnl('Plan', SET_NOTE['general/plan'], kvl([['Current plan', 'Premium'], ['Personal projects', 'Everything included'], ['Free teams', 'Up to 2 people, owner included'], ['Premium teams', 'Every member needs their own key']]) + '<p class="w-muted fine">Premium is a one-time purchase, not yet on sale. Its per-person key is checked offline. Members without Premium in a larger team keep read-only access. Extra devices do not count as people. Unlocking is turned off in this scripted demo.</p>');
     }
   };
 
@@ -2093,15 +2067,15 @@
       var rec = D.share === 0 ? '<div class="w-setrow"><span class="w-mm">my-app → ' + esc(S.team.name) + ' · ' + esc(S.team.project) + ' · awaiting your approval</span><button class="w-btn sm" type="button" data-a="setshare" data-v="1">Review proposed text</button></div>'
         : D.share === 1 ? '<label class="w-field"><span class="w-lab">Text to share</span><textarea class="w-input" rows="3" readonly>' + esc(MEM[1].text) + '</textarea></label><p class="w-muted">Write only the implementation conclusion you intend to share. ' + esc(S.team.name) + ' still requires another authorised person to approve publication.</p><div class="w-setrow"><button class="w-btn pri sm" type="button" data-a="setshare" data-v="2">Approve this exact text for sharing</button><button class="w-btn sm" type="button" data-a="setshare" data-v="0">Cancel</button></div>'
         : '<div class="w-setrow"><span class="w-mm">' + dot('work') + 'Sent to ' + esc(S.team.name) + ' · waiting for a Team approver</span><button class="w-btn sm" type="button" data-a="setshare" data-v="0">Revoke publication</button></div>';
-      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Individual memory</h3><p class="w-muted">What Werkbord remembers about your projects, on this computer. Salie reads it and cites it, and never changes it. Personal preferences, private sessions, transcripts, source code, credentials and local paths are never exported automatically.</p></div>' +
+      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Personal memory</h3><p class="w-muted">What Werkbord remembers about your projects, on this computer. Salie reads it and cites it, and never changes it. Personal preferences, private sessions, transcripts, source code, credentials and local paths are never exported automatically.</p></div>' +
         '<ul class="w-setlist">' + MEM.map(function (m) { return '<li class="w-memrow"><span class="tx"><span class="w-mm"><b>' + m.label + '</b> · my-app · ' + m.by + ' · Current</span><span>' + esc(m.text) + '</span><span class="w-mm">' + m.id + ' · ' + esc(m.ref) + '</span></span></li>'; }).join('') + '</ul></section>' +
         '<section class="w-pn" aria-label="Proposed and shared memories"><div class="head"><h3>Proposed and shared memories</h3><p class="w-muted">' + esc(MEM[1].text) + '</p></div>' + rec +
         '<p class="w-muted fine">Revocation removes active Team access when acknowledged. It cannot erase copies already read.</p></section>';
     }
     if (id === 'team/memory') {
-      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Team memory</h3><p class="w-muted">Records members publish from their own Individual memory, after a second person approves them. Everyone on the project can read them, and Salie cites them as Team memory.</p></div><ul class="w-setlist">' +
+      return '<section class="w-pn" aria-labelledby="set-h"><div class="head"><h3 id="set-h">Team memory</h3><p class="w-muted">Records members publish from their own Personal memory, after a second person approves them. Everyone on the project can read them, and Salie cites them as Team memory.</p></div><ul class="w-setlist">' +
         '<li class="w-memrow"><span class="tx"><span class="w-mm"><b>Saved policy</b> · ' + esc(S.team.project) + ' · Approved by Sam Okafor</span><span>Every change goes through a pull request and one review before it merges.</span><span class="w-mm">tmem_20b7 · Policy in ' + esc(S.team.project) + ' settings</span></span></li>' +
-        (D.share === 2 ? '<li class="w-memrow"><span class="tx"><span class="w-mm"><b>Decision</b> · ' + esc(S.team.project) + ' · ' + dot('work') + 'Waiting for a Team approver</span><span>' + esc(MEM[1].text) + '</span><span class="w-mm">Published by You from Individual memory</span></span></li>' : '') + '</ul></section>';
+        (D.share === 2 ? '<li class="w-memrow"><span class="tx"><span class="w-mm"><b>Decision</b> · ' + esc(S.team.project) + ' · ' + dot('work') + 'Waiting for a Team approver</span><span>' + esc(MEM[1].text) + '</span><span class="w-mm">Published by You from Personal memory</span></span></li>' : '') + '</ul></section>';
     }
     if (SETPANELS[id]) return SETPANELS[id]();
     return pnl(label, esc(SET_NOTE[id] || ''), '');
@@ -2115,7 +2089,7 @@
         return '<button class="w-setitem" type="button" data-a="setsec" data-id="' + s[0] + '"' + (s[0] === cur[0] ? ' aria-current="page"' : '') + '>' + s[1] + '</button>';
       }).join('') + '</div>';
     }).join('');
-    var scope = u ? 'Universal · every workspace' : D.ws === 'individual' ? 'Individual · this computer' : S.team.name + ' · Team workspace';
+    var scope = u ? 'Home · every workspace' : D.ws === 'individual' ? 'Personal · this computer' : S.team.name + ' · Team workspace';
     return '<header class="w-ghead"><div class="w-uh"><h1>Settings</h1><p class="w-lede">' + esc(scope) + '</p></div></header><main class="w-main" style="overflow:hidden"><div class="w-set"><nav class="w-setnav" aria-label="Settings sections" data-keep="setnav">' + nav + '</nav><div class="w-setbody" data-keep="setbody">' + setPanel(cur) + '</div></div></main>';
   }
   function helpButtonHTML() { return '<button class="w-help" type="button" data-a="help" aria-label="Help and keyboard shortcuts"><span aria-hidden="true">' + ic('help', 15) + '</span>Help</button>'; }
@@ -2198,7 +2172,7 @@
     var others = [];
     ['api-server', 'marketing-site'].forEach(function (p) { projTasks(p).forEach(function (t) { if (t.run && t.run.st === 'running') others.push(t); }); });
     var running = mine.concat(others);
-    var queued = S.tasks.filter(function (t) { return (t.state === 'backlog' && t.sched) || (t.run && t.run.st === 'queued'); }).concat(extSched().filter(function (e) { return e.tag === 'Individual'; }).map(function (e) { return { ext: true, title: e.title, project: e.project, sched: { d: e.d, s: e.s } }; })).sort(function (a, b) { return schedAbs(a) - schedAbs(b); });
+    var queued = S.tasks.filter(function (t) { return (t.state === 'backlog' && t.sched) || (t.run && t.run.st === 'queued'); }).concat(extSched().filter(function (e) { return e.tag === 'Personal'; }).map(function (e) { return { ext: true, title: e.title, project: e.project, sched: { d: e.d, s: e.s } }; })).sort(function (a, b) { return schedAbs(a) - schedAbs(b); });
     var go = phone ? 'pproject' : 'proj';
     var side = '<section class="w-pn" aria-label="Projects"><div class="w-ph">Projects <span class="w-chip">3</span></div><ul>' +
       PROJECTS.slice().reverse().map(function (p) {
@@ -2388,17 +2362,17 @@
     var t = o.t, w = 100 / o.n, r = t.run, cls = r && r.st === 'running' ? ' run' : r && (r.st === 'needs' || r.st === 'blocked') ? ' ask' : waitingFor(t).length ? ' dep' : '';
     var top = (t.sched.s - H0 * 60) / 60 * HOUR, h = Math.max(22, t.sched.dur / 60 * HOUR - 3);
     var pos = 'top:' + (top + 1) + 'px;height:' + h + 'px;left:calc(' + (o.lane * w) + '% + 3px);right:auto;width:calc(' + w + '% - 6px)';
-    // Another project's or workspace's event, in Universal: shown, not draggable.
-    if (t.ext) return '<div class="w-ev" role="button" tabindex="0" data-a="go" data-v="' + (t.agent === 'Individual' ? 'proj:' + t.project : 'team') + '" style="' + pos + '"><b>' + esc(t.title) + '</b><span>' + clock(t.sched.s) + ' · ' + esc(t.agent) + '</span></div>';
+    // Another project's or workspace's event, in Home: shown, not draggable.
+    if (t.ext) return '<div class="w-ev" role="button" tabindex="0" data-a="go" data-v="' + (t.agent === 'Personal' ? 'proj:' + t.project : 'team') + '" style="' + pos + '"><b>' + esc(t.title) + '</b><span>' + clock(t.sched.s) + ' · ' + esc(t.agent) + '</span></div>';
     var state = r && r.st === 'running' ? 'running' : r && r.st === 'needs' ? 'needs you' : r && r.st === 'blocked' ? 'blocked' : r && r.st === 'completed' ? 'finished' : waitingFor(t).length ? 'after ' + waitingFor(t)[0].title : t.agent;
     return '<div class="w-ev' + cls + '" role="button" tabindex="0"' + (t.ro ? '' : ' draggable="true" data-ev="' + t.id + '"') + ' data-a="open" data-id="' + t.id + '" style="' + pos + '"><b>' + esc(t.title) + '</b><span>' + clock(t.sched.s) + ' · ' + esc(state) + '</span></div>';
   }
-  /* A day's events: my-app's, and in Universal the other projects' and the Team's too. */
+  /* A day's events: my-app's, and in Home the other projects' and the Team's too. */
   /* Everything dated that is not my-app's: the other projects' scheduled tasks and the Team's tickets. */
   function extSched() {
     var out = [];
     ['api-server', 'marketing-site'].forEach(function (p) {
-      FXT[p].forEach(function (t) { if (t.sched && t.state !== 'done') out.push({ title: t.title, project: p, tag: 'Individual', d: t.sched.d, s: t.sched.s, dur: t.sched.dur }); });
+      FXT[p].forEach(function (t) { if (t.sched && t.state !== 'done') out.push({ title: t.title, project: p, tag: 'Personal', d: t.sched.d, s: t.sched.s, dur: t.sched.dur }); });
     });
     return out.concat(S.ext.cal);
   }
@@ -2426,7 +2400,7 @@
       '<div class="w-calhead" style="' + cols + '"><div></div>' + days.map(function (d) { return '<div class="w-dh">' + dayName(d).toUpperCase() + '<b' + (d === TODAY ? ' class="today"' : '') + '>' + dateOf(d).getDate() + '</b></div>'; }).join('') + '</div>' +
       '<div class="w-calscroll" data-keep="cal' + (uni ? '-u' : '') + '"><div class="w-calgrid" style="' + cols + '">' + hoursHTML() + days.map(function (d) { return dayColHTML(d, '', uni); }).join('') + '</div></div></div>';
   }
-  /* Universal's calendar: every project of every workspace on one week, read only. */
+  /* Home's calendar: every project of every workspace on one week, read only. */
   function calMainHTML() { return '<div class="w-cal single">' + calGridHTML(true) + '</div>'; }
   function calendarHTML() {
     var all = curTasks();
@@ -2650,7 +2624,7 @@
   var WF_STAGES = ['Reading the repository', 'Reproducing each finding', 'Writing suggested fixes', 'Writing the report'];
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many || one + 's'); }
   function reviewTasks() { return S.tasks.filter(function (t) { return t.run && t.run.st === 'completed'; }); }
-  /* Agents at work now: this project's, plus the Codex run and the waiting question the rest of Individual has. */
+  /* Agents at work now: this project's, plus the Codex run and the waiting question the rest of Personal has. */
   /* The agents at work in the other projects. api-server's waiting question is not one of them: it is counted as a question. */
   function otherRunning() {
     var out = [];
@@ -2791,7 +2765,7 @@
     var n = needsYou();
     var mine = [n ? n + ' needs you' : '', S.tasks.filter(function (t) { return t.run && t.run.st === 'running'; }).length ? S.tasks.filter(function (t) { return t.run && t.run.st === 'running'; }).length + ' running' : ''].filter(Boolean).join(' · ') || 'quiet';
     function row(name, path, note, act, num, pid) { return '<li><button class="w-prow" type="button" data-a="' + act + '"' + (pid ? ' data-id="' + pid + '"' : '') + '><span class="tile" aria-hidden="true">' + ic('folder', 18) + '</span><span class="who"><b>' + name + '</b><span class="w-mm">' + path + ' · main</span><span class="w-mm">' + note + '</span></span>' + (num ? '<span class="w-num pend">' + num + '</span>' : '') + '</button></li>'; }
-    return '<div class="w-mpage">' + '<div class="w-seg full" role="group" aria-label="Workspace">' + [['individual', 'Individual'], ['team', 'Team']].map(function (w) { return '<button type="button" data-a="pscope" data-id="' + w[0] + '" aria-pressed="' + (P.scope === w[0]) + '">' + w[1] + '</button>'; }).join('') + '</div>' + (P.scope === 'team' ? '<section class="w-card w-plist"><h2 class="w-ph">' + esc(S.team.name) + '</h2><ul>' + row(S.team.project, 'Team workspace', 'Shared tickets, branches and reviews', 'pteam', 0) + '</ul></section></div>' : '<section class="w-card w-plist" aria-label="Projects"><h2 class="w-ph">Projects <span class="w-chip">3</span></h2><ul>' + PROJECTS.slice().reverse().map(function (p) { return row(p, '~/code/' + p, statsText(p), 'pproject', projStats(p).asks, p); }).join('') + '</ul></section></div>');
+    return '<div class="w-mpage">' + '<div class="w-seg full" role="group" aria-label="Workspace">' + [['individual', 'Personal'], ['team', 'Team']].map(function (w) { return '<button type="button" data-a="pscope" data-id="' + w[0] + '" aria-pressed="' + (P.scope === w[0]) + '">' + w[1] + '</button>'; }).join('') + '</div>' + (P.scope === 'team' ? '<section class="w-card w-plist"><h2 class="w-ph">' + esc(S.team.name) + '</h2><ul>' + row(S.team.project, 'Team workspace', 'Shared tickets, branches and reviews', 'pteam', 0) + '</ul></section></div>' : '<section class="w-card w-plist" aria-label="Projects"><h2 class="w-ph">Projects <span class="w-chip">3</span></h2><ul>' + PROJECTS.slice().reverse().map(function (p) { return row(p, '~/code/' + p, statsText(p), 'pproject', projStats(p).asks, p); }).join('') + '</ul></section></div>');
   }
   function phoneTeam() {
     return pageHead(S.team.project, S.team.name + ' · Team workspace', 'Projects') + '<nav class="w-ptabs" aria-label="Team sections">' + [['board', 'Board'], ['reviews', 'Reviews']].map(function (t) { return '<button type="button" data-a="pteamtab" data-id="' + t[0] + '" aria-current="' + (P.teamTab === t[0] ? 'page' : 'false') + '">' + t[1] + '</button>'; }).join('') + '</nav>' + (P.teamTab === 'reviews' ? '<div class="w-phone-team">' + teamReviewsHTML() + '</div>' : '<div class="w-mpage w-phone-team">' + TCOLS.map(function (c) { var tickets = S.team.tickets.filter(function (t) { return t.st === c[0] && t.arch == null; }); return '<section class="w-col" data-col="' + c[0] + '"><h2 class="w-ph">' + c[1] + '</h2><ul class="w-list">' + tickets.map(tcardHTML).join('') + '</ul></section>'; }).join('') + '</div>');
@@ -2860,15 +2834,15 @@
       bannerHTML() + ({ board: phoneBoard, calendar: phoneCalendar, git: phoneGit, runs: phoneRuns, psettings: phoneProjSettings })[P.tab]();
   }
   function parentOf(at) { return at === 'project' || at === 'team' ? 'projects' : 'deck'; }
-  /* Settings on the phone: the Individual sections as a list, and one section's panel under it. */
+  /* Settings on the phone: the Personal sections as a list, and one section's panel under it. */
   function phoneSettings() {
     if (P.set) {
       var cur = null;
       setGroups('individual').forEach(function (g) { g.sections.forEach(function (x) { if (x[0] === P.set) cur = x; }); });
       cur = cur || ['general/appearance', 'Appearance'];
-      return pageHead(cur[1], 'Individual · this computer', 'Settings') + '<div class="w-mpage"><div class="w-setbody w-phone-set">' + setPanel(cur) + '</div></div>';
+      return pageHead(cur[1], 'Personal · this computer', 'Settings') + '<div class="w-mpage"><div class="w-setbody w-phone-set">' + setPanel(cur) + '</div></div>';
     }
-    return pageHead('Settings', 'Individual · this computer', 'the Control Deck') + '<div class="w-mpage">' + setGroups('individual').map(function (g) {
+    return pageHead('Settings', 'Personal · this computer', 'the Control Deck') + '<div class="w-mpage">' + setGroups('individual').map(function (g) {
       return '<section class="w-card w-plist"><h2 class="w-ph">' + g.label + '</h2><ul>' + g.sections.map(function (x) { return '<li><button class="w-prow" type="button" data-a="psetsec" data-id="' + x[0] + '"><span class="who"><b>' + x[1] + '</b></span>' + ic('right', 16) + '</button></li>'; }).join('') + '</ul></section>';
     }).join('') + '</div>';
   }
@@ -3122,11 +3096,11 @@
         case 'sug-open': openSuggestion(where, +id, +v.split(':')[0]); break;
         case 'sug-fb': var sr = AS.msgs[+id] && AS.msgs[+id].recs[+v.split(':')[0]]; if (sr) { sr.fb = v.split(':')[1]; renderAsst(false); } break;
         case 'ui-sort': var u = AS.msgs[+id].ui, c = +v; if (u.sort === c) u.dir = -u.dir; else { u.sort = c; u.dir = 1; } renderAsst(false); break;
-        case 'sw': var was = D.sw; dropOverlay(); if (!was) { D.sw = true; setOverlay(root, switcherHTML(), '.w-menu [aria-current="true"]'); } render(); break;
+        case 'sw': D.pal = ''; openOverlay(palHTML('desk'), '[data-pal]'); render(); break;
         case 'swx': dropOverlay(); render(); break;
         case 'ws': goWs(id); break;
-        case 'uv': D.uv = id; leave(); render(); break;
-        case 'tv': D.tv = id; leave(); D.tarch = false; D.aq = ''; dropOverlay(); render(); break;
+        case 'uv': D.ws = 'universal'; D.uv = id; leave(); render(); break;
+        case 'tv': if (where === 'desk') D.ws = 'team'; D.tv = id; leave(); D.tarch = false; D.aq = ''; dropOverlay(); render(); break;
         case 'tvp': D.tv = 'projects'; leave(); render(); break;
         case 'go':
           if (where === 'phone') {
@@ -3144,7 +3118,7 @@
         case 'mention': var box = root.querySelector('form[data-form="comment"] textarea'); if (box) { var at = box.selectionStart == null ? box.value.length : box.selectionStart, head = box.value.slice(0, at); box.value = head + (head && !/\s$/.test(head) ? ' ' : '') + '@' + v + ' ' + box.value.slice(at); box.focus(); } break;
         case 'signoff': signoff(+id); render(); break;
         case 'runner': toast('Open in my runner hands the ticket to your own werkbord. Team never runs anything.'); break;
-        case 'addteam': toast('Adding a Team installs a small background service, after you approve it. It is turned off in the demo.'); break;
+        case 'addteam': toast('New team or join opens one flow. Hosting asks for administrator authorisation; connecting a runner is an explicit choice. Setup is turned off in the demo.'); break;
         case 'slot': schedule(D.pick, +b.dataset.day, +b.dataset.m); render(); break;
         case 'asst-model': toast('Replies are scripted here, so the model is fixed in this demo.'); break;
         case 'help': dropOverlay(); if (where === 'phone') { P.at = 'help'; P.task = null; } else { leave(); D.page = 'help'; D.task = null; } render(); break;
@@ -3386,7 +3360,7 @@
     return P.at === 'project' ? (tab === 'board' ? boardNeed('phone', col) : { at: 'project', tab: tab }) : { at: page };
   }
   function onDeck(w) { return w === 'phone' ? { at: 'deck' } : boardNeed(w, 'doing'); }
-  /* Make it yours: Salie builds a workspace around how the person works, once in Individual and once in a Team. Both are made the
+  /* Make it yours: Salie builds a workspace around how the person works, once in Personal and once in a Team. Both are made the
      same way (Create with Salie, a request, a card to confirm, a page that works), so the steps come from one description. Desktop
      only: on a phone the lesson shows the same workspaces on the phone. */
   function genSteps(k) {
@@ -3426,7 +3400,7 @@
       done: function () { return P.at !== 'deck' || AS.open || G.f.deck || planned(); } },
     { id: 'look', ch: 0, desk: true, kind: 'area', next: true, sticky: true,
       need: function () { return { ws: 'universal', uv: 'mywork' }; }, aim: function () { return ['.w-uh']; },
-      text: 'Start in Universal: your work from every workspace in one list, and what is waiting on you.',
+      text: 'Start in Home: your work from every workspace in one list, and what is waiting on you.',
       done: function () { return D.ws !== 'universal' || D.uv !== 'mywork' || AS.open || G.f.plate || planned(); } },
     { id: 'ask', ch: 0, kind: 'press', kick: 'Salie', sticky: true,
       need: function () { return {}; }, aim: function () { return ['[data-a="asst-open"]']; },
@@ -3434,7 +3408,7 @@
       done: function () { return AS.open || G.f.plate || G.f.planAsk || planned(); } },
     { id: 'plate', ch: 0, kind: 'press', kick: 'Salie',
       need: function () { return { asst: true }; }, aim: function () { return ['.w-apill[data-v="What is on my plate this week?"]']; },
-      text: 'Ask about your whole week, across Individual and your team.',
+      text: 'Ask about your whole week, across Personal and your team.',
       done: function () { return G.f.plate || G.f.planAsk || planned(); } },
     { id: 'ui', ch: 0, kind: 'area', next: true, kick: 'Generated interface', sticky: true, wait: true, nextOk: function () { return !AS.busy; },
       need: function () { return { asst: true }; }, aim: function () { return AS.busy ? [] : [{ last: '.w-ui' }]; },
@@ -3466,7 +3440,7 @@
       text: function (h, w) {
         if (!h) return 'Your board.';
         if (w === 'phone') return h.kind === 'key' ? 'Open Projects, then the project you just planned.' : h.kind === 'project' ? 'Open my-app, the project you just planned.' : '';
-        return h.kind === 'sw' ? 'Now Individual: your own computer and your own repositories. Open the switcher.' : h.kind === 'project' ? 'Open my-app, the project you just planned.' : '';
+        return h.kind === 'sw' ? 'Now Personal: your own computer and your own repositories. Open the switcher.' : h.kind === 'project' ? 'Open my-app, the project you just planned.' : '';
       },
       done: function (w) { return w === 'phone' ? P.at === 'project' && P.proj === 'my-app' && P.tab === 'board' && !P.task : inProject() && D.proj === 'my-app'; } },
     { id: 'start', ch: 1, kind: 'press',
@@ -3554,11 +3528,11 @@
   ].concat(genSteps('todo'), genSteps('team'), [
     { id: 'home', ch: 3, desk: true, kind: 'press', sticky: true, hops: true,
       need: function () { return { ws: 'universal', uv: 'mywork' }; }, aim: function () { return []; },
-      text: function (h) { return h && h.kind === 'sw' ? 'Last stop: back to Universal. Open the switcher.' : ''; },
+      text: function (h) { return h && h.kind === 'sw' ? 'Last stop: back to Home. Open the switcher.' : ''; },
       done: function () { return !!lead() && lead().state === 'done' && D.ws === 'universal'; } },
     { id: 'settings', ch: 3, desk: true, kind: 'press', next: true, kick: 'Settings',
       need: function () { return { ws: 'universal', settings: true }; }, aim: function () { return ['.w-rail [data-a="settings"]']; },
-      text: 'One last place. Settings is one screen for Universal, Individual and each Team. Alerts tell you from another app when an agent needs you.',
+      text: 'One last place. Settings is one screen for Home, Personal and each Team. Alerts tell you from another app when an agent needs you.',
       done: function () { return D.set !== null; } }
   ]);
 
@@ -3612,7 +3586,7 @@
       done: function () { return !!G.f['phone-config']; } },
     { id: 'phone-team', ch: 1, kind: 'press', kick: 'Meanwhile', sticky: true, hops: true,
       need: function () { return { at: 'projects' }; }, aim: function () { return ['[data-a="pscope"][data-id="team"]']; },
-      text: function (h) { return h && h.kind === 'key' ? 'The scan keeps going on your computer while you move around. Open Projects.' : h ? '' : 'Individual and Team sit side by side here, as on the desktop. Switch to Team: your team’s work is a tap away.'; },
+      text: function (h) { return h && h.kind === 'key' ? 'The scan keeps going on your computer while you move around. Open Projects.' : h ? '' : 'Personal and Team sit side by side here, as on the desktop. Switch to Team: your team’s work is a tap away.'; },
       done: function () { return P.scope === 'team'; } },
     { id: 'phone-wait', ch: 2, kind: function () { return P.wf && P.wf.stopped ? 'press' : 'area'; }, wait: true, kick: 'On your computer', hops: true,
       need: function () { return { at: 'deck' }; }, aim: function () { return P.wf && P.wf.stopped ? ['[data-key="bugs"]'] : ['.w-wfb']; },
@@ -3653,7 +3627,7 @@
     if (phone) {
       if (need.ws === 'individual') need = { at: 'project', tab: need.view === 'control' ? 'board' : need.view, task: need.task };
       if (need.ws === 'team') need = { at: 'team', teamTab: need.tv };
-      if ((need.at === 'project' || need.at === 'team') && P.at === 'projects' && P.scope !== (need.at === 'team' ? 'team' : 'individual')) return { sel: '[data-a="pscope"][data-id="' + (need.at === 'team' ? 'team' : 'individual') + '"]', kind: 'scope', to: need.at === 'team' ? 'Team' : 'Individual' };
+      if ((need.at === 'project' || need.at === 'team') && P.at === 'projects' && P.scope !== (need.at === 'team' ? 'team' : 'individual')) return { sel: '[data-a="pscope"][data-id="' + (need.at === 'team' ? 'team' : 'individual') + '"]', kind: 'scope', to: need.at === 'team' ? 'Team' : 'Personal' };
       if (need.at === 'team' && P.at === 'projects') return { sel: '[data-a="pteam"]', kind: 'teamproject' };
       if (need.at === 'team' && P.at === 'team' && need.teamTab && P.teamTab !== need.teamTab) return { sel: '[data-a="pteamtab"][data-id="' + need.teamTab + '"]', kind: 'nav', to: need.teamTab };
       if (P.task && !taskOk(P.task)) return { sel: '.w-mtask [data-a="close"]', kind: 'back' };
@@ -3672,7 +3646,7 @@
       return null;
     }
     if (D.pal !== null) return null;
-    if (need.ws && D.ws !== need.ws) return D.sw ? { sel: '.w-menu [data-a="ws"][data-id="' + need.ws + '"]', kind: 'ws', to: need.ws } : { sel: '.w-rail [data-a="sw"]', kind: 'sw', to: need.ws };
+    if (need.ws && D.ws !== need.ws) return { sel: '.w-rail [data-a="ws"][data-id="' + need.ws + '"]', kind: 'ws', to: need.ws };
     if (D.sw) return null;
     // A workspace's own page, or any page of the workspace the step is in (need.here): the sidebar is on every one of them.
     if (need.pw) return D.page === 'pw' && D.pwk === need.pw ? null : { sel: '.w-rail [data-a="pw-open"][data-k="' + need.pw + '"]', kind: 'pw', to: need.pw };
@@ -3691,7 +3665,7 @@
     }
     return null;
   }
-  var WSNAME = { universal: 'Universal', individual: 'Individual' }, VIEWNAME = { board: 'Board', calendar: 'Calendar', mywork: 'My Work', inbox: 'Workspaces', reviews: 'Reviews', home: 'Workspace', control: 'Workspace', review: 'Review', git: 'Git', doing: 'In progress', backlog: 'Backlog' };
+  var WSNAME = { universal: 'Home', individual: 'Personal' }, VIEWNAME = { board: 'Board', calendar: 'Calendar', mywork: 'Home', inbox: 'Home', reviews: 'Reviews', home: 'Workspace', control: 'Workspace', review: 'Review', git: 'Git', doing: 'In progress', backlog: 'Backlog' };
   var HOP = { scope: function (h) { return 'Choose ' + h.to + ' projects.'; }, teamproject: 'Open your team’s shared project.', deck: 'Open the Control Deck.', key: function (h) { return 'Open ' + (PLACES[h.to] || 'the page') + '.'; }, 'close-asst': 'Close Salie to continue.', 'open-asst': 'Open Salie.', 'close-sheet': 'Close this to continue.', back: 'Go back to the board.', 'projects-back': 'Back to Projects.', 'close-task': 'Close the task to see the board.',
     sw: function (h) { return 'Open the switcher to get to ' + (WSNAME[h.to] || S.team.name) + '.'; },
     ws: function (h) { return 'Choose ' + (WSNAME[h.to] || S.team.name) + '.'; },
@@ -3863,7 +3837,7 @@
           else { P.at = 'project'; P.proj = D.proj; P.tab = ['board', 'calendar', 'git', 'runs', 'psettings'].indexOf(D.view) >= 0 ? D.view : 'board'; }
           P.scope = 'individual';
         }
-        // Universal is the desktop's home, and the deck is the phone's.
+        // Home is the desktop's home, and the deck is the phone's.
         else P.at = D.uv === 'inbox' ? 'control' : D.uv === 'calendar' ? 'calendar' : 'deck';
         // A workspace Salie made is on the phone too, and its page stays open.
         if (D.page === 'pw' && PWS[D.pwk].ws) { P.at = 'pw'; P.pwk = D.pwk; }

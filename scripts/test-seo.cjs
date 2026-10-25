@@ -31,7 +31,7 @@ test('headline, title and description make no roadmap or unverifiable claim', ()
   const h1 = text(h.match(/<h1[\s>][\s\S]*?<\/h1>/)[0]);
   const title = text(h.match(/<title>([\s\S]*?)<\/title>/)[1]);
   const head = [h1, title, meta(h, 'name', 'description'), meta(h, 'property', 'og:title'), meta(h, 'property', 'og:description')].join(' | ');
-  for (const bad of [/any (llm|model|agent)/i, /open[- ]source/i, /\bfree\b/i, /recurring/i, /push notification/i, /soc ?2/i, /enterprise/i, /Claude Code|Codex/, /founding/i]) {
+  for (const bad of [/any (llm|model|agent)/i, /open[- ]source/i, /recurring/i, /push notification/i, /soc ?2/i, /enterprise/i, /Claude Code|Codex/, /founding/i]) {
     assert.ok(!bad.test(head), 'unverifiable or tool-bound wording in the headline, title or description: ' + bad + ' in ' + head);
   }
 });
@@ -40,7 +40,7 @@ test('title and description fit a search result', () => {
   const h = read('index.html');
   const title = text(h.match(/<title>([\s\S]*?)<\/title>/)[1]);
   assert.ok(title.length <= 60, 'title is ' + title.length + ' characters');
-  assert.ok(title.includes('Team Workspace') && title.includes('AI Agents'), title);
+  assert.ok(title.includes('Personal and Team Projects') && title.includes('AI Agents'), title);
   const d = meta(h, 'name', 'description');
   assert.ok(d.length >= 120 && d.length <= 160, 'description is ' + d.length + ' characters');
 });
@@ -162,7 +162,7 @@ test('house rule: no em dashes in public copy', () => {
 test('house rule: the copy claims nothing that is not shipped or confirmed', () => {
   for (const f of COPY) {
     const t = read(f);
-    for (const bad of [/open[- ]source/i, /\bfree\b/i, /push notification/i, /soc ?2/i, /enterprise/i, /Download for Mac/i, /Founding/]) {
+    for (const bad of [/open[- ]source/i, /push notification/i, /soc ?2/i, /enterprise/i, /Download for Mac/i, /Founding/]) {
       assert.ok(!bad.test(t), f + ' contains ' + bad);
     }
   }
@@ -181,16 +181,16 @@ test('the demo welcome says what werkbord is, as a meta-harness, in a short dial
 
 test('the demo uses the app\'s names for its places', () => {
   const js = read('assets/js/app-demo.js');
-  for (const name of ["'Workspaces', 'control'", "Devices &amp; Hosting", "['doing', 'In progress']", "'Workspace', D.view === 'control'"]) {
+  for (const name of ["'Home', selected", "Devices &amp; Hosting", "['doing', 'In progress']", "data-id=\"general/plan\""]) {
     assert.ok(js.includes(name), 'missing ' + name);
   }
   for (const old of ['Workspaces &amp; Devices', "['doing', 'Doing']"]) assert.ok(!js.includes(old), 'out of date: ' + old);
 });
 
-test('the first bullet says werkbord is a meta-harness that connects and controls all your agents', () => {
+test('the first bullet describes one app with Personal and Team projects', () => {
   const h = read('index.html');
   const first = text(h.match(/<ul class="points">[\s\S]*?<li>([\s\S]*?)<\/li>/)[1]);
-  assert.match(first, /meta-harness that connects and controls all your agents/);
+  assert.match(first, /Personal and Team projects in one app/);
 });
 
 test('the Team board follows the app: Available, In Progress, Review and Done, with no Backlog column', () => {
@@ -266,4 +266,16 @@ test('Salie draws a workspace and never reads its records, and the phone does no
   assert.ok(js.includes('Salie cannot read or change them'), 'the walkthrough must say Salie does not read the records');
   assert.ok(js.includes('Renaming, history and deleting stay on your computer'), 'the phone must not rename, restore or delete a workspace');
   assert.doesNotMatch(js.match(/function pwPhone\(\)[\s\S]*?\n  \}/)[0], /pw-menu|pw-delete|pw-history|pwlib/, 'the phone page has no management menu or data library');
+});
+
+
+test('plan facts describe one build with a per-person offline Premium key', () => {
+  const h = text(read('index.html'));
+  for (const claim of [/One app. Free and Premium/, /teams of up to two people/, /Premium for every member/, /Extra devices do not count/, /per-person key checked offline/, /one-time purchase, not yet on sale/, /read-only access/]) assert.match(h, claim);
+  const js = read('assets/js/app-demo.js');
+  assert.ok(js.includes("'general/plan': function"));
+  for (const old of ['Individual', 'Universal', 'team/license', 'The license is a file', 'Switch workspace. Showing']) assert.ok(!js.includes(old), old);
+  const rail = js.slice(js.indexOf('function railHTML()'), js.indexOf('function switcherHTML()'));
+  assert.ok(!rail.includes('data-a="sw"'), 'workspace switcher is gone');
+  for (const name of ['Home', 'Calendar', 'Reviews', 'Analytics', 'Personal', 'New team or join']) assert.ok(rail.includes(name), name);
 });
