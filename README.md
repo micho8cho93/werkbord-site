@@ -19,8 +19,9 @@ lowercase demo state values `individual` and `universal` remain internal identif
 - `index.html`: headline, waitlist, expandable plan facts and desktop/phone demo. Keep the existing responsive layout,
   pixel mark, Geist typography, light/dark themes and reduced-motion support.
 - `llms.txt`: the same product facts as the page, including release limits and pending work.
-- `assets/js/app-demo.js`: a scripted simulator over made-up data. The desktop sidebar groups Personal projects and a team,
-  with Home, Calendar, Reviews and Analytics once each. Settings → Plan explains Free/Premium; there is no workspace licence
+- `assets/css/themes.css`: the one set of colour, material and radius tokens for the page and the demo window. `data-theme` (light or dark) and `data-style` (absent for Paper, `graphite`, `classic`) sit on `<html>`, are applied before first paint by the head script and changed only by `WB.setTheme` / `WB.setStyle` in `common.js` (storage keys `wb-theme`, `wb-style`). The demo's Settings → Appearance is the only control; there is no separate toggle in the header or the rail.
+- `assets/js/app-demo.js`: a scripted simulator over made-up data. The desktop sidebar follows web/src/shell/Sidebar.svelte: Salie, then Home, Calendar, Reviews and Analytics once each, a foldable section for Personal and one for the team (each project with its move arrow), then New team or join, Devices & Hosting, Data library, Settings and the plan chip. Salie also floats over Home; Settings → Appearance sets where. Reviews and Analytics choose where to look. Settings → Agents lists the 25-CLI catalogue; Salie has session tabs, scripted terminals and an attention queue. Move project and New team or join are scripted sheets.
+   Settings → Plan explains Free/Premium; there is no workspace licence
   screen or workspace switcher. The sample team illustrates Premium access; no real unlock key is checked. The phone keeps the Control Deck. Saved demo records use browser memory/storage only.
 - `assets/js/demo-guide.js`, `demo-motion.js`: the guided story and motion. Navigation points directly to workspace sections.
   The screens are illustrative and simplified; the demo does not exercise native confirmations, Premium verification,

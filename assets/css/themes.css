@@ -1,0 +1,131 @@
+/* One set of tokens for the whole site: the page and the demo window both read these, so a change in the demo's Settings
+   (Theme and Style) restyles everything at once. Copied from the product's web/src/app.css ("The palettes") and DESIGN.md.
+
+   Two independent choices on <html>, applied before first paint by the script in <head> and changed by WB.setTheme / WB.setStyle:
+     data-theme  light | dark                       (the page resolves "Device" to one of these)
+     data-style  absent = Paper | graphite | classic
+   Paper: warm ivory, brown ink, cobalt; flat.  Graphite: cool blue-grey, ink primary, teal accent; flat.  Classic: the earlier
+   raised buttons and cards on cool paper. Every style has its own light and dark palette. */
+
+/* ---------- colour modes: what is the same in every style ---------- */
+:root {
+  --amber: #F2A93B; --amber-ring: rgba(242,169,59,.3);
+  --ok: #2F8F55; --warn: #B7791F; --danger: #C2413B; --block: #7B4FC0;
+  --ok-text: #1F6E3E; --warn-text: #86580E; --danger-text: #A8322C;
+  --scrim: rgba(10,10,10,.32);
+  --key-wf: linear-gradient(#F4F6FF, #DCE2FF);
+  --deck-edge: #FFFFFF; --deck-wall: color-mix(in srgb, var(--text) 20%, var(--border));
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --amber: #E0A84A; --amber-ring: rgba(224,168,74,.28);
+  --ok: #5FB37A; --warn: #E0A84A; --danger: #EF6B64; --block: #B595F2;
+  --ok-text: #5FB37A; --warn-text: #E0A84A; --danger-text: #EF6B64;
+  --scrim: rgba(0,0,0,.55);
+  --key-wf: linear-gradient(#2C3352, #1C2138);
+  --deck-edge: color-mix(in srgb, var(--text) 9%, transparent); --deck-wall: color-mix(in srgb, var(--ground) 72%, var(--border));
+  color-scheme: dark;
+}
+
+/* ---------- palettes ---------- */
+/* Paper (the default) */
+:root {
+  --bg: #F6F1E7; --surface: #FFFDF8; --surface-2: #ECE4D4; --border: #DCD2BD; --text: #1C1710; --text-2: #5C5346;
+  --accent: #2447FF; --accent-text: #FFFFFF; --pri-text: #FFFFFF; --tint: #E6E9FB; --ground: #E8E0CF;
+}
+:root[data-theme="dark"] {
+  --bg: #15120E; --surface: #1E1A15; --surface-2: #28231C; --border: #3A3329; --text: #F2ECE0; --text-2: #B0A692;
+  --accent: #8FA3FF; --accent-text: #0A0A0A; --pri-text: #0A0A0A; --tint: #212548; --ground: #0D0B08;
+}
+/* Graphite */
+:root[data-style="graphite"] {
+  --bg: #F1F4F7; --surface: #FFFFFF; --surface-2: #E6EBF0; --border: #D3DAE3; --text: #0E1620; --text-2: #4B5866;
+  --accent: #0A6280; --accent-text: #FFFFFF; --pri-fill: #111A24; --pri-text: #F4F7FA; --tint: #E0EEF3; --ground: #E8EDF2;
+}
+:root[data-style="graphite"][data-theme="dark"] {
+  --bg: #0D1218; --surface: #141B23; --surface-2: #1C2530; --border: #2B3643; --text: #E8EEF4; --text-2: #9AA8B8;
+  --accent: #5CC8E0; --accent-text: #08121A; --pri-fill: #EAF0F6; --pri-text: #0D1218; --tint: #12303A; --ground: #080C10;
+}
+/* Classic */
+:root[data-style="classic"] {
+  --bg: #F5F5F2; --surface: #FFFFFF; --surface-2: #EDEDE8; --border: #DAD9D3; --text: #0A0A0A; --text-2: #55554F;
+  --accent: #2447FF; --accent-text: #FFFFFF; --pri-text: #FFFFFF; --tint: #E8ECFF; --ground: #E9E9E4;
+}
+:root[data-style="classic"][data-theme="dark"] {
+  --bg: #0B0B0C; --surface: #141415; --surface-2: #1D1D1F; --border: #2A2A2D; --text: #F0F0EC; --text-2: #A3A39D;
+  --accent: #7C93FF; --accent-text: #0A0A0A; --pri-text: #0A0A0A; --tint: #1B2140; --ground: #060607;
+}
+
+/* ---------- materials ---------- */
+/* Paper and Graphite are flat: a hairline instead of a shadow, one shadow left for what floats. A shadow token is never `none`
+   (it sits in comma lists). */
+:root {
+  --btn-bg: var(--surface); --btn-bg-hover: var(--surface-2); --btn-sh: 0 0 0 0 transparent;
+  --pri-bg: var(--pri-fill, var(--accent)); --pri-bd: var(--pri-fill, var(--accent)); --pri-sh: 0 0 0 0 transparent; --pri-press: 0 0 0 0 transparent;
+  --card-sh: 0 0 0 0 transparent; --tray-sh: 0 0 0 0 transparent; --press-sh: 0 0 0 0 transparent;
+  --key-bg: var(--surface-2); --key-sh: 0 0 0 0 transparent; --live-ring: 0 0 0 0 transparent;
+  --win-sh: 0 12px 32px -12px rgba(10,10,10,.3), 0 1px 2px rgba(10,10,10,.08);
+  --r: 10px; --r-sm: 6px;
+}
+:root[data-theme="dark"] { --win-sh: 0 18px 40px -16px rgba(0,0,0,.7), 0 1px 2px rgba(0,0,0,.5); }
+:root[data-style="classic"] {
+  --btn-bg: linear-gradient(#FFFFFF, #F5F5F2); --btn-bg-hover: linear-gradient(#FFFFFF, #EFEFEA);
+  --btn-sh: inset 0 1px 0 #FFFFFF, inset 0 -1px 0 rgba(21,21,21,.08), 0 1px 1px rgba(21,21,21,.14), 0 2px 4px -2px rgba(21,21,21,.1);
+  --pri-bg: linear-gradient(#3856FF, #2447FF); --pri-bd: #1C3AD6;
+  --pri-sh: inset 0 1px 0 rgba(255,255,255,.26), inset 0 -1px 0 rgba(0,10,80,.3), 0 1px 1px rgba(0,10,80,.38), 0 3px 8px -2px rgba(36,71,255,.32);
+  --pri-press: inset 0 1px 3px rgba(0,10,80,.5);
+  --card-sh: inset 0 1px 0 rgba(255,255,255,.9), 0 1px 1px rgba(21,21,21,.09), 0 4px 10px -5px rgba(21,21,21,.14);
+  --tray-sh: inset 0 1px 3px rgba(21,21,21,.09), inset 0 0 0 1px rgba(21,21,21,.04);
+  --press-sh: inset 0 1px 3px rgba(21,21,21,.12);
+  --win-sh: 0 1px 1px rgba(21,21,21,.1), 0 18px 40px -18px rgba(21,21,21,.35), 0 40px 80px -40px rgba(21,21,21,.25);
+  --key-bg: linear-gradient(#FFFFFF, #ECECE8); --key-sh: 0 1px 0 rgba(21,21,21,.18), inset 0 1px 0 #FFFFFF;
+  --live-ring: 0 0 0 3px rgba(36,71,255,.12);
+  --r: 8px; --r-sm: 5px;
+}
+:root[data-style="classic"][data-theme="dark"] {
+  --btn-bg: linear-gradient(#28282B, #1D1D1F); --btn-bg-hover: linear-gradient(#2E2E31, #222225);
+  --btn-sh: inset 0 1px 0 rgba(255,255,255,.07), inset 0 -1px 0 rgba(0,0,0,.35), 0 1px 1px rgba(0,0,0,.55), 0 2px 4px -2px rgba(0,0,0,.5);
+  --pri-bg: linear-gradient(#8CA0FF, #7089F7); --pri-bd: #5F78E8;
+  --pri-sh: inset 0 1px 0 rgba(255,255,255,.32), inset 0 -1px 0 rgba(20,30,120,.35), 0 1px 1px rgba(0,0,0,.55), 0 3px 8px -2px rgba(124,147,255,.3);
+  --pri-press: inset 0 1px 3px rgba(20,30,120,.6);
+  --card-sh: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 1px rgba(0,0,0,.55), 0 5px 10px -6px rgba(0,0,0,.75);
+  --tray-sh: inset 0 1px 3px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.03);
+  --press-sh: inset 0 1px 3px rgba(0,0,0,.5);
+  --win-sh: 0 1px 1px rgba(0,0,0,.6), 0 18px 40px -18px rgba(0,0,0,.7), 0 40px 80px -40px rgba(0,0,0,.6);
+  --key-bg: linear-gradient(#2E2E31, #1F1F21); --key-sh: 0 1px 0 rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08);
+  --live-ring: 0 0 0 3px rgba(124,147,255,.16);
+}
+
+/* ---------- the site's own short names ---------- */
+:root {
+  --sf: var(--surface); --s2: var(--surface-2); --bd: var(--border);
+  --tx: var(--text); --t2: var(--text-2); --ac: var(--accent); --act: var(--accent-text);
+  --ok-tx: var(--ok-text); --wn: var(--warn); --wn-tx: var(--warn-text); --dg: var(--danger); --dg-tx: var(--danger-text); --bl: var(--block);
+}
+
+/* ---------- flat layer for the demo window (Paper and Graphite) ---------- */
+/* The product's rules for these styles: outlined buttons, a ring for the pressed segment, section labels in the interface voice,
+   the primary in ink for Graphite. Classic keeps the raised look from the tokens above. */
+.wbx .w-btn.pri { color: var(--pri-text); }
+.btn.pri { color: var(--pri-text); }
+:root:not([data-style="classic"]) .wbx .w-btn,
+:root:not([data-style="classic"]) .wbx .w-pick,
+:root:not([data-style="classic"]) .wbx .w-input,
+:root:not([data-style="classic"]) .wbx .w-select,
+:root:not([data-style="classic"]) .wbx .w-askbtn { border-radius: var(--r-sm); }
+:root:not([data-style="classic"]) .wbx .w-card,
+:root:not([data-style="classic"]) .wbx .w-pn,
+:root:not([data-style="classic"]) .wbx .w-tray,
+:root:not([data-style="classic"]) .wbx .w-ulist,
+:root:not([data-style="classic"]) .wbx .w-ui,
+:root:not([data-style="classic"]) .wbx .w-sug,
+:root:not([data-style="classic"]) .wbx .w-acard,
+:root:not([data-style="classic"]) .wbx .w-wfb { border-radius: var(--r); }
+:root:not([data-style="classic"]) .wbx .w-btn:hover:not(:disabled) { border-color: color-mix(in srgb, var(--text-2) 40%, var(--border)); }
+:root:not([data-style="classic"]) .wbx .w-btn.pri:hover:not(:disabled) { filter: none; background: color-mix(in srgb, var(--pri-bg) 88%, var(--text)); }
+:root:not([data-style="classic"]) .wbx .w-seg button[aria-pressed="true"] { box-shadow: 0 0 0 1px var(--border); }
+:root:not([data-style="classic"]) .btn { border-radius: var(--r-sm); }
+:root:not([data-style="classic"]) .btn:hover { border-color: color-mix(in srgb, var(--t2) 40%, var(--bd)); }
+:root:not([data-style="classic"]) .btn:active { box-shadow: none; }
+:root:not([data-style="classic"]) .btn.pri:hover { background: color-mix(in srgb, var(--pri-bg) 88%, var(--tx)); }
+:root:not([data-style="classic"]) .wl-seats i.on { box-shadow: none; }

@@ -181,7 +181,7 @@ test('the demo welcome says what werkbord is, as a meta-harness, in a short dial
 
 test('the demo uses the app\'s names for its places', () => {
   const js = read('assets/js/app-demo.js');
-  for (const name of ["'Home', selected", "Devices &amp; Hosting", "['doing', 'In progress']", "data-id=\"general/plan\""]) {
+  for (const name of ["'Home', onU", "Devices &amp; Hosting", "['doing', 'In progress']", "data-id=\"general/plan\""]) {
     assert.ok(js.includes(name), 'missing ' + name);
   }
   for (const old of ['Workspaces &amp; Devices', "['doing', 'Doing']"]) assert.ok(!js.includes(old), 'out of date: ' + old);
@@ -278,4 +278,21 @@ test('plan facts describe one build with a per-person offline Premium key', () =
   const rail = js.slice(js.indexOf('function railHTML()'), js.indexOf('function switcherHTML()'));
   assert.ok(!rail.includes('data-a="sw"'), 'workspace switcher is gone');
   for (const name of ['Home', 'Calendar', 'Reviews', 'Analytics', 'Personal', 'New team or join']) assert.ok(rail.includes(name), name);
+});
+
+test('Settings → Appearance offers Theme and Style, and both reach the whole page', () => {
+  const js = read('assets/js/app-demo.js'), c = read('assets/js/common.js'), css = read('assets/css/themes.css'), h = read('index.html');
+  for (const needle of ['data-a="settheme"', 'data-a="setstyle"', 'WB.setTheme', 'WB.setStyle', "'Device'", "'Light'", "'Dark'"]) assert.ok(js.includes(needle), 'missing ' + needle);
+  for (const style of ['Paper', 'Graphite', 'Classic']) assert.ok(c.includes("label: '" + style + "'"), 'missing style ' + style);
+  assert.ok(css.includes('[data-style="graphite"]') && css.includes('[data-style="classic"]'), 'themes.css needs all three styles');
+  assert.ok(h.includes('assets/css/themes.css') && h.includes("localStorage.getItem('wb-style')"), 'index.html applies the stored style before first paint');
+  assert.ok(read('404.html').includes("localStorage.getItem('wb-style')"), '404.html applies the stored style too');
+  assert.ok(!js.includes('data-a="theme"'), 'the rail no longer has its own theme toggle');
+});
+
+test('the demo lists the product\'s 25 coding-agent CLIs', () => {
+  const js = read('assets/js/app-demo.js');
+  const block = js.match(/var AGENTS = \[([\s\S]*?)\n  \];/)[1];
+  assert.strictEqual((block.match(/\['[a-z0-9-]+', '[^']+', [01],/g) || []).length, 25);
+  for (const name of ['Gemini CLI', 'OpenCode', 'Cursor', 'Kiro CLI', 'Google Antigravity']) assert.ok(block.includes("'" + name + "'"), 'missing ' + name);
 });

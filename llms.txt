@@ -12,10 +12,12 @@
 - Free includes all Personal work and any number of teams with up to two people, owner included. Extra devices do not count as people.
 - Teams of three or more need Premium for every member. A member without proof retains read-only access; ordinary permissions still apply. Returning to two restores access.
 - Premium is a per-person signed unlock key checked offline by the app and Team host. A one-time purchase is planned, but Premium is not yet on sale. No subscription, expiry, vendor account or runtime Werkbord cloud service.
-- Home, Calendar, Reviews and Analytics span connected workspaces; the sidebar groups Personal projects and each team's projects. The go-to palette opens with Command-K.
+- Home, Calendar, Reviews and Analytics span connected workspaces; Reviews and Analytics each offer a choice of where to look. The sidebar groups Personal projects and each team's projects. The go-to palette opens with Command-K.
 - New team or join uses one flow. Hosting needs customer-owned infrastructure; the Mac installer asks for administrator authorisation. Connecting a runner is explicit and every run follows local approvals.
 - Move project reviews the name, remote reference and ticket text before native confirmation. Import is atomic and safe to retry; the source is archived with its history. Runs, files, credentials and agent output stay at the source. Team to Personal creates a work board without a checkout.
-- Claude Code, Codex, Gemini CLI and OpenCode work through the user's own installed command-line tools and sign-ins.
+- Claude Code, Codex, Gemini CLI and OpenCode work through the user's own installed command-line tools and sign-ins. The catalogue lists 25 coding-agent CLIs in total (21 more over ACP, two of which need a separately installed adapter). Salie chat is verified for the original four only. New work picks an agent by objective: Lowest cost, Max reasoning, Highest intelligence or Manual.
+- Salie keeps one tab per conversation, can open persistent native Claude Code and Codex terminals, attaches to a running task's session, and shows one attention queue of questions and confirmations from every project.
+- Settings → Appearance sets a Theme (Device, Light or Dark) and a Style (Paper, Graphite or Classic) for the whole window; the demo applies both to this page too.
 - Team coordinates tickets and people. Each member retains their own runner and credentials; Team never executes developer work.
 - Salie has sidebar and floating entry points. The planned Team read-only restriction is not yet enforced; the current approved ticket-creation bridge remains.
 - The waitlist asks for an email and optional team size. Joining it does not purchase Premium or approve production use.

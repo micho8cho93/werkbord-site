@@ -8,7 +8,7 @@ The website should quickly explain the essential Personal and Team workflows. In
 
 Positioning: the site speaks of a team workspace for AI agents that bridges people who code and people who do not. State only what ships today. Planned work (simpler flows for non-developers) may appear once, labelled as planned, in llms.txt, never in a headline, title or description. `node --test scripts/test-seo.cjs` enforces that.
 
-Preserve the established pixel mark, Geist typography, neutral surfaces, cobalt and amber accents, and light/dark themes. Use restrained motion and respect reduced-motion preferences. The public footer contains the copyright line; the launch page offers the waitlist and the demo.
+Preserve the established pixel mark and Geist typography. Colour follows the app: Paper (warm ivory, cobalt and amber) is the default, with Graphite and Classic as styles, each in light and dark; the visitor chooses in the demo's Settings and the whole page follows. Use restrained motion and respect reduced-motion preferences. The public footer contains the copyright line; the launch page offers the waitlist and the demo.
 
 The demo’s in-app help is task-oriented and based on the product repository’s guides. The public launch page has no separate documentation pages; do not link to removed pages.
 
