@@ -124,13 +124,14 @@ html:not(.js) .demo-panel[data-panel="phone"] { display: none; }
   .device .w-asst .w-atop { padding-top: 66px; }
 }
 
-/* Landscape screens from 1200px: one screen with no scroll. The copy is the left column, and it never narrows below the
-   width its one-line points need. The right column holds the switch and the simulator it picks, and lines up with the
+/* Landscape screens from 1200px: one screen with no scroll. The copy uses a compact left column so laptop screens
+   give the desktop demo more room; its points can wrap. The right column holds the switch and simulator, and lines up with the
    header's right edge. The simulator takes the column's height, less the switch row, which also holds the chapters. The
    guide's note floats over the simulator, beside what it is about. */
 @media (min-width: 1200px) and (min-aspect-ratio: 1/1) {
   .top-in { height: 56px; }
-  .home { display: grid; grid-template-columns: minmax(500px, 35%) minmax(0, 1fr); gap: clamp(28px, 3.5vw, 48px); align-items: center; min-height: calc(100vh - 94px); padding: 14px 0; }
+  .home { display: grid; grid-template-columns: minmax(360px, 28%) minmax(0, 1fr); gap: clamp(24px, 2.5vw, 40px); align-items: center; min-height: calc(100vh - 94px); padding: 14px 0; }
+  .points li { white-space: normal; text-wrap: initial; }
   /* The headline also stops at the height of the screen, so the copy column fits beside the simulator. */
   .hero h1 { font-size: clamp(36px, min(calc(100cqi / 8.4), calc(24vh - 130px)), 112px); }
   .demo-section { --stage-h: calc(100vh - 122px); height: var(--stage-h); padding: 0; border-top: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 40px minmax(0, 1fr); grid-template-areas: "switch" "stage"; row-gap: 16px; column-gap: 0; align-items: stretch; justify-content: stretch; }
